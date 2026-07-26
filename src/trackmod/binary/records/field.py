@@ -1,7 +1,7 @@
 import struct
 
-import pydantic
 from pydantic import BaseModel
+from pydantic import Field as ModelField
 
 from trackmod.schema.config import FROZEN
 
@@ -15,9 +15,9 @@ class Field(BaseModel):
 
     model_config = FROZEN
 
-    name: str = pydantic.Field(min_length=1)
-    offset: int = pydantic.Field(ge=0)
-    code: str = pydantic.Field(min_length=1)
+    name: str = ModelField(min_length=1)
+    offset: int = ModelField(ge=0)
+    code: str = ModelField(min_length=1)
 
     @property
     def size(self) -> int:
@@ -34,10 +34,10 @@ class ArrayField(BaseModel):
 
     model_config = FROZEN
 
-    name: str = pydantic.Field(min_length=1)
-    offset: int = pydantic.Field(ge=0)
-    count: int = pydantic.Field(ge=0)
-    code: str = pydantic.Field(min_length=1)
+    name: str = ModelField(min_length=1)
+    offset: int = ModelField(ge=0)
+    count: int = ModelField(ge=0)
+    code: str = ModelField(min_length=1)
 
     @property
     def stride(self) -> int:

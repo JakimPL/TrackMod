@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import pydantic
-from pydantic import BaseModel, model_validator
+import itertools
+
+from pydantic import BaseModel, Field, model_validator
 
 from trackmod.core.envelopes.point import EnvelopePoint
 from trackmod.core.envelopes.span import EnvelopeSpan
@@ -17,14 +18,14 @@ class Envelope(BaseModel):
 
     model_config = FROZEN
 
-    points: tuple[EnvelopePoint, ...] = pydantic.Field(min_length=1)
+    points: tuple[EnvelopePoint, ...] = Field(min_length=1)
     loop: EnvelopeSpan | None = None
     sustain: EnvelopeSpan | None = None
 
     @model_validator(mode="after")
     def _consistent(self) -> Envelope:
         ticks = [point.tick for point in self.points]
-        if any(later <= earlier for earlier, later in zip(ticks, ticks[1:])):
+        if any(later <= earlier for earlier, later in itertools.pairwise(ticks)):
             raise ValueError(f"envelope ticks must increase, got {ticks}")
 
         for name, span in (("loop", self.loop), ("sustain", self.sustain)):

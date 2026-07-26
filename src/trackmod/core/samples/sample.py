@@ -59,21 +59,21 @@ class Sample(BaseModel):
         if not isinstance(other, Sample):
             return NotImplemented
 
-        return _settings(self) == _settings(other) and np.array_equal(self.pcm, other.pcm)
+        return self._settings(self) == self._settings(other) and np.array_equal(self.pcm, other.pcm)
 
     def __hash__(self) -> int:
-        return hash(_settings(self))
+        return hash(self._settings(self))
 
-
-def _settings(sample: Sample) -> tuple[object, ...]:
-    return (
-        sample.name,
-        sample.rate,
-        sample.depth,
-        sample.volume,
-        sample.gain,
-        sample.panning,
-        sample.loop,
-        sample.sustain_loop,
-        sample.frames,
-    )
+    @staticmethod
+    def _settings(sample: Sample) -> tuple[object, ...]:
+        return (
+            sample.name,
+            sample.rate,
+            sample.depth,
+            sample.volume,
+            sample.gain,
+            sample.panning,
+            sample.loop,
+            sample.sustain_loop,
+            sample.frames,
+        )

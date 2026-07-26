@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from enum import IntEnum, unique
 
-import pydantic
-from pydantic import RootModel
+from pydantic import Field, RootModel
 
 from trackmod.schema.config import FROZEN_ROOT
 from trackmod.spec.pitch import MIDI_OFFSET, NOTE_COUNT, NOTES_PER_OCTAVE, PITCH_LABELS
@@ -42,7 +41,7 @@ class Note(RootModel[int]):
 
     model_config = FROZEN_ROOT
 
-    root: int = pydantic.Field(ge=0, lt=NOTE_COUNT)
+    root: int = Field(ge=0, lt=NOTE_COUNT)
 
     @classmethod
     def of(cls, pitch_class: PitchClass, octave: int) -> Note:

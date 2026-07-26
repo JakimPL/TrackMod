@@ -23,12 +23,6 @@ from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
-from trackmod.it.effects.catalog import IT_EFFECTS
-from trackmod.it.limits import it_limits
-from trackmod.it.module import ITModule
-from trackmod.it.patterns.sizing import packed_bytes as it_packed_bytes
-from trackmod.it.timing import exact_timings as it_exact_timings
-from trackmod.it.timing import row_frames as it_row_frames
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
@@ -37,14 +31,20 @@ from trackmod.module.protocol import TrackerModule
 from trackmod.spec.levels import CENTRE_PANNING, MAX_VOLUME
 from trackmod.spec.pitch import RATE_NOTE
 from trackmod.spec.width import NIBBLE_MAX
-from trackmod.xm.effects.catalog import XM_EFFECTS
-from trackmod.xm.limits import xm_limits
-from trackmod.xm.module import XMModule
-from trackmod.xm.patterns.sizing import packed_bytes as xm_packed_bytes
-from trackmod.xm.spec.ranges import MAX_NOTE
-from trackmod.xm.timing import exact_timings as xm_exact_timings
-from trackmod.xm.timing import row_frames as xm_row_frames
-from trackmod.xm.tuning import tuned_rate, tuning_for
+from trackmod.trackers.it.effects.catalog import IT_EFFECTS
+from trackmod.trackers.it.limits import it_limits
+from trackmod.trackers.it.module import ITModule
+from trackmod.trackers.it.patterns.sizing import packed_bytes as it_packed_bytes
+from trackmod.trackers.it.timing import exact_timings as it_exact_timings
+from trackmod.trackers.it.timing import row_frames as it_row_frames
+from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
+from trackmod.trackers.xm.limits import xm_limits
+from trackmod.trackers.xm.module import XMModule
+from trackmod.trackers.xm.patterns.sizing import packed_bytes as xm_packed_bytes
+from trackmod.trackers.xm.spec.ranges import MAX_NOTE
+from trackmod.trackers.xm.timing import exact_timings as xm_exact_timings
+from trackmod.trackers.xm.timing import row_frames as xm_row_frames
+from trackmod.trackers.xm.tuning import tuned_rate, tuning_for
 
 FRAME_RATE: Final = 44100
 PORTABLE_SPEED: Final = 6

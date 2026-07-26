@@ -6,7 +6,12 @@ from trackmod.binary.pcm.quantise import dequantise, quantise
 from trackmod.core.samples.depth import BitDepth
 
 
-def encode_pcm(pcm: NDArray[np.float64], *, depth: BitDepth, encoding: PcmEncoding) -> bytes:
+def encode_pcm(
+    pcm: NDArray[np.float64],
+    *,
+    depth: BitDepth,
+    encoding: PcmEncoding,
+) -> bytes:
     """Serialise float PCM in ``[-1, 1]`` to stored frames.
 
     Deltas are taken in a width wider than the store and cast back, so a difference that overshoots the
@@ -22,7 +27,12 @@ def encode_pcm(pcm: NDArray[np.float64], *, depth: BitDepth, encoding: PcmEncodi
             return np.diff(quantised, prepend=0).astype(dtype).tobytes()
 
 
-def decode_pcm(data: bytes, *, depth: BitDepth, encoding: PcmEncoding) -> NDArray[np.float64]:
+def decode_pcm(
+    data: bytes,
+    *,
+    depth: BitDepth,
+    encoding: PcmEncoding,
+) -> NDArray[np.float64]:
     """Read stored frames back as float PCM in ``[-1, 1]``."""
     dtype = dtype_for(depth)
     stored = np.frombuffer(data, dtype=dtype)

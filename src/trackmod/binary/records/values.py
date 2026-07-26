@@ -13,7 +13,7 @@ def read_int(values: RecordValues, name: str) -> int:
     """
     value = values[name]
     if not isinstance(value, int):
-        raise ValueError(f"field {name!r} holds {type(value).__name__}, expected an integer")
+        raise TypeError(f"field {name!r} holds {type(value).__name__}, expected an integer")
 
     return value
 
@@ -26,7 +26,7 @@ def read_bytes(values: RecordValues, name: str) -> bytes:
     """
     value = values[name]
     if not isinstance(value, bytes):
-        raise ValueError(f"field {name!r} holds {type(value).__name__}, expected a byte block")
+        raise TypeError(f"field {name!r} holds {type(value).__name__}, expected a byte block")
 
     return value
 
@@ -39,6 +39,6 @@ def read_rows(values: RecordValues, name: str) -> ArrayValue:
     """
     value = values[name]
     if isinstance(value, (int, bytes)):
-        raise ValueError(f"field {name!r} holds {type(value).__name__}, expected a run of elements")
+        raise TypeError(f"field {name!r} holds {type(value).__name__}, expected a run of elements")
 
     return value

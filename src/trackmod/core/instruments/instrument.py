@@ -2,7 +2,11 @@ from pydantic import BaseModel
 
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.kind import EnvelopeKind
-from trackmod.core.instruments.behaviour import DuplicateAction, DuplicateCheck, NewNoteAction
+from trackmod.core.instruments.behaviour import (
+    DuplicateAction,
+    DuplicateCheck,
+    NewNoteAction,
+)
 from trackmod.core.instruments.keymap import KeyAssignment, Keymap
 from trackmod.core.notes.pitch import Note
 from trackmod.schema.config import FROZEN

@@ -6,7 +6,11 @@ from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.kind import EnvelopeKind
 from trackmod.core.envelopes.point import EnvelopePoint
 from trackmod.core.instruments.instrument import Instrument
-from trackmod.core.instruments.keymap import KeyAssignment, pitched_keymap, routed_keymap
+from trackmod.core.instruments.keymap import (
+    KeyAssignment,
+    pitched_keymap,
+    routed_keymap,
+)
 from trackmod.core.notes.pitch import Note
 from trackmod.spec.levels import MAX_INSTRUMENT_VOLUME
 

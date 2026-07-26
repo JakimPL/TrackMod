@@ -25,7 +25,7 @@ from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
 from trackmod.spec.pitch import NOTE_COUNT
-from trackmod.xm.spec.sizes import KEYMAP_NOTES
+from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
 
 SAMPLE_RATE = 44100
 

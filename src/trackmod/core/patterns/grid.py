@@ -98,7 +98,11 @@ class Pattern(BaseModel):
         if channels == self.channels:
             return self
 
-        padding = np.full((self.rows, channels - self.channels), EMPTY, dtype=GRID_DTYPE)
+        padding = np.full(
+            (self.rows, channels - self.channels),
+            EMPTY,
+            dtype=GRID_DTYPE,
+        )
         return Pattern.from_columns(
             {column: np.concatenate([plane, padding], axis=1) for column, plane in self.columns.items()}
         )

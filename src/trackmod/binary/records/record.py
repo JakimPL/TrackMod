@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import struct
 
-import pydantic
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
+from pydantic import Field as ModelField
+from pydantic import model_validator
 
 from trackmod.binary.records.field import ArrayField, Field
 from trackmod.binary.records.values import ArrayValue, FieldValue, RecordValues
@@ -20,7 +21,7 @@ class Record(BaseModel):
 
     model_config = FROZEN
 
-    size: int = pydantic.Field(ge=0)
+    size: int = ModelField(ge=0)
     fields: tuple[Field, ...]
     arrays: tuple[ArrayField, ...] = ()
 
@@ -53,7 +54,12 @@ class Record(BaseModel):
                 raise TypeError(f"array {array.name!r} needs a sequence of elements, got {type(rows).__name__}")
 
             for index, row in enumerate(rows):
-                struct.pack_into(array.code, buffer, array.offset + index * array.stride, *row)
+                struct.pack_into(
+                    array.code,
+                    buffer,
+                    array.offset + index * array.stride,
+                    *row,
+                )
 
         return bytes(buffer)
 
@@ -73,7 +79,11 @@ class Record(BaseModel):
 
         for array in self.arrays:
             values[array.name] = tuple(
-                struct.unpack_from(array.code, data, array.offset + index * array.stride)
+                struct.unpack_from(
+                    array.code,
+                    data,
+                    array.offset + index * array.stride,
+                )
                 for index in range(array.count)
             )
 

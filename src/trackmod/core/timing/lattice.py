@@ -1,19 +1,28 @@
 from trackmod.core.timing.timing import Timing
 from trackmod.limits.bound import Bound
 from trackmod.spec.clock import TICK_DENOMINATOR, TICK_NUMERATOR
+from trackmod.utils.arithmetic import divisors, neighbor_divisors
 
 
-def exact_row_frames(speed: int, tempo: int, frame_rate: int) -> int | None:
-    """The whole frames one row spans, or ``None`` when the row does not land on a frame boundary."""
+def numerator_denominator(
+    speed: int,
+    tempo: int,
+    *,
+    frame_rate: int,
+) -> tuple[int, int]:
     numerator = speed * frame_rate * TICK_NUMERATOR
     denominator = tempo * TICK_DENOMINATOR
-    if numerator % denominator != 0:
-        return None
-
-    return numerator // denominator
+    return numerator, denominator
 
 
-def row_frames(speed: int, tempo: int, *, frame_rate: int, speed_bound: Bound, tempo_bound: Bound) -> int:
+def row_frames(
+    speed: int,
+    tempo: int,
+    *,
+    frame_rate: int,
+    speed_bound: Bound,
+    tempo_bound: Bound,
+) -> int:
     """The frames one row spans at a given speed and tempo.
 
     A tick lasts ``5 / (2 * tempo)`` seconds and a row lasts ``speed`` ticks, so a row spans
@@ -30,14 +39,28 @@ def row_frames(speed: int, tempo: int, *, frame_rate: int, speed_bound: Bound, t
     if not tempo_bound.contains(tempo):
         raise ValueError(f"tempo {tempo} is outside {tempo_bound}")
 
-    frames = exact_row_frames(speed, tempo, frame_rate)
-    if frames is None:
-        raise ValueError(f"speed {speed}, tempo {tempo} give a fractional row at {frame_rate} Hz")
+    numerator, denominator = numerator_denominator(
+        speed,
+        tempo,
+        frame_rate=frame_rate,
+    )
+    if numerator % denominator:
+        low, high = neighbor_divisors(denominator, numerator)
+        raise ValueError(
+            f"speed {speed}, tempo {tempo} give a fractional row at {frame_rate} Hz; "
+            f"nearest divisible candidates: {low} and {high}"
+        )
 
-    return frames
+    return numerator // denominator
 
 
-def exact_timings(*, frame_rate: int, speed: int, speed_bound: Bound, tempo_bound: Bound) -> list[Timing]:
+def exact_timings(
+    *,
+    frame_rate: int,
+    speed: int,
+    speed_bound: Bound,
+    tempo_bound: Bound,
+) -> list[Timing]:
     """Every tempo whose row is a whole number of frames at one speed, ordered by row length.
 
     Sweeping tempo at a fixed speed walks the achievable row lengths: a shorter row buys time resolution,
@@ -49,11 +72,21 @@ def exact_timings(*, frame_rate: int, speed: int, speed_bound: Bound, tempo_boun
     if not speed_bound.contains(speed):
         raise ValueError(f"speed {speed} is outside {speed_bound}")
 
-    timings = []
-    for tempo in range(tempo_bound.minimum, tempo_bound.maximum + 1):
-        frames = exact_row_frames(speed, tempo, frame_rate)
-        if frames is not None:
-            timings.append(Timing(speed=speed, tempo=tempo, row_frames=frames))
+    numerator = speed * frame_rate * TICK_NUMERATOR
+
+    timings: list[Timing] = []
+    for denominator in divisors(numerator):
+        tempo, remainder = divmod(denominator, TICK_DENOMINATOR)
+        if remainder or not tempo_bound.contains(tempo):
+            continue
+
+        timings.append(
+            Timing(
+                speed=speed,
+                tempo=tempo,
+                row_frames=numerator // denominator,
+            )
+        )
 
     return sorted(timings, key=lambda timing: timing.row_frames)
 
@@ -80,4 +113,7 @@ def nearest_timing(
     if not candidates:
         raise ValueError(f"no whole-frame tempo at speed {speed}, {frame_rate} Hz")
 
-    return min(candidates, key=lambda timing: (abs(timing.row_frames - target_frames), timing.row_frames))
+    return min(
+        candidates,
+        key=lambda timing: (abs(timing.row_frames - target_frames), timing.row_frames),
+    )

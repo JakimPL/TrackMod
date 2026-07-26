@@ -8,7 +8,12 @@ from numpy.typing import NDArray
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
 
-from trackmod.spec.grid import GRID_DIMENSIONS, GRID_DTYPE, WAVEFORM_DIMENSIONS, WAVEFORM_DTYPE
+from trackmod.spec.grid import (
+    GRID_DIMENSIONS,
+    GRID_DTYPE,
+    WAVEFORM_DIMENSIONS,
+    WAVEFORM_DTYPE,
+)
 
 
 @dataclass(frozen=True)
@@ -22,7 +27,11 @@ class Shaped:
     dtype: type[np.generic]
     dimensions: int
 
-    def __get_pydantic_core_schema__(self, source: type[Any], handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
+    def __get_pydantic_core_schema__(
+        self,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> core_schema.CoreSchema:
         """The validator pydantic runs for a field annotated with this shape."""
         return core_schema.no_info_plain_validator_function(self.validate)
 

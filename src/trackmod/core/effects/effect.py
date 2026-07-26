@@ -1,5 +1,4 @@
-import pydantic
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from trackmod.schema.config import FROZEN
 from trackmod.spec.width import BYTE_MAX
@@ -14,5 +13,5 @@ class Effect(BaseModel):
 
     model_config = FROZEN
 
-    command: int = pydantic.Field(ge=0, le=BYTE_MAX)
-    parameter: int = pydantic.Field(ge=0, le=BYTE_MAX)
+    command: int = Field(ge=0, le=BYTE_MAX)
+    parameter: int = Field(ge=0, le=BYTE_MAX)
