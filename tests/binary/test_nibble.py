@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from trackmod.binary.nibble import join_nibbles, split_nibbles

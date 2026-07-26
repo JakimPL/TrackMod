@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 import numpy as np
@@ -12,7 +10,12 @@ from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.point import EnvelopePoint
 from trackmod.core.envelopes.span import EnvelopeSpan
 from trackmod.core.instruments.instrument import Instrument
-from trackmod.core.instruments.keymap import KeyAssignment, Keymap, pitched_keymap, routed_keymap
+from trackmod.core.instruments.keymap import (
+    KeyAssignment,
+    Keymap,
+    pitched_keymap,
+    routed_keymap,
+)
 from trackmod.core.notes.command import NoteCommand
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder

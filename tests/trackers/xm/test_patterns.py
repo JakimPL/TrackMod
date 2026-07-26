@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from tests.trackers.xm.conftest import xm_pattern
@@ -14,7 +12,12 @@ from trackmod.trackers.xm.note import stored_note
 from trackmod.trackers.xm.patterns.packer import pack_cells
 from trackmod.trackers.xm.patterns.parser import unpack_cells
 from trackmod.trackers.xm.patterns.sizing import packed_bytes
-from trackmod.trackers.xm.spec.cells import PACKED_BYTE, RAW_CELL_BYTES, VOLUME_COLUMN_BASE, CellMask
+from trackmod.trackers.xm.spec.cells import (
+    PACKED_BYTE,
+    RAW_CELL_BYTES,
+    VOLUME_COLUMN_BASE,
+    CellMask,
+)
 from trackmod.trackers.xm.spec.ranges import MAX_ROWS
 
 GRIDS = (

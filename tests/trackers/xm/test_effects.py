@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from trackmod.binary.nibble import split_nibbles
@@ -7,7 +5,11 @@ from trackmod.core.effects.catalog import EffectCatalog
 from trackmod.spec.width import NIBBLE_MAX
 from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
 from trackmod.trackers.xm.effects.command import XMEffect, XMExtended
-from trackmod.trackers.xm.spec.ranges import CANONICAL_MAX_SPEED, CANONICAL_MIN_TEMPO, MAX_BREAK_ROW
+from trackmod.trackers.xm.spec.ranges import (
+    CANONICAL_MAX_SPEED,
+    CANONICAL_MIN_TEMPO,
+    MAX_BREAK_ROW,
+)
 
 CATALOG: EffectCatalog = XM_EFFECTS
 

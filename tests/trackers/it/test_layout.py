@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from trackmod.core.envelopes.kind import EnvelopeKind
 from trackmod.trackers.it.layout.envelope import ENVELOPE_OFFSETS, envelope_field
 from trackmod.trackers.it.layout.file import FILE_HEADER

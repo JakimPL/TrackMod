@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 import numpy as np
@@ -10,7 +8,11 @@ from trackmod.limits.compliance import Compliance
 from trackmod.trackers.it.module import ITModule
 from trackmod.trackers.it.patterns.sizing import packed_bytes
 from trackmod.trackers.it.settings import ITSettings
-from trackmod.trackers.it.spec.identity import MAGIC_INSTRUMENT, MAGIC_MODULE, MAGIC_SAMPLE
+from trackmod.trackers.it.spec.identity import (
+    MAGIC_INSTRUMENT,
+    MAGIC_MODULE,
+    MAGIC_SAMPLE,
+)
 
 
 def module(song: Song, *, compliance: Compliance = Compliance.EXTENDED) -> ITModule:

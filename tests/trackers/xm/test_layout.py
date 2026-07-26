@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from trackmod.binary.records.record import Record
 from trackmod.trackers.xm.layout.envelope import (
     ENVELOPE_KINDS,

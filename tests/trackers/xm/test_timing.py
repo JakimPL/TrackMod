@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from trackmod.trackers.it.timing import exact_timings as it_timings

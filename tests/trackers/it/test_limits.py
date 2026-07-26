@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from tests.conftest import GridShape, random_pattern, rescaled
@@ -12,7 +10,11 @@ from trackmod.limits.severity import Severity
 from trackmod.spec.width import BYTE_MAX
 from trackmod.trackers.it.limits import it_limits
 from trackmod.trackers.it.module import ITModule
-from trackmod.trackers.it.spec.ranges import CANONICAL_MAX_CHANNELS, EXTENDED_MAX_CHANNELS, MAX_ROWS
+from trackmod.trackers.it.spec.ranges import (
+    CANONICAL_MAX_CHANNELS,
+    EXTENDED_MAX_CHANNELS,
+    MAX_ROWS,
+)
 
 
 @pytest.mark.parametrize("compliance", list(Compliance))

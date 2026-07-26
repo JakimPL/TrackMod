@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from tests.conftest import GridShape, random_pattern

@@ -1,11 +1,19 @@
-from __future__ import annotations
-
 import pytest
 
 from trackmod.core.notes.pitch import Note
 from trackmod.spec.pitch import RATE_NOTE
-from trackmod.trackers.xm.spec.tuning import FINETUNE_UNITS, REFERENCE_NOTE, REFERENCE_RATE
-from trackmod.trackers.xm.tuning import Tuning, pitch_units, tuned_rate, tuning_for, unit_rate
+from trackmod.trackers.xm.spec.tuning import (
+    FINETUNE_UNITS,
+    REFERENCE_NOTE,
+    REFERENCE_RATE,
+)
+from trackmod.trackers.xm.tuning import (
+    Tuning,
+    pitch_units,
+    tuned_rate,
+    tuning_for,
+    unit_rate,
+)
 
 RATES = (8363, 11025, 16000, 22050, 32000, 44100, 48000)
 
