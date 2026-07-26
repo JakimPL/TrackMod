@@ -1,0 +1,162 @@
+# FastTracker 2 (`.xm`)
+
+Written by `trackmod.xm.writer.write_module`, read by `trackmod.xm.parser.ModuleReader`, bound together
+by `trackmod.xm.module.XMModule`.
+
+It is the opposite of Impulse Tracker in nearly every decision, which is what makes the pair a fair test
+of the shared model.
+
+## File shape
+
+There are no offset tables. Every section is found by walking the sizes of the ones before it, so the
+file is one concatenation read strictly front to back:
+
+```
+"Extended Module: " header                  80 bytes
+order table                                 always 256 bytes, whatever the song plays
+patterns                                    9-byte header + cell stream, one after another
+instruments                                 header, then its sample headers, then its waveforms
+```
+
+The header's `header_size` at offset 60 counts from that offset onward and covers the rest of the header
+plus the whole order table. The order table is written at its full 256 bytes even when the song plays
+three positions, and `restart_position` says where playback resumes.
+
+An instrument is self-contained: its header, then every sample header it owns, then every waveform, in
+that order.
+
+## Packed patterns
+
+Every cell of every row is stored and nothing terminates a row, so a player reads exactly
+`rows * channels` cells. There is **no memory between cells**: what a cell states is what the grid holds.
+
+The first byte of a cell decides how it is read:
+
+- **High bit set** — the byte is a mask, and only the columns it names follow:
+
+  | Bit | Column |
+  |---|---|
+  | `0x01` | note |
+  | `0x02` | instrument |
+  | `0x04` | volume |
+  | `0x08` | effect command |
+  | `0x10` | effect parameter |
+
+- **High bit clear** — the byte *is* the note, and all five columns follow uncompressed.
+
+A cell stating every column therefore costs five bytes in the uncompressed form and would cost six with
+a mask, so a full cell drops its mask. A cell stating nothing still costs the one byte its empty mask
+occupies.
+
+That absence of memory collapses the size model to a closed form. `trackmod.xm.patterns.sizing` counts
+how many columns each grid position states and evaluates
+
+```
+5 if all five are stated else 1 + count
+```
+
+over the whole grid at once — no walk, no channel state. Compare `trackmod/it/patterns/sizing.py`, which
+needs a run-length comparison per column per channel to answer the same question.
+
+Notes are stored one **above** the shared numbering: key `k` is byte `k + 1`, and byte `97` is a key off.
+The eight octaves this format numbers are keys `0..95`; the shared model numbers ten, so a key above 95
+is reported against `Capability.NOTE`. There is no cut and no fade in the note column, so a `NoteCommand`
+other than `OFF` raises.
+
+Instrument numbers are one-based here too, with zero meaning "stay on the instrument this channel already
+carries".
+
+The volume column stores a level as `0x10 + level`. The same column also carries slides, vibrato and
+panning in its other ranges; a parser reads only the level range into `Cell.volume` and leaves the rest
+out rather than misreading a slide as a loudness.
+
+## Tuning: how a rate becomes a transposition
+
+FastTracker 2 stores no playback rate. A sample sounds at the pitch of the key that triggers it, shifted
+by `relative_note` whole semitones and trimmed by `finetune` in units of `1/128` of a semitone. Under the
+linear frequency table the playback frequency for key `k` is
+
+```
+frequency = 8363 * 2 ** ((k + relative_note + finetune / 128 - 48) / 12)
+```
+
+`trackmod.xm.tuning` inverts this. Given a rate in hertz, the key that triggers a sample and the note
+that key should sound, it solves
+
+```
+128 * relative_note + finetune = pitch_units(rate) + 128 * (sounded - 60 - key)
+```
+
+taking the remainder toward negative infinity so the finetune trim is always positive and a whole-semitone
+tuning spends nothing on it. Key 60 is C-5, the key at which a sample plays at exactly its recorded rate,
+which is what `Sample.rate` means.
+
+```python
+tuning_for(44100, key=Note(24), sounded=Note(60))   # relative_note=52, finetune=100
+```
+
+**The lattice is coarse and it rounds.** `1/128` of a semitone is 0.78 cents, so a rate is stored to
+within half of that — 0.39 cents, or about 226 ppm. A sample recorded at 44100 Hz comes back as 44092 Hz:
+181 ppm flat, 0.31 cents. That is inaudible as pitch and irrelevant to a musical sample, but it is real
+and it matters to a caller reconstructing a signal frame by frame. `xm/spec/ranges.py` derives the
+format's whole reachable rate range, `10 Hz` to `25662141 Hz`, from the signed-byte relative note.
+
+A test pins the derivation against the two hardcoded constants the exporter this library replaced used,
+for all sixteen of its sample slots.
+
+## Instruments own their samples
+
+There is no shared sample table. Each instrument carries **its own copies** of the samples its keys
+reach. A sample two instruments both play is written twice, and `size().pcm` counts it twice —
+`trackmod.xm.sizing` is explicit about charging that cost.
+
+`trackmod.xm.instruments.grouping` derives the arrangement from the shared model's keymaps:
+
+- `local_slots` assigns each sample a position within the instrument, in the order the keys first name
+  it;
+- `slot_tuning` finds the one transposition serving every key routed to a sample. A stored sample is
+  transposed once, so keys sounding their own pitch always agree, and so does a whole-instrument
+  transposition. A keymap shifting one key of a sample differently from another is asking for something
+  the format has no field for, and raises.
+
+A consequence worth expecting: reading a module back gives one instrument per group, not the arrangement
+it was built from. A song whose two instruments shared a sample comes back with two samples.
+
+The keymap block is 96 bytes, one sample position per key. There is no way to leave a key silent — every
+byte names a position, and an instrument owning no samples simply never plays.
+
+An instrument that owns nothing is written in the short **29-byte** header the format reserves for it,
+which stops after the sample count rather than reserving room for a keymap nothing routes through. Those
+29 bytes are literally the opening of the 263-byte long form, which is what makes placeholder instrument
+slots cheap.
+
+## Envelopes
+
+Two envelopes, volume and panning, each of at most 12 points, values `0..64`, with the point table and
+its count, sustain point, loop bounds and flags scattered across the instrument header at fixed offsets.
+There is no pitch envelope, and an instrument carrying one raises.
+
+The sustain is a **single point**, not a span, so an `Envelope` whose sustain span covers more than one
+point raises. The flag bits also sit in the opposite order to Impulse Tracker's: here sustain is `0x02`
+and loop is `0x04`.
+
+## Samples
+
+`SAMPLE_HEADER` is 40 bytes and its lengths count **bytes rather than frames**, so a 16-bit sample's
+stored length is twice its frame count. The loop mode is the low two bits of the type byte and the
+16-bit flag is `0x10`. There is no sustain loop, and a sample carrying one raises.
+
+Frames are stored as **deltas**: successive differences that the player integrates with a running sum in
+the stored width. `trackmod.binary.pcm.codec` takes the differences in a wider type and casts back, so a
+difference that overshoots the signed range wraps exactly as the player's running sum unwraps it. The
+first stored delta is taken against zero, which makes it the waveform's first absolute amplitude.
+
+There is no per-sample gain and no per-instrument volume, which is why `Capability.SAMPLE_GAIN` and
+`Capability.INSTRUMENT_VOLUME` are pinned to full — see [`limits.md`](../limits.md).
+
+## Timing
+
+`trackmod.xm.timing` binds the shared clock to a sixteen-bit speed and a sixteen-bit tempo. That is this
+format's real advantage for a caller working to a frame budget: at 44100 Hz and speed 1 the shortest
+whole-frame row it reaches is 2 frames, against Impulse Tracker's 441. Both extremes were verified by
+rendering, and both play at exactly the row length the clock computes.
