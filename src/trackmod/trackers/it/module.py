@@ -10,6 +10,7 @@ from trackmod.limits.error import require
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
 from trackmod.module.size import SizeReport
+from trackmod.module.storage import Storage
 from trackmod.schema.config import FROZEN
 from trackmod.trackers.it.checks import violations
 from trackmod.trackers.it.limits import it_limits
@@ -17,6 +18,7 @@ from trackmod.trackers.it.parser import ModuleReader
 from trackmod.trackers.it.settings import ITSettings
 from trackmod.trackers.it.sizing import module_bytes
 from trackmod.trackers.it.spec.identity import EXTENSION
+from trackmod.trackers.it.spec.storage import IT_STORAGE
 from trackmod.trackers.it.writer import write_module
 
 
@@ -38,10 +40,19 @@ class ITModule(BaseModel):
         settings: ITSettings | None = None,
     ) -> ITModule:
         """Bind a song to this format at one compliance level."""
-        return cls(song=song, compliance=compliance, settings=settings or ITSettings())
+        return cls(
+            song=song,
+            compliance=compliance,
+            settings=settings or ITSettings(),
+        )
 
     @classmethod
-    def parse(cls, data: bytes, *, compliance: Compliance = Compliance.EXTENDED) -> ITModule:
+    def parse(
+        cls,
+        data: bytes,
+        *,
+        compliance: Compliance = Compliance.EXTENDED,
+    ) -> ITModule:
         """Rebuild a module from the bytes of an Impulse Tracker file.
 
         Raises:
@@ -73,6 +84,11 @@ class ITModule(BaseModel):
     def limits(self) -> Limits:
         """The bounds this module is held to, at its compliance level."""
         return it_limits(self.compliance)
+
+    @property
+    def storage(self) -> Storage:
+        """What each kind of content costs this format, for a caller budgeting before it stores anything."""
+        return IT_STORAGE
 
     def violations(self) -> tuple[Violation, ...]:
         """Every bound the song breaks, empty when the module is writable."""

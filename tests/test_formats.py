@@ -52,6 +52,7 @@ PORTABLE_INSTRUMENTS: Final = 3
 PORTABLE_ROWS: Final = (32, 64)
 PORTABLE_SEED: Final = 0
 GENERATED_SEEDS: Final = (1, 2, 3, 4)
+EXTRA_FRAMES: Final = 64
 
 HACKED_TEMPO: Final = 441
 HACKED_CHANNELS: Final = 100
@@ -227,6 +228,22 @@ def test_a_binding_answers_the_whole_module_surface(binding: Binding, portable: 
     assert module.extension.startswith(".")
     assert module.violations() == ()
     assert module.size().total == len(written(module))
+    assert module.storage.file <= module.size().headers
+
+
+def test_the_storage_table_predicts_what_one_more_voice_costs(binding: Binding, portable: Song) -> None:
+    extra = Sample(name="extra", pcm=lattice(np.linspace(-1.0, 1.0, EXTRA_FRAMES)), rate=portable_rate(FRAME_RATE))
+    grown = portable.model_copy(
+        update={
+            "instruments": (*portable.instruments, Instrument(name="extra", keymap=keyed(len(portable.samples)))),
+            "samples": (*portable.samples, extra),
+        }
+    )
+    storage = binding.bind(portable, Compliance.CANONICAL).storage
+    growth = len(written(binding.bind(grown, Compliance.CANONICAL))) - len(
+        written(binding.bind(portable, Compliance.CANONICAL))
+    )
+    assert growth == storage.instrument_bytes(samples=1) + storage.sample_bytes(frames=extra.frames, depth=extra.depth)
 
 
 def test_the_size_model_agrees_with_the_written_file(binding: Binding, portable: Song) -> None:

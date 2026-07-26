@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from tests.conftest import keyed
+from tests.conftest import keyed, lattice
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.point import EnvelopePoint
 from trackmod.core.envelopes.span import EnvelopeSpan
@@ -24,7 +24,10 @@ from trackmod.trackers.xm.spec.sizes import (
     EMPTY_INSTRUMENT_HEADER_BYTES,
     INSTRUMENT_HEADER_BYTES,
 )
+from trackmod.trackers.xm.spec.storage import XM_STORAGE
 from trackmod.trackers.xm.tuning import tuning_for
+
+EXTRA_FRAMES = 64
 
 
 def module(song: Song, *, compliance: Compliance = Compliance.EXTENDED) -> XMModule:
@@ -99,6 +102,29 @@ def test_an_instrument_owning_nothing_is_written_in_the_short_form(xm_song: Song
     assert len(written) == len(module(xm_song).to_bytes()) + EMPTY_INSTRUMENT_HEADER_BYTES
     assert EMPTY_INSTRUMENT_HEADER_BYTES < INSTRUMENT_HEADER_BYTES
     assert XMModule.parse(written).song.instruments[0].samples == ()
+
+
+def test_one_more_instrument_and_its_sample_grow_the_file_by_what_the_table_charges(xm_song: Song) -> None:
+    extra = Sample(name="extra", pcm=lattice(np.linspace(-1.0, 1.0, EXTRA_FRAMES)), rate=44092)
+    grown = Song(
+        name=xm_song.name,
+        channels=xm_song.channels,
+        patterns=xm_song.patterns,
+        order=xm_song.order,
+        instruments=(*xm_song.instruments, Instrument(name="extra", keymap=keyed(len(xm_song.samples)))),
+        samples=(*xm_song.samples, extra),
+        playback=xm_song.playback,
+    )
+    growth = len(module(grown).to_bytes()) - len(module(xm_song).to_bytes())
+    assert growth == XM_STORAGE.instrument_bytes(samples=1) + XM_STORAGE.sample_bytes(
+        frames=extra.frames, depth=extra.depth
+    )
+
+
+def test_a_sample_no_key_reaches_costs_this_format_nothing(xm_song: Song) -> None:
+    extra = Sample(name="unreached", pcm=lattice(np.linspace(-1.0, 1.0, EXTRA_FRAMES)), rate=44092)
+    grown = xm_song.model_copy(update={"samples": (*xm_song.samples, extra)})
+    assert len(module(grown).to_bytes()) == len(module(xm_song).to_bytes())
 
 
 def test_an_instrument_shares_no_sample_table_so_a_shared_sample_is_written_twice(xm_song: Song) -> None:

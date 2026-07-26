@@ -29,12 +29,12 @@ song therefore carries effects for one format at a time.
 | `volume_slide(up=…, down=…)` | Slide the channel volume, one nibble per tick |
 | `set_panning(position)` | Place the channel on the shared `0..255` field |
 
-Each format implements it: `trackmod.it.effects.catalog.IT_EFFECTS` and
-`trackmod.xm.effects.catalog.XM_EFFECTS`. Authoring through a catalogue rather than by writing byte
+Each format implements it: `trackmod.trackers.it.effects.catalog.IT_EFFECTS` and
+`trackmod.trackers.xm.effects.catalog.XM_EFFECTS`. Authoring through a catalogue rather than by writing byte
 literals is what makes the intent portable and the parameter checked:
 
 ```python
-from trackmod.xm.effects.catalog import XM_EFFECTS
+from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
 
 builder.place(row, channel, Cell(effect=XM_EFFECTS.note_delay(3)))
 ```
@@ -44,7 +44,7 @@ raises rather than silently colliding with the next sub-command, which is the cl
 `0xD0 | ticks` by hand invites.
 
 Beyond the catalogue, each format exposes its **full** native command set as an `IntEnum` —
-`trackmod.it.effects.command.ITEffect` and `trackmod.xm.effects.command.XMEffect`, each with an
+`trackmod.trackers.it.effects.command.ITEffect` and `trackmod.trackers.xm.effects.command.XMEffect`, each with an
 `ITExtended` / `XMExtended` companion for the sub-commands that one command selects with its high
 nibble. Anything outside the shared eight is written by naming the command directly:
 
@@ -86,7 +86,7 @@ A parser puts whatever command and parameter bytes it finds into an `Effect`, un
 them is the caller's business, and the format's command enumeration is what interprets them:
 
 ```python
-from trackmod.it.effects.command import ITEffect
+from trackmod.trackers.it.effects.command import ITEffect
 
 effect = pattern.cell(row=4, channel=0).effect
 if effect is not None and effect.command == ITEffect.SET_TEMPO:

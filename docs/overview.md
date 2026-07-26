@@ -29,8 +29,8 @@ The library is layered downward: every package depends only on the ones above it
 | `trackmod/limits` | The capability vocabulary, bounds, compliance levels, violations |
 | `trackmod/core` | The format-agnostic music: notes, patterns, samples, instruments, envelopes, songs, timing |
 | `trackmod/binary` | Byte-level machinery: declarative records, a cursor, fixed-width text, PCM quantisation and encoding |
-| `trackmod/module` | What a format binding offers: the size report and the `TrackerModule` protocol |
-| `trackmod/it`, `trackmod/xm` | One format each: its constants, its record layouts, its packers, parsers, size model and module class |
+| `trackmod/module` | What a format binding offers: the size report, the storage table and the `TrackerModule` protocol |
+| `trackmod/trackers/it`, `trackmod/trackers/xm` | One format each: its constants, its record layouts, its packers, parsers, size model and module class |
 
 Each format package repeats the same internal shape, so knowing one is knowing the other:
 
@@ -49,9 +49,9 @@ Every `__init__.py` is empty. A name is imported from the module that defines it
 
 ```python
 from trackmod.core.songs.song import Song
-from trackmod.it.module import ITModule
 from trackmod.limits.compliance import Compliance
-from trackmod.xm.module import XMModule
+from trackmod.trackers.it.module import ITModule
+from trackmod.trackers.xm.module import XMModule
 ```
 
 ## Writing a module
@@ -62,7 +62,7 @@ level, and produces bytes:
 ```python
 from pathlib import Path
 
-from trackmod.it.module import ITModule
+from trackmod.trackers.it.module import ITModule
 from trackmod.limits.compliance import Compliance
 
 module = ITModule.from_song(song, compliance=Compliance.CANONICAL)
@@ -74,7 +74,7 @@ module.save(Path("song.it"))
 The same song goes to the other format by naming the other class:
 
 ```python
-from trackmod.xm.module import XMModule
+from trackmod.trackers.xm.module import XMModule
 
 XMModule.from_song(song, compliance=Compliance.EXTENDED).save(Path("song.xm"))
 ```
@@ -88,6 +88,30 @@ recovered.song.patterns[0].cell(row=0, channel=3)
 
 Parsing yields the same `Song` model a writer consumes, so a module read from one format can be written
 to the other. What survives that trip is what both formats carry — see [`limits.md`](limits.md).
+
+## Budgeting
+
+`module.size()` answers what a song already costs. A caller filling a byte budget asks the question
+earlier — how many bytes would one more sample add? — and `module.storage` answers it, as a table of what
+each kind of content costs a format:
+
+```python
+storage = ITModule.from_song(song, compliance=Compliance.CANONICAL).storage
+
+storage.sample_bytes(frames=22050, depth=BitDepth.SIXTEEN)   # records and frames together
+storage.instrument_bytes(samples=4)                          # the header this instrument is written in
+storage.frames_budget(48_000, depth=BitDepth.SIXTEEN)        # the longest waveform that still fits
+```
+
+Each count covers the table entry a section occupies as well as the record itself, so a format found
+through offset tables charges the entry here rather than leaving it for a caller to remember, and
+`sample` is charged per stored **slot** — once per waveform where a sample table is shared, once per
+owner where an instrument owns its samples.
+
+The table is what each format's size model reads, so `SizeReport.headers` *is* the table evaluated
+against the counts a song declares. What the table states and what the writer lays out therefore have one
+home, and adding an instrument and its sample grows the file by exactly what
+`instrument_bytes` and `sample_bytes` predicted.
 
 ## Staying format-agnostic
 

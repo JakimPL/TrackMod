@@ -5,6 +5,7 @@ from trackmod.core.songs.song import Song
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
 from trackmod.module.size import SizeReport
+from trackmod.module.storage import Storage
 
 
 class TrackerModule(Protocol):
@@ -17,6 +18,10 @@ class TrackerModule(Protocol):
     @property
     def limits(self) -> Limits:
         """The bounds this module is held to, at its compliance level."""
+
+    @property
+    def storage(self) -> Storage:
+        """What each kind of content costs this format, for a caller budgeting before it stores anything."""
 
     @property
     def extension(self) -> str:

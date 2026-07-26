@@ -1,7 +1,7 @@
 # FastTracker 2 (`.xm`)
 
-Written by `trackmod.xm.writer.write_module`, read by `trackmod.xm.parser.ModuleReader`, bound together
-by `trackmod.xm.module.XMModule`.
+Written by `trackmod.trackers.xm.writer.write_module`, read by `trackmod.trackers.xm.parser.ModuleReader`, bound together
+by `trackmod.trackers.xm.module.XMModule`.
 
 It is the opposite of Impulse Tracker in nearly every decision, which is what makes the pair a fair test
 of the shared model.
@@ -48,14 +48,14 @@ A cell stating every column therefore costs five bytes in the uncompressed form 
 a mask, so a full cell drops its mask. A cell stating nothing still costs the one byte its empty mask
 occupies.
 
-That absence of memory collapses the size model to a closed form. `trackmod.xm.patterns.sizing` counts
+That absence of memory collapses the size model to a closed form. `trackmod.trackers.xm.patterns.sizing` counts
 how many columns each grid position states and evaluates
 
 ```
 5 if all five are stated else 1 + count
 ```
 
-over the whole grid at once — no walk, no channel state. Compare `trackmod/it/patterns/sizing.py`, which
+over the whole grid at once — no walk, no channel state. Compare `trackmod/trackers/it/patterns/sizing.py`, which
 needs a run-length comparison per column per channel to answer the same question.
 
 Notes are stored one **above** the shared numbering: key `k` is byte `k + 1`, and byte `97` is a key off.
@@ -80,7 +80,7 @@ linear frequency table the playback frequency for key `k` is
 frequency = 8363 * 2 ** ((k + relative_note + finetune / 128 - 48) / 12)
 ```
 
-`trackmod.xm.tuning` inverts this. Given a rate in hertz, the key that triggers a sample and the note
+`trackmod.trackers.xm.tuning` inverts this. Given a rate in hertz, the key that triggers a sample and the note
 that key should sound, it solves
 
 ```
@@ -108,9 +108,13 @@ for all sixteen of its sample slots.
 
 There is no shared sample table. Each instrument carries **its own copies** of the samples its keys
 reach. A sample two instruments both play is written twice, and `size().pcm` counts it twice —
-`trackmod.xm.sizing` is explicit about charging that cost.
+`trackmod.trackers.xm.sizing` is explicit about charging that cost.
 
-`trackmod.xm.instruments.grouping` derives the arrangement from the shared model's keymaps:
+That is what the shared `sample` count in `trackmod.trackers.xm.spec.storage.XM_STORAGE` means here: a
+slot is charged once per owner rather than once per waveform, and a sample no key reaches costs nothing
+at all. `empty_instrument` carries the 29-byte short header below, against the 263-byte long form.
+
+`trackmod.trackers.xm.instruments.grouping` derives the arrangement from the shared model's keymaps:
 
 - `local_slots` assigns each sample a position within the instrument, in the order the keys first name
   it;
@@ -156,7 +160,7 @@ There is no per-sample gain and no per-instrument volume, which is why `Capabili
 
 ## Timing
 
-`trackmod.xm.timing` binds the shared clock to a sixteen-bit speed and a sixteen-bit tempo. That is this
+`trackmod.trackers.xm.timing` binds the shared clock to a sixteen-bit speed and a sixteen-bit tempo. That is this
 format's real advantage for a caller working to a frame budget: at 44100 Hz and speed 1 the shortest
 whole-frame row it reaches is 2 frames, against Impulse Tracker's 441. Both extremes were verified by
 rendering, and both play at exactly the row length the clock computes.

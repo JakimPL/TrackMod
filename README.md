@@ -11,7 +11,7 @@ job: `trackmod` produces and consumes bytes.
 ```python
 from pathlib import Path
 
-from trackmod.it.module import ITModule
+from trackmod.trackers.it.module import ITModule
 from trackmod.limits.compliance import Compliance
 
 module = ITModule.from_song(song, compliance=Compliance.CANONICAL)

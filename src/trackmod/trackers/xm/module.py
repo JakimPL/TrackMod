@@ -10,6 +10,7 @@ from trackmod.limits.error import require
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
 from trackmod.module.size import SizeReport
+from trackmod.module.storage import Storage
 from trackmod.schema.config import FROZEN
 from trackmod.trackers.xm.checks import violations
 from trackmod.trackers.xm.limits import xm_limits
@@ -17,6 +18,7 @@ from trackmod.trackers.xm.parser import ModuleReader
 from trackmod.trackers.xm.settings import XMSettings
 from trackmod.trackers.xm.sizing import module_bytes
 from trackmod.trackers.xm.spec.identity import EXTENSION
+from trackmod.trackers.xm.spec.storage import XM_STORAGE
 from trackmod.trackers.xm.writer import write_module
 
 
@@ -43,7 +45,11 @@ class XMModule(BaseModel):
         settings: XMSettings | None = None,
     ) -> XMModule:
         """Bind a song to this format at one compliance level."""
-        return cls(song=song, compliance=compliance, settings=settings or XMSettings())
+        return cls(
+            song=song,
+            compliance=compliance,
+            settings=settings or XMSettings(),
+        )
 
     @classmethod
     def parse(
@@ -83,6 +89,11 @@ class XMModule(BaseModel):
     def limits(self) -> Limits:
         """The bounds this module is held to, at its compliance level."""
         return xm_limits(self.compliance)
+
+    @property
+    def storage(self) -> Storage:
+        """What each kind of content costs this format, for a caller budgeting before it stores anything."""
+        return XM_STORAGE
 
     def violations(self) -> tuple[Violation, ...]:
         """Every bound the song breaks, empty when the module is writable."""

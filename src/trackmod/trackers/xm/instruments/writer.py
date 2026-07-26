@@ -80,12 +80,6 @@ def instrument_block(instrument: Instrument, group: SampleGroup) -> bytes:
     return instrument_header(instrument, group) + headers + waveforms
 
 
-def header_bytes(group: SampleGroup) -> int:
-    """How many bytes one instrument spends on records, before any waveform it carries."""
-    header = EMPTY_INSTRUMENT_HEADER_BYTES if group.length == 0 else INSTRUMENT_HEADER_BYTES
-    return header + SAMPLE_HEADER_BYTES * group.length
-
-
 def waveform_bytes(group: SampleGroup) -> int:
     """How many bytes one instrument's waveforms occupy, counting a shared sample once per owner."""
     return sum(sample.stored_bytes for sample in group.samples)

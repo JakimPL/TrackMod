@@ -7,6 +7,10 @@ from trackmod.schema.scalars import Count
 class SizeReport(BaseModel):
     """How many bytes a module occupies, split by what spends them.
 
+    ``headers`` is every record byte the file lays out, which is this format's
+    :class:`~trackmod.module.storage.Storage` table read against the counts the song declares.
+    ``patterns`` and ``pcm`` are what no table predicts: the packed cell streams and the waveforms.
+
     Callers working under a size budget need to know where the bytes go, and ``largest_pattern`` answers
     a separate question: both formats store a packed pattern's length in a 16-bit field, so the biggest
     single pattern decides whether a song can be written at all.

@@ -1,7 +1,7 @@
 # Impulse Tracker (`.it`)
 
-Written by `trackmod.it.writer.write_module`, read by `trackmod.it.parser.ModuleReader`, bound together
-by `trackmod.it.module.ITModule`.
+Written by `trackmod.trackers.it.writer.write_module`, read by `trackmod.trackers.it.parser.ModuleReader`, bound together
+by `trackmod.trackers.it.module.ITModule`.
 
 ## File shape
 
@@ -21,8 +21,13 @@ sample frames                               pointed at by each sample header
 ```
 
 Sample frames sit last because a sample header carries a pointer to them, so where they land has to be
-resolved before the headers that point at them are built. `trackmod.it.writer.lay_out` does exactly that
+resolved before the headers that point at them are built. `trackmod.trackers.it.writer.lay_out` does exactly that
 and nothing else.
+
+`trackmod.trackers.it.spec.storage.IT_STORAGE` states those sizes as the cost table a caller budgets
+against, with each section's four-byte offset entry folded into the section it points at — so one more
+sample costs 84 bytes of records before its frames. `trackmod.trackers.it.sizing` reads that table, which
+is what keeps it agreeing with the layout above.
 
 Each section carries its own tag: `IMPM` opens the file, `IMPI` each instrument, `IMPS` each sample.
 
@@ -59,8 +64,8 @@ repeats costs a bit instead of a byte; a mask identical to the channel's previou
 entirely. A channel holding steady therefore settles to a single byte per row, and re-stating a note
 still re-triggers the sample.
 
-`trackmod.it.patterns.packer` writes that stream and `trackmod.it.patterns.parser` reads it.
-`trackmod.it.patterns.sizing.packed_bytes` computes its length without building it, a whole channel at a
+`trackmod.trackers.it.patterns.packer` writes that stream and `trackmod.trackers.it.patterns.parser` reads it.
+`trackmod.trackers.it.patterns.sizing.packed_bytes` computes its length without building it, a whole channel at a
 time: because the reuse bits depend only on that channel's previous stated value, each column reduces to
 one run-length comparison. The two are pinned to each other by test.
 
@@ -100,6 +105,6 @@ for an instrument with nothing routed yet.
 
 ## Timing
 
-`trackmod.it.timing` binds the shared clock to this format's speed (`1..255`) and tempo (`32..255`)
+`trackmod.trackers.it.timing` binds the shared clock to this format's speed (`1..255`) and tempo (`32..255`)
 ranges. The one-byte tempo is the constraint that matters: at 44100 Hz and speed 1 the shortest
 whole-frame row this format reaches is 441 frames.

@@ -129,6 +129,6 @@ matters when a caller derives a block length from the row instead of rounding on
   shorter row.
 
 Each format package re-exposes these three bound to its own speed and tempo ranges, as
-`trackmod.it.timing` and `trackmod.xm.timing`. The ranges are the whole difference: at 44100 Hz and
+`trackmod.trackers.it.timing` and `trackmod.trackers.xm.timing`. The ranges are the whole difference: at 44100 Hz and
 speed 1 the shortest whole-frame row Impulse Tracker reaches is 441 frames, while FastTracker 2's
 sixteen-bit tempo reaches 2.
