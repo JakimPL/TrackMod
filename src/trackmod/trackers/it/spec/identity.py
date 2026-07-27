@@ -1,6 +1,7 @@
 from typing import Final
 
 EXTENSION: Final = ".it"
+INSTRUMENT_EXTENSION: Final = ".iti"
 
 MAGIC_MODULE: Final = b"IMPM"
 MAGIC_SAMPLE: Final = b"IMPS"

@@ -1,7 +1,12 @@
+from collections.abc import Sequence
+
 import numpy as np
 
 from trackmod.core.envelopes.envelope import Envelope
+from trackmod.core.instruments.instrument import Instrument
+from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
 from trackmod.limits.capability import Capability
 from trackmod.limits.checklist import Checklist
@@ -65,13 +70,13 @@ def check_patterns(checklist: Checklist, song: Song) -> None:
         check_keys(checklist, pattern, subject=subject)
 
 
-def check_samples(checklist: Checklist, song: Song) -> None:
+def check_samples(checklist: Checklist, samples: Sequence[Sample]) -> None:
     """Grade each sample's waveform length, playback rate and two volume levels.
 
     The gain bound is what tells a caller this format has no per-sample multiplier: a sample asking for
     anything below full gain is reporting that the scaling has to be baked into its waveform instead.
     """
-    for index, sample in enumerate(song.samples):
+    for index, sample in enumerate(samples):
         subject = f"sample {index} ({sample.name!r})"
         checklist.check(Capability.SAMPLE_FRAMES, sample.frames, subject=subject)
         checklist.check(Capability.SAMPLE_RATE, sample.rate, subject=subject)
@@ -79,9 +84,9 @@ def check_samples(checklist: Checklist, song: Song) -> None:
         checklist.check(Capability.SAMPLE_GAIN, sample.gain, subject=subject)
 
 
-def check_instruments(checklist: Checklist, song: Song) -> None:
+def check_instruments(checklist: Checklist, instruments: Sequence[Instrument]) -> None:
     """Grade each instrument's level, fadeout, sample fan-out and envelopes."""
-    for index, instrument in enumerate(song.instruments):
+    for index, instrument in enumerate(instruments):
         subject = f"instrument {index} ({instrument.name!r})"
         checklist.check(Capability.INSTRUMENT_VOLUME, instrument.global_volume, subject=subject)
         checklist.check(Capability.FADEOUT, instrument.fadeout, subject=subject)
@@ -99,6 +104,18 @@ def violations(song: Song, *, limits: Limits) -> tuple[Violation, ...]:
     checklist = Checklist(limits)
     check_song(checklist, song)
     check_patterns(checklist, song)
-    check_samples(checklist, song)
-    check_instruments(checklist, song)
+    check_samples(checklist, song.samples)
+    check_instruments(checklist, song.instruments)
+    return checklist.violations
+
+
+def instrument_violations(unit: InstrumentUnit, *, limits: Limits) -> tuple[Violation, ...]:
+    """Every bound a unit breaks when it is written on its own, in the order the checks find them.
+
+    A file holding one instrument carries the same records a module does, so the bounds it answers to are
+    the sample and instrument ones; the counts a song declares belong to the song.
+    """
+    checklist = Checklist(limits)
+    check_samples(checklist, unit.samples)
+    check_instruments(checklist, (unit.instrument,))
     return checklist.violations

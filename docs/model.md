@@ -130,6 +130,17 @@ Each unit keeps its own copy of a waveform another unit also holds. Impulse Trac
 written; FastTracker 2 gives every instrument its own copies regardless, so a shared waveform costs one
 slot per owner there either way (see [`formats/xm.md`](formats/xm.md)).
 
+A unit is also what each format stores on its own, as an `.iti` or an `.xi`:
+
+```python
+unit = ITInstrumentFile.load(Path("piano.iti")).unit    # one voice, ready to graft
+XMInstrumentFile.from_unit(unit, compliance=Compliance.CANONICAL).save(Path("piano.xi"))
+```
+
+`trackmod.module.instrument.InstrumentFile` is the protocol both bindings answer, the counterpart of
+`TrackerModule` for a container holding one voice. The bounds are the format's own, so what an instrument
+can carry is the same question in either container.
+
 ## Timing
 
 Both formats share one clock: a tick lasts `5 / (2 * tempo)` seconds and a row lasts `speed` ticks, so a

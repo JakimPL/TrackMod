@@ -14,6 +14,9 @@ class SizeReport(BaseModel):
     Callers working under a size budget need to know where the bytes go, and ``largest_pattern`` answers
     a separate question: both formats store a packed pattern's length in a 16-bit field, so the biggest
     single pattern decides whether a song can be written at all.
+
+    A file holding one instrument on its own spends its every byte on records and waveforms, so both
+    pattern counts read zero there.
     """
 
     model_config = FROZEN

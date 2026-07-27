@@ -7,10 +7,15 @@ from trackmod.core.instruments.behaviour import (
     NewNoteAction,
 )
 from trackmod.core.instruments.instrument import Instrument
+from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.trackers.it.instruments.envelope import parse_envelope
 from trackmod.trackers.it.instruments.keymap import parse_keymap
+from trackmod.trackers.it.layout.instrument import INSTRUMENT_HEADER
 from trackmod.trackers.it.panning import shared_panning
+from trackmod.trackers.it.samples.parser import read_sample
 from trackmod.trackers.it.spec.flags import SamplePanning
+from trackmod.trackers.it.spec.identity import MAGIC_INSTRUMENT
+from trackmod.trackers.it.spec.sizes import INSTRUMENT_HEADER_BYTES, SAMPLE_HEADER_BYTES
 
 
 def parse_instrument(values: RecordValues) -> Instrument:
@@ -29,3 +34,24 @@ def parse_instrument(values: RecordValues) -> Instrument:
         duplicate_check=DuplicateCheck(read_int(values, "duplicate_check")),
         duplicate_action=DuplicateAction(read_int(values, "duplicate_action")),
     )
+
+
+def parse_instrument_file(data: bytes) -> InstrumentUnit:
+    """Rebuild a unit from the bytes of a standalone Impulse Tracker instrument file.
+
+    The header states how many samples follow it, and their headers sit end to end behind it, so the
+    position of each one is arithmetic on two record sizes.
+
+    Raises:
+        ValueError: when the data opens with something other than this format's instrument tag, or the
+            keymap names a sample the file leaves out.
+    """
+    values = INSTRUMENT_HEADER.unpack(data)
+    if read_bytes(values, "magic") != MAGIC_INSTRUMENT:
+        raise ValueError("data does not open with the Impulse Tracker instrument tag")
+
+    count = read_int(values, "sample_count")
+    samples = tuple(
+        read_sample(data, offset=INSTRUMENT_HEADER_BYTES + SAMPLE_HEADER_BYTES * index) for index in range(count)
+    )
+    return InstrumentUnit(instrument=parse_instrument(values), samples=samples)

@@ -12,9 +12,8 @@ from trackmod.core.songs.song import Song
 from trackmod.trackers.it.instruments.parser import parse_instrument
 from trackmod.trackers.it.layout.file import FILE_HEADER
 from trackmod.trackers.it.layout.instrument import INSTRUMENT_HEADER
-from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.it.patterns.parser import unpack_pattern
-from trackmod.trackers.it.samples.parser import parse_sample, stored_frames
+from trackmod.trackers.it.samples.parser import read_sample
 from trackmod.trackers.it.settings import ITSettings
 from trackmod.trackers.it.spec.flags import HeaderFlag
 from trackmod.trackers.it.spec.identity import MAGIC_MODULE
@@ -79,13 +78,7 @@ class ModuleReader:
         )
 
     def _samples(self) -> tuple[Sample, ...]:
-        samples = []
-        for offset in self._sample_offsets:
-            values = SAMPLE_HEADER.unpack(self._data[offset:])
-            start = read_int(values, "sample_pointer")
-            samples.append(parse_sample(values, self._data[start : start + stored_frames(values)]))
-
-        return tuple(samples)
+        return tuple(read_sample(self._data, offset=offset) for offset in self._sample_offsets)
 
     def _patterns(self) -> tuple[Pattern, ...]:
         patterns = []

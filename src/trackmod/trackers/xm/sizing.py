@@ -1,9 +1,16 @@
+from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.songs.song import Song
 from trackmod.module.size import SizeReport
-from trackmod.trackers.xm.instruments.grouping import song_groups
+from trackmod.trackers.xm.instruments.grouping import group_samples, song_groups
 from trackmod.trackers.xm.instruments.writer import waveform_bytes
 from trackmod.trackers.xm.patterns.sizing import packed_bytes
+from trackmod.trackers.xm.spec.sizes import (
+    INSTRUMENT_FILE_HEADER_BYTES,
+    SAMPLE_HEADER_BYTES,
+)
 from trackmod.trackers.xm.spec.storage import XM_STORAGE
+
+NO_PATTERNS = 0
 
 
 def module_bytes(song: Song) -> SizeReport:
@@ -25,4 +32,19 @@ def module_bytes(song: Song) -> SizeReport:
             orders=song.order.length,
         ),
         largest_pattern=max(per_pattern, default=0),
+    )
+
+
+def instrument_file_bytes(unit: InstrumentUnit) -> SizeReport:
+    """How many bytes a unit occupies once written as a standalone FastTracker 2 instrument.
+
+    The container charges for the samples the keys reach, which is what a stored instrument owns, so the
+    count the grouping reports is the count the file writes headers and waveforms for.
+    """
+    group = group_samples(unit.instrument, unit.samples)
+    return SizeReport(
+        patterns=NO_PATTERNS,
+        pcm=waveform_bytes(group),
+        headers=INSTRUMENT_FILE_HEADER_BYTES + SAMPLE_HEADER_BYTES * group.length,
+        largest_pattern=NO_PATTERNS,
     )

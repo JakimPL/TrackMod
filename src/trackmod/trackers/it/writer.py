@@ -1,5 +1,6 @@
 import struct
 
+from trackmod.binary.layout import offsets
 from trackmod.binary.text import encode_name
 from trackmod.core.songs.song import Song
 from trackmod.trackers.it.instruments.writer import instrument_header
@@ -20,17 +21,6 @@ from trackmod.trackers.it.spec.sizes import (
     OFFSET_TABLE_ENTRY_BYTES,
     SAMPLE_HEADER_BYTES,
 )
-
-
-def offsets(blobs: list[bytes], start: int) -> list[int]:
-    """Where each blob lands when they are laid end to end from ``start``."""
-    positions = []
-    position = start
-    for blob in blobs:
-        positions.append(position)
-        position += len(blob)
-
-    return positions
 
 
 def body_start(song: Song) -> int:
@@ -98,7 +88,7 @@ def file_header(
 
 def write_module(song: Song, settings: ITSettings) -> bytes:
     """Serialise a song and its settings as a whole Impulse Tracker file."""
-    instruments = [instrument_header(instrument) for instrument in song.instruments]
+    instruments = [instrument_header(instrument, samples=len(instrument.samples)) for instrument in song.instruments]
     patterns = [pack_pattern(pattern) for pattern in song.patterns]
     tables, body = lay_out(song, instruments, patterns, body_start(song))
 

@@ -1,5 +1,6 @@
 from typing import Final
 
+from trackmod.binary.cursor import Cursor
 from trackmod.binary.pcm.codec import decode_pcm
 from trackmod.binary.records.values import RecordValues, read_bytes, read_int
 from trackmod.binary.text import decode_name
@@ -8,6 +9,7 @@ from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.sample import Sample
 from trackmod.spec.pitch import RATE_NOTE
+from trackmod.trackers.xm.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.xm.spec.flags import LOOP_TYPE_MASK, LoopType, SampleFlag
 from trackmod.trackers.xm.spec.storage import PCM_ENCODING
 from trackmod.trackers.xm.tuning import Tuning, tuned_rate
@@ -64,3 +66,13 @@ def parse_sample(values: RecordValues, data: bytes) -> Sample:
         panning=read_int(values, "panning"),
         loop=read_loop(values, stride=depth.bytes_per_frame),
     )
+
+
+def read_samples(cursor: Cursor, *, count: int) -> tuple[Sample, ...]:
+    """The samples one instrument owns: every header first, then every waveform, as they are laid out.
+
+    Both containers this format writes store an instrument's samples this way, so a reader that has
+    reached the end of an instrument header continues here whichever file it is walking.
+    """
+    headers: list[RecordValues] = [cursor.read(SAMPLE_HEADER) for _ in range(count)]
+    return tuple(parse_sample(values, cursor.take(stored_bytes(values))) for values in headers)

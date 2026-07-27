@@ -29,8 +29,8 @@ The library is layered downward: every package depends only on the ones above it
 | `trackmod/limits` | The capability vocabulary, bounds, compliance levels, violations |
 | `trackmod/core` | The format-agnostic music: notes, patterns, samples, instruments, envelopes, songs, timing |
 | `trackmod/binary` | Byte-level machinery: declarative records, a cursor, fixed-width text, PCM quantisation and encoding |
-| `trackmod/module` | What a format binding offers: the size report, the storage table and the `TrackerModule` protocol |
-| `trackmod/trackers/it`, `trackmod/trackers/xm` | One format each: its constants, its record layouts, its packers, parsers, size model and module class |
+| `trackmod/module` | What a format binding offers: the size report, the storage table and the `TrackerModule` and `InstrumentFile` protocols |
+| `trackmod/trackers/it`, `trackmod/trackers/xm` | One format each: its constants, its record layouts, its packers, parsers, size model, module class and instrument-file class |
 
 Each format package repeats the same internal shape, so knowing one is knowing the other:
 
@@ -41,8 +41,8 @@ Each format package repeats the same internal shape, so knowing one is knowing t
   effects/      the command enumeration and the catalogue that spells the shared vocabulary
   patterns/     packer, parser, and the size model that is their exact counterpart
   samples/      waveform and header serialisation
-  instruments/  header serialisation, keymaps, envelopes
-  note limits timing settings checks sizing writer parser module
+  instruments/  header serialisation, keymaps, envelopes, the standalone instrument file
+  note limits timing settings checks sizing writer parser module instrument_file
 ```
 
 Every `__init__.py` is empty. A name is imported from the module that defines it:
@@ -89,6 +89,31 @@ recovered.song.patterns[0].cell(row=0, channel=3)
 Parsing yields the same `Song` model a writer consumes, so a module read from one format can be written
 to the other. What survives that trip is what both formats carry — see [`limits.md`](limits.md).
 
+## One instrument on its own
+
+Both formats also store a single voice as a file of its own — `.iti` and `.xi` — which is what a producer
+of sampled instruments ships when the instrument rather than the piece is the product. The content is an
+`InstrumentUnit`: one instrument and the samples its keymap reaches (see [`model.md`](model.md)).
+
+```python
+from trackmod.trackers.it.instrument_file import ITInstrumentFile
+
+instrument = ITInstrumentFile.load(Path("piano.iti"))
+print(instrument.unit.instrument.name, len(instrument.unit.samples))
+print(instrument.size().total)      # the file length, without serialising it
+print(instrument.violations())      # every bound the unit breaks, empty when it is writable
+```
+
+The surface mirrors a module's, so the two are read the same way. `trackmod.module.instrument.InstrumentFile`
+is the protocol a caller names to hold one without naming its format:
+
+```python
+from trackmod.module.instrument import InstrumentFile
+
+def report(instrument: InstrumentFile) -> str:
+    return f"{instrument.size().total} bytes as {instrument.extension}"
+```
+
 ## Budgeting
 
 `module.size()` answers what a song already costs. A caller filling a byte budget asks the question
@@ -115,9 +140,10 @@ home, and adding an instrument and its sample grows the file by exactly what
 
 ## Staying format-agnostic
 
-`ITModule` and `XMModule` share no base class. The surface they have in common is the
-`trackmod.module.protocol.TrackerModule` protocol, so a caller that does not care which format it is
-holding can say so in its own signature:
+`ITModule` and `XMModule` share no base class, and neither do `ITInstrumentFile` and `XMInstrumentFile`.
+The surface each pair has in common is a protocol — `trackmod.module.protocol.TrackerModule` and
+`trackmod.module.instrument.InstrumentFile` — so a caller that does not care which format it is holding
+can say so in its own signature:
 
 ```python
 from trackmod.module.protocol import TrackerModule

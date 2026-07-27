@@ -1,7 +1,11 @@
+from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.songs.song import Song
 from trackmod.module.size import SizeReport
 from trackmod.trackers.it.patterns.sizing import packed_bytes
+from trackmod.trackers.it.spec.sizes import INSTRUMENT_HEADER_BYTES, SAMPLE_HEADER_BYTES
 from trackmod.trackers.it.spec.storage import IT_STORAGE
+
+NO_PATTERNS = 0
 
 
 def module_bytes(song: Song) -> SizeReport:
@@ -22,4 +26,18 @@ def module_bytes(song: Song) -> SizeReport:
             orders=song.order.length,
         ),
         largest_pattern=max(per_pattern, default=0),
+    )
+
+
+def instrument_file_bytes(unit: InstrumentUnit) -> SizeReport:
+    """How many bytes a unit occupies once written as a standalone Impulse Tracker instrument.
+
+    The container holds one instrument header, one header per sample and the waveforms behind them, so
+    the whole file is those three counts and the offset tables a module spends stay with the module.
+    """
+    return SizeReport(
+        patterns=NO_PATTERNS,
+        pcm=sum(sample.stored_bytes for sample in unit.samples),
+        headers=INSTRUMENT_HEADER_BYTES + SAMPLE_HEADER_BYTES * len(unit.samples),
+        largest_pattern=NO_PATTERNS,
     )

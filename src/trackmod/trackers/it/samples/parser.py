@@ -4,6 +4,7 @@ from trackmod.binary.text import decode_name
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.sample import Sample
+from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.it.panning import shared_panning
 from trackmod.trackers.it.spec.flags import SampleFlag, SamplePanning
 from trackmod.trackers.it.spec.storage import PCM_ENCODING
@@ -64,3 +65,14 @@ def parse_sample(values: RecordValues, data: bytes) -> Sample:
         loop=loop,
         sustain_loop=sustain,
     )
+
+
+def read_sample(data: bytes, *, offset: int) -> Sample:
+    """The sample whose header sits at ``offset``, with the frames the header points at.
+
+    Both containers this format writes find a waveform the same way — through a pointer counted from the
+    start of the file — so the header's position is all a reader needs to be told.
+    """
+    values = SAMPLE_HEADER.unpack(data[offset:])
+    start = read_int(values, "sample_pointer")
+    return parse_sample(values, data[start : start + stored_frames(values)])

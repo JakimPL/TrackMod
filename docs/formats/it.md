@@ -103,6 +103,32 @@ The keymap is 120 pairs of `(played note, sample number)`. Sample numbers are on
 silences a key; an unmapped key still names its own pitch, which is the identity mapping a tracker writes
 for an instrument with nothing routed yet.
 
+## One instrument on its own (`.iti`)
+
+The same records make a file of one instrument, written by
+`trackmod.trackers.it.instruments.writer.write_instrument_file` and bound by
+`trackmod.trackers.it.instrument_file.ITInstrumentFile`:
+
+```
+IMPI instrument header                      554 bytes
+IMPS sample headers                         80 bytes each
+sample frames                               pointed at by each sample header
+```
+
+The header's sample count is what says how many headers follow it, so a reader finds each one by
+arithmetic where a module would consult an offset table. Each sample pointer is still counted from the
+start of the file, which is why `trackmod.trackers.it.samples.parser.read_sample` serves both containers.
+The keymap's one-based sample numbers name the samples stored here, in the order they are stored.
+
+```python
+from trackmod.core.instruments.transfer import extract
+from trackmod.trackers.it.instrument_file import ITInstrumentFile
+from trackmod.limits.compliance import Compliance
+
+unit = extract(song, 0)
+ITInstrumentFile.from_unit(unit, compliance=Compliance.CANONICAL).save(Path("piano.iti"))
+```
+
 ## Timing
 
 `trackmod.trackers.it.timing` binds the shared clock to this format's speed (`1..255`) and tempo (`32..255`)

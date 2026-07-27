@@ -134,6 +134,40 @@ which stops after the sample count rather than reserving room for a keymap nothi
 29 bytes are literally the opening of the 263-byte long form, which is what makes placeholder instrument
 slots cheap.
 
+## One instrument on its own (`.xi`)
+
+The same instrument makes a file of its own, written by
+`trackmod.trackers.xm.instruments.writer.write_instrument_file` and bound by
+`trackmod.trackers.xm.instrument_file.XMInstrumentFile`:
+
+```
+"Extended Instrument: "                     21 bytes
+instrument name                             22 bytes
+0x1A, tracker name, version 0x0102          23 bytes
+keymap, envelopes, vibrato, fadeout         the body, to offset 296
+sample count                                2 bytes, closing a 298-byte header
+sample headers                              40 bytes each
+sample frames                               deltas, in header order
+```
+
+Behind its own identity block the file lays out **the same body a module's instrument header does**,
+moved on by the 33 bytes the two identity blocks differ by — so `layout.instrument.body_fields` describes
+it once and each record states how far in its body begins. The sample count sits last here and third in a
+module, and the samples that follow are grouped exactly as a stored instrument owns them, each carrying
+the transposition that sounds its keys at the pitch the shared model asks for.
+
+```python
+from trackmod.core.instruments.transfer import extract
+from trackmod.trackers.xm.instrument_file import XMInstrumentFile
+from trackmod.limits.compliance import Compliance
+
+unit = extract(song, 0)
+XMInstrumentFile.from_unit(unit, compliance=Compliance.CANONICAL).save(Path("piano.xi"))
+```
+
+The bounds are the format's own, so a sample staged below full gain is reported here exactly as it is in
+a module — the field is absent from the format, whichever container the sample travels in.
+
 ## Envelopes
 
 Two envelopes, volume and panning, each of at most 12 points, values `0..64`, with the point table and

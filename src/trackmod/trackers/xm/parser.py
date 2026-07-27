@@ -1,5 +1,5 @@
 from trackmod.binary.cursor import Cursor
-from trackmod.binary.records.values import RecordValues, read_bytes, read_int
+from trackmod.binary.records.values import read_bytes, read_int
 from trackmod.binary.text import decode_name
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.patterns.grid import Pattern
@@ -10,9 +10,8 @@ from trackmod.core.songs.song import Song
 from trackmod.trackers.xm.instruments.parser import parse_instrument, parse_stub
 from trackmod.trackers.xm.layout.file import FILE_HEADER
 from trackmod.trackers.xm.layout.instrument import EMPTY_INSTRUMENT_HEADER, INSTRUMENT_HEADER
-from trackmod.trackers.xm.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.xm.patterns.parser import unpack_pattern
-from trackmod.trackers.xm.samples.parser import parse_sample, stored_bytes
+from trackmod.trackers.xm.samples.parser import read_samples
 from trackmod.trackers.xm.settings import XMSettings
 from trackmod.trackers.xm.spec.flags import HeaderFlag
 from trackmod.trackers.xm.spec.identity import MAGIC
@@ -83,14 +82,8 @@ class ModuleReader:
 
         cursor.skip(size)
         offset = len(self._samples)
-        self._samples.extend(self._read_group(cursor, length=length))
+        self._samples.extend(read_samples(cursor, count=length))
         if not extended:
             return parse_stub(values)
 
         return parse_instrument(values, offset=offset, length=length)
-
-    @staticmethod
-    def _read_group(cursor: Cursor, *, length: int) -> list[Sample]:
-        """One instrument's samples: every header first, then every waveform, as the file lays them out."""
-        headers: list[RecordValues] = [cursor.read(SAMPLE_HEADER) for _ in range(length)]
-        return [parse_sample(values, cursor.take(stored_bytes(values))) for values in headers]

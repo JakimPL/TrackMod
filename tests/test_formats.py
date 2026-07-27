@@ -12,6 +12,7 @@ from trackmod.core.effects.catalog import EffectCatalog
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.transfer import combine, extract
+from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.notes.command import NoteCommand
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
@@ -26,17 +27,20 @@ from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
 from trackmod.limits.severity import Severity
+from trackmod.module.instrument import InstrumentFile
 from trackmod.module.protocol import TrackerModule
 from trackmod.spec.levels import CENTRE_PANNING, MAX_VOLUME
 from trackmod.spec.pitch import RATE_NOTE
 from trackmod.spec.width import NIBBLE_MAX
 from trackmod.trackers.it.effects.catalog import IT_EFFECTS
+from trackmod.trackers.it.instrument_file import ITInstrumentFile
 from trackmod.trackers.it.limits import it_limits
 from trackmod.trackers.it.module import ITModule
 from trackmod.trackers.it.patterns.sizing import packed_bytes as it_packed_bytes
 from trackmod.trackers.it.timing import exact_timings as it_exact_timings
 from trackmod.trackers.it.timing import row_frames as it_row_frames
 from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
+from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.limits import xm_limits
 from trackmod.trackers.xm.module import XMModule
 from trackmod.trackers.xm.patterns.sizing import packed_bytes as xm_packed_bytes
@@ -179,19 +183,55 @@ def parse_xm(data: bytes) -> TrackerModule:
     return XMModule.parse(data)
 
 
+def it_instrument(unit: InstrumentUnit, compliance: Compliance) -> InstrumentFile:
+    return ITInstrumentFile.from_unit(unit, compliance=compliance)
+
+
+def xm_instrument(unit: InstrumentUnit, compliance: Compliance) -> InstrumentFile:
+    return XMInstrumentFile.from_unit(unit, compliance=compliance)
+
+
+def parse_it_instrument(data: bytes) -> InstrumentFile:
+    return ITInstrumentFile.parse(data)
+
+
+def parse_xm_instrument(data: bytes) -> InstrumentFile:
+    return XMInstrumentFile.parse(data)
+
+
 @dataclass(frozen=True)
 class Binding:
-    """One format's binding of the shared model, so a property is stated once and checked for both."""
+    """One format's binding of the shared model, so a property is stated once and checked for both.
+
+    Each format binds the model in two containers — a whole module and one instrument on its own — and a
+    property that holds of both is stated once here.
+    """
 
     name: str
     catalog: EffectCatalog
     bind: Callable[[Song, Compliance], TrackerModule]
     parse: Callable[[bytes], TrackerModule]
+    bind_unit: Callable[[InstrumentUnit, Compliance], InstrumentFile]
+    parse_unit: Callable[[bytes], InstrumentFile]
 
 
 BINDINGS: Final = (
-    Binding(name="it", catalog=IT_EFFECTS, bind=it_binding, parse=parse_it),
-    Binding(name="xm", catalog=XM_EFFECTS, bind=xm_binding, parse=parse_xm),
+    Binding(
+        name="it",
+        catalog=IT_EFFECTS,
+        bind=it_binding,
+        parse=parse_it,
+        bind_unit=it_instrument,
+        parse_unit=parse_it_instrument,
+    ),
+    Binding(
+        name="xm",
+        catalog=XM_EFFECTS,
+        bind=xm_binding,
+        parse=parse_xm,
+        bind_unit=xm_instrument,
+        parse_unit=parse_xm_instrument,
+    ),
 )
 
 
@@ -316,6 +356,53 @@ def both_recoveries(envelope: Envelope) -> tuple[Song, Song]:
         recovered_song(binding, portable_song(binding.catalog, envelope, seed=PORTABLE_SEED)) for binding in BINDINGS
     )
     return from_it, from_xm
+
+
+def test_a_binding_answers_the_whole_instrument_file_surface(binding: Binding, portable: Song) -> None:
+    unit = extract(portable, 0)
+    written = binding.bind_unit(unit, Compliance.CANONICAL)
+    assert written.unit == unit
+    assert written.limits.compliance is Compliance.CANONICAL
+    assert written.extension.startswith(".")
+    assert written.violations() == ()
+    assert written.size().total == len(written.to_bytes())
+
+
+def test_an_instrument_stored_on_its_own_costs_less_than_the_module_around_it(
+    binding: Binding,
+    portable: Song,
+) -> None:
+    alone = binding.bind_unit(extract(portable, 0), Compliance.CANONICAL)
+    whole = binding.bind(portable, Compliance.CANONICAL)
+    assert alone.size().total < whole.size().total
+
+
+def test_a_unit_saves_under_the_extension_its_format_writes_instruments_with(
+    tmp_path: Path,
+    binding: Binding,
+    portable: Song,
+) -> None:
+    written = binding.bind_unit(extract(portable, 0), Compliance.CANONICAL)
+    path = tmp_path / f"voice{written.extension}"
+    written.save(path)
+    assert path.read_bytes() == written.to_bytes()
+    assert binding.parse_unit(path.read_bytes()).unit.instrument.name == portable.instruments[0].name
+
+
+def test_both_formats_recover_the_same_voice_from_one_instrument(fade_envelope: Envelope) -> None:
+    # Every quantity the unit carries lives in the intersection of the two formats, so what comes back
+    # differing would be the container rather than the voice.
+    unit = extract(portable_song(IT_EFFECTS, fade_envelope, seed=PORTABLE_SEED), 0)
+    from_it, from_xm = (
+        binding.parse_unit(binding.bind_unit(unit, Compliance.CANONICAL).to_bytes()).unit for binding in BINDINGS
+    )
+    assert from_it.instrument.keymap == from_xm.instrument.keymap
+    assert from_it.instrument.name == from_xm.instrument.name
+    assert from_it.instrument.fadeout == from_xm.instrument.fadeout
+    for restored, other in zip(from_it.samples, from_xm.samples):
+        assert restored.name == other.name
+        assert restored.rate == other.rate
+        assert np.array_equal(restored.pcm, other.pcm)
 
 
 def test_both_formats_recover_the_same_music_from_one_song(fade_envelope: Envelope) -> None:
