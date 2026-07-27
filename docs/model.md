@@ -109,6 +109,27 @@ named and leaves the rest silent.
 instrument carrying no envelope of a kind leaves that property alone, so absence rather than a flag is
 what switches an envelope off.
 
+## Carrying an instrument between songs
+
+A keymap names positions in the sample table of the song it belongs to, so an instrument on its own is
+half a voice. `trackmod.core.instruments.unit.InstrumentUnit` holds the other half — the samples its
+keys reach, numbered from zero — and `trackmod.core.instruments.transfer` moves units in and out of
+songs:
+
+```python
+unit = extract(song, 0)                        # the instrument and the waveforms it sounds
+instruments, samples = combine([unit, other])  # one flat table, each keymap restated against it
+```
+
+`combine` returns exactly the `instruments=` / `samples=` pair `Song` takes. The renumbering itself is
+`Instrument.rerouted(positions)`, which moves the routing and leaves every envelope, level and
+behaviour as stated — so an instrument lifted out of one module and written into another sounds what it
+sounded before.
+
+Each unit keeps its own copy of a waveform another unit also holds. Impulse Tracker stores that table as
+written; FastTracker 2 gives every instrument its own copies regardless, so a shared waveform costs one
+slot per owner there either way (see [`formats/xm.md`](formats/xm.md)).
+
 ## Timing
 
 Both formats share one clock: a tick lasts `5 / (2 * tempo)` seconds and a row lasts `speed` ticks, so a

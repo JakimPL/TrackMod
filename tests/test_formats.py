@@ -11,6 +11,7 @@ from tests.conftest import keyed, lattice, rescaled
 from trackmod.core.effects.catalog import EffectCatalog
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.instruments.instrument import Instrument
+from trackmod.core.instruments.transfer import combine, extract
 from trackmod.core.notes.command import NoteCommand
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
@@ -277,6 +278,36 @@ def test_a_generated_song_survives_being_written_and_read_back(
     assert recovered.song.playback == song.playback
     assert recovered.song.order.entries == song.order.entries
     assert recovered.to_bytes() == data
+
+
+def sounded_waveforms(song: Song) -> list[dict[int, Sample]]:
+    """What each instrument's keys actually sound, read through the table its keymap indexes into."""
+    return [
+        {
+            key: song.samples[assignment.sample]
+            for key, assignment in enumerate(instrument.keymap)
+            if assignment is not None
+        }
+        for instrument in song.instruments
+    ]
+
+
+def test_an_instrument_carried_between_songs_sounds_the_same_in_either_format(
+    binding: Binding,
+    portable: Song,
+) -> None:
+    # Reversing the order is what makes the renumbering matter: every keymap now indexes a table
+    # position it was never built against, and a stale index would sound the wrong waveform.
+    units = [extract(portable, index) for index in reversed(range(len(portable.instruments)))]
+    instruments, samples = combine(units)
+    reordered = portable.model_copy(update={"instruments": instruments, "samples": samples})
+
+    recovered = recovered_song(binding, reordered)
+    for expected, restored in zip(reversed(sounded_waveforms(portable)), sounded_waveforms(recovered)):
+        assert set(restored) == set(expected)
+        for key, sample in expected.items():
+            assert restored[key].name == sample.name
+            assert np.array_equal(restored[key].pcm, sample.pcm)
 
 
 def both_recoveries(envelope: Envelope) -> tuple[Song, Song]:
