@@ -93,12 +93,13 @@ Two bounds separated by `/` are canonical and structural; a single bound is a fi
 | `volume` | 0..64 | 0..64 |
 | `song_volume` | 0..128 | — |
 | `mix_volume` | 0..128 | — |
+| `message_bytes` | 0..8000 / 0..65535 | — |
 | `panning` | 0..255 | 0..255 |
 
 A dash means the format declares no capacity at all, and `limits.bound(...)` raises `KeyError` for it.
-FastTracker 2 has no song-wide volume and no mix volume, so there is nothing to bound; a caller reaching
-for one is asking about a field that does not exist, which is a different mistake from asking for a
-value out of range.
+FastTracker 2 has no song-wide volume, no mix volume and no song message, so there is nothing to bound;
+a caller reaching for one is asking about a field that does not exist, which is a different mistake from
+asking for a value out of range.
 
 Two capacities are pinned to a single value for the same reason: `sample_gain` at 64 and
 `instrument_volume` at 128 say that FastTracker 2 applies no such multiplier. A song asking for a
@@ -119,6 +120,7 @@ layout, or **empirically**, verified by rendering a probe through `openmpt123` (
 | XM samples per instrument 16 → **255** | Empirical. The instrument header's sample count is a sixteen-bit field; a 255-sample instrument loads. |
 | XM tempo 255 → **65535** | Structural. The header's tempo is a sixteen-bit field. Verified: modules at tempo 441 and 1000 play rows of exactly `speed * 5 / (2 * tempo)` seconds. |
 | XM speed 31 → **65535** | Structural. The header's speed is a sixteen-bit field. Verified: modules at speed 63 and 300 play rows of the length the clock computes. |
+| IT message 8000 → **65535** | Structural. The header states the block's length in a sixteen-bit field and points at it with a thirty-two-bit offset, so the record holds whatever that length reaches; 8000 bytes is what Impulse Tracker's own editor keeps. |
 
 The IT tempo bound stays at **255 at both levels**, and this is the one place the distinction earns its
 keep by refusing something. Impulse Tracker's header tempo is a single byte at offset 51. A tempo of 441

@@ -29,3 +29,4 @@ class Capability(StrEnum):
     SONG_VOLUME = "song_volume"
     MIX_VOLUME = "mix_volume"
     PANNING = "panning"
+    MESSAGE_BYTES = "message_bytes"

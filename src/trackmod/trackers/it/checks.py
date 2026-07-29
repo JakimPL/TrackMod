@@ -9,6 +9,7 @@ from trackmod.limits.capability import Capability
 from trackmod.limits.checklist import Checklist
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
+from trackmod.trackers.it.message import message_data
 from trackmod.trackers.it.patterns.sizing import packed_bytes
 from trackmod.trackers.it.settings import ITSettings
 
@@ -64,9 +65,10 @@ def check_instruments(checklist: Checklist, instruments: Sequence[Instrument]) -
 
 
 def check_settings(checklist: Checklist, settings: ITSettings) -> None:
-    """Grade the song-wide levels this format adds."""
+    """Grade the song-wide levels this format adds, and the block its song message takes."""
     checklist.check(Capability.SONG_VOLUME, settings.global_volume, subject="settings")
     checklist.check(Capability.MIX_VOLUME, settings.mix_volume, subject="settings")
+    checklist.check(Capability.MESSAGE_BYTES, len(message_data(settings.message)), subject="settings")
 
 
 def violations(song: Song, settings: ITSettings, *, limits: Limits) -> tuple[Violation, ...]:

@@ -114,6 +114,24 @@ def report(instrument: InstrumentFile) -> str:
     return f"{instrument.size().total} bytes as {instrument.extension}"
 ```
 
+## Reading whichever container a producer ships
+
+A producer of sampled instruments picks the container: a whole module, or one voice on its own, in either
+format. A consumer holding the bytes and the extension they were written under reads all four the same
+way, through `trackmod.trackers.registry`:
+
+```python
+from trackmod.trackers.registry import EXTENSIONS, parse_units
+
+voices = parse_units(path.read_bytes(), extension=path.suffix)
+```
+
+The result is a tuple of `InstrumentUnit` either way — as many as a module numbers, one from a standalone
+instrument — so the choice of container stops mattering at the point the bytes are read. The extension is
+matched in either capitalisation, and one that no format here writes is refused by name. `EXTENSIONS`,
+`MODULE_EXTENSIONS` and `INSTRUMENT_EXTENSIONS` state the four, so the suffix table lives here rather
+than in each consumer.
+
 ## Budgeting
 
 `module.size()` answers what a song already costs. A caller filling a byte budget asks the question

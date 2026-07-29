@@ -5,6 +5,7 @@ from trackmod.binary.text import encode_name
 from trackmod.core.songs.song import Song
 from trackmod.trackers.it.instruments.writer import instrument_header
 from trackmod.trackers.it.layout.file import FILE_HEADER
+from trackmod.trackers.it.message import MessageBlock
 from trackmod.trackers.it.patterns.packer import pack_pattern
 from trackmod.trackers.it.samples.writer import sample_bytes, sample_header
 from trackmod.trackers.it.settings import ITSettings
@@ -57,8 +58,13 @@ def file_header(
     *,
     instrument_count: int,
     pattern_count: int,
+    message: MessageBlock,
 ) -> bytes:
-    """Serialise the file header that opens the module."""
+    """Serialise the file header that opens the module.
+
+    The message block is passed in already placed, because the header points at bytes that sit past
+    everything else the file stores.
+    """
     return FILE_HEADER.pack(
         {
             "magic": MAGIC_MODULE,
@@ -71,15 +77,15 @@ def file_header(
             "created_with": CREATED_WITH,
             "compatible_with": COMPATIBLE_WITH,
             "flags": int(settings.flags),
-            "special": 0,
+            "special": int(message.special),
             "global_volume": settings.global_volume,
             "mix_volume": settings.mix_volume,
             "speed": song.playback.speed,
             "tempo": song.playback.tempo,
             "panning_separation": settings.panning_separation,
             "pitch_wheel_depth": 0,
-            "message_length": 0,
-            "message_offset": 0,
+            "message_length": message.length,
+            "message_offset": message.offset,
             "channel_pan": bytes(settings.channel_panning),
             "channel_volume": bytes(settings.channel_volume),
         }
@@ -87,14 +93,28 @@ def file_header(
 
 
 def write_module(song: Song, settings: ITSettings) -> bytes:
-    """Serialise a song and its settings as a whole Impulse Tracker file."""
+    """Serialise a song and its settings as a whole Impulse Tracker file.
+
+    The song message closes the file, past the frames the sample headers point at, so every offset the
+    header states is settled before the block that follows them all is placed.
+    """
     instruments = [instrument_header(instrument, samples=len(instrument.samples)) for instrument in song.instruments]
     patterns = [pack_pattern(pattern) for pattern in song.patterns]
-    tables, body = lay_out(song, instruments, patterns, body_start(song))
+    start = body_start(song)
+    tables, body = lay_out(song, instruments, patterns, start)
+    message = MessageBlock.of(settings.message, start=start + len(body))
 
-    out = bytearray(file_header(song, settings, instrument_count=len(instruments), pattern_count=len(patterns)))
+    out = bytearray(
+        file_header(
+            song,
+            settings,
+            instrument_count=len(instruments),
+            pattern_count=len(patterns),
+            message=message,
+        )
+    )
     out += bytes(song.order.entries) + bytes([ORDER_TERMINATOR])
     for offset in tables:
         out += struct.pack(OFFSET_CODE, offset)
 
-    return bytes(out + body)
+    return bytes(out + body + message.data)

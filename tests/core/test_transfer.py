@@ -3,7 +3,7 @@ import pytest
 from tests.conftest import make_sample
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.keymap import KeyAssignment, routed_keymap
-from trackmod.core.instruments.transfer import combine, extract
+from trackmod.core.instruments.transfer import combine, extract, held
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.notes.pitch import Note
 from trackmod.core.songs.order import OrderList
@@ -56,9 +56,17 @@ def test_combining_lays_each_units_samples_out_in_one_run(song: Song) -> None:
     assert instruments[1].samples == (2,)
 
 
+def test_a_song_states_every_instrument_it_holds_as_a_unit(song: Song) -> None:
+    assert held(song) == tuple(extract(song, index) for index in range(len(song.instruments)))
+
+
+def test_a_song_holding_no_instrument_states_no_unit(song: Song) -> None:
+    assert held(song.model_copy(update={"instruments": (), "samples": ()})) == ()
+
+
 def test_a_song_rebuilt_from_its_units_plays_what_it_played(song: Song) -> None:
     # The round trip is the whole point: what a unit carries has to reassemble into the same music.
-    instruments, samples = combine(tuple(extract(song, index) for index in range(len(song.instruments))))
+    instruments, samples = combine(held(song))
     rebuilt = Song(
         name=song.name,
         channels=song.channels,

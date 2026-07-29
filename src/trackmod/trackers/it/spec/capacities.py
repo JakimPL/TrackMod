@@ -15,6 +15,7 @@ from trackmod.spec.width import (
 )
 from trackmod.trackers.it.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
+    CANONICAL_MAX_MESSAGE_BYTES,
     CANONICAL_MAX_ORDERS,
     CANONICAL_MIN_ROWS,
     EXTENDED_MAX_CHANNELS,
@@ -63,5 +64,9 @@ CAPACITIES: Final = {
     Capability.VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME)),
     Capability.SONG_VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_GLOBAL_VOLUME)),
     Capability.MIX_VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_MIX_VOLUME)),
+    Capability.MESSAGE_BYTES: Capacity(
+        canonical=Bound(minimum=0, maximum=CANONICAL_MAX_MESSAGE_BYTES),
+        structural=Bound(minimum=0, maximum=WORD_MAX),
+    ),
     Capability.PANNING: Capacity.fixed(Bound(minimum=0, maximum=MAX_PANNING)),
 }

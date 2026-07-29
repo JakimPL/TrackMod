@@ -11,7 +11,7 @@ from tests.conftest import keyed, lattice, rescaled
 from trackmod.core.effects.catalog import EffectCatalog
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.instruments.instrument import Instrument
-from trackmod.core.instruments.transfer import combine, extract
+from trackmod.core.instruments.transfer import combine, extract, held
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.notes.command import NoteCommand
 from trackmod.core.notes.pitch import Note
@@ -39,6 +39,12 @@ from trackmod.trackers.it.module import ITModule
 from trackmod.trackers.it.patterns.sizing import packed_bytes as it_packed_bytes
 from trackmod.trackers.it.timing import exact_timings as it_exact_timings
 from trackmod.trackers.it.timing import row_frames as it_row_frames
+from trackmod.trackers.registry import (
+    INSTRUMENT_EXTENSIONS,
+    MODULE_EXTENSIONS,
+    parse_units,
+    reads,
+)
 from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
 from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.limits import xm_limits
@@ -50,6 +56,7 @@ from trackmod.trackers.xm.timing import row_frames as xm_row_frames
 from trackmod.trackers.xm.tuning import tuned_rate, tuning_for
 
 FRAME_RATE: Final = 44100
+UNWRITTEN_EXTENSION: Final = ".mod"
 PORTABLE_SPEED: Final = 6
 PORTABLE_TEMPO: Final = 125
 PORTABLE_CHANNELS: Final = 4
@@ -389,6 +396,37 @@ def test_a_unit_saves_under_the_extension_its_format_writes_instruments_with(
     assert binding.parse_unit(path.read_bytes()).unit.instrument.name == portable.instruments[0].name
 
 
+def test_the_registry_reads_a_module_by_the_extension_that_wrote_it(binding: Binding, portable: Song) -> None:
+    module = binding.bind(portable, Compliance.CANONICAL)
+    assert module.extension in MODULE_EXTENSIONS
+    assert parse_units(module.to_bytes(), extension=module.extension) == held(binding.parse(module.to_bytes()).song)
+
+
+def test_the_registry_reads_a_standalone_instrument_as_the_one_voice_it_holds(
+    binding: Binding,
+    portable: Song,
+) -> None:
+    written = binding.bind_unit(extract(portable, 0), Compliance.CANONICAL)
+    assert written.extension in INSTRUMENT_EXTENSIONS
+    assert parse_units(written.to_bytes(), extension=written.extension) == (
+        binding.parse_unit(written.to_bytes()).unit,
+    )
+
+
+def test_the_registry_names_an_extension_however_it_is_spelled(binding: Binding, portable: Song) -> None:
+    module = binding.bind(portable, Compliance.CANONICAL)
+    assert reads(module.extension.upper())
+    assert parse_units(module.to_bytes(), extension=module.extension.upper()) == parse_units(
+        module.to_bytes(), extension=module.extension
+    )
+
+
+def test_the_registry_refuses_an_extension_no_format_here_writes() -> None:
+    assert not reads(UNWRITTEN_EXTENSION)
+    with pytest.raises(ValueError, match=UNWRITTEN_EXTENSION):
+        parse_units(b"", extension=UNWRITTEN_EXTENSION)
+
+
 def test_both_formats_recover_the_same_voice_from_one_instrument(fade_envelope: Envelope) -> None:
     # Every quantity the unit carries lives in the intersection of the two formats, so what comes back
     # differing would be the container rather than the voice.
@@ -447,7 +485,11 @@ def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
     impulse = it_limits(Compliance.EXTENDED)
     fast_tracker = xm_limits(Compliance.EXTENDED)
     assert set(impulse.capacities) == set(Capability)
-    assert set(Capability) - set(fast_tracker.capacities) == {Capability.SONG_VOLUME, Capability.MIX_VOLUME}
+    assert set(Capability) - set(fast_tracker.capacities) == {
+        Capability.SONG_VOLUME,
+        Capability.MIX_VOLUME,
+        Capability.MESSAGE_BYTES,
+    }
     with pytest.raises(KeyError):
         fast_tracker.bound(Capability.SONG_VOLUME)
 

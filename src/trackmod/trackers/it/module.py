@@ -96,7 +96,7 @@ class ITModule(BaseModel):
 
     def size(self) -> SizeReport:
         """How many bytes the module occupies, without serialising it."""
-        return module_bytes(self.song)
+        return module_bytes(self.song, self.settings)
 
     def to_bytes(self) -> bytes:
         """Serialise the whole module.

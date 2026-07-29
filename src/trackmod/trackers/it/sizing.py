@@ -1,19 +1,21 @@
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.songs.song import Song
 from trackmod.module.size import SizeReport
+from trackmod.trackers.it.message import message_data
 from trackmod.trackers.it.patterns.sizing import packed_bytes
+from trackmod.trackers.it.settings import ITSettings
 from trackmod.trackers.it.spec.sizes import INSTRUMENT_HEADER_BYTES, SAMPLE_HEADER_BYTES
 from trackmod.trackers.it.spec.storage import IT_STORAGE
 
 NO_PATTERNS = 0
 
 
-def module_bytes(song: Song) -> SizeReport:
-    """How many bytes a song occupies once written as an Impulse Tracker module.
+def module_bytes(song: Song, settings: ITSettings) -> SizeReport:
+    """How many bytes a song and its settings occupy once written as an Impulse Tracker module.
 
     Every record byte is read off this format's storage table, so what the table states and what the
     writer lays out answer to one another. What remains is what no table predicts: the packed cell
-    streams and the waveforms.
+    streams, the waveforms, and the song message the settings attach.
     """
     per_pattern = [packed_bytes(pattern) for pattern in song.patterns]
     return SizeReport(
@@ -24,7 +26,8 @@ def module_bytes(song: Song) -> SizeReport:
             samples=len(song.samples),
             patterns=len(song.patterns),
             orders=song.order.length,
-        ),
+        )
+        + len(message_data(settings.message)),
         largest_pattern=max(per_pattern, default=0),
     )
 

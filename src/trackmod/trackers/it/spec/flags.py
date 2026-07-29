@@ -14,6 +14,13 @@ class HeaderFlag(IntFlag):
 
 
 @unique
+class SpecialFlag(IntFlag):
+    """The file header's switches over the optional blocks it points at past the module itself."""
+
+    MESSAGE = 0x01
+
+
+@unique
 class SampleFlag(IntFlag):
     """The sample header's storage and looping switches."""
 

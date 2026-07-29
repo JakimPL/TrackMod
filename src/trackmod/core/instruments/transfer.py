@@ -25,6 +25,15 @@ def extract(song: Song, index: int) -> InstrumentUnit:
     )
 
 
+def held(song: Song) -> tuple[InstrumentUnit, ...]:
+    """Every instrument a song holds, each with the samples its own keymap reaches.
+
+    A song numbers its instruments in one table and its samples in another; this states the same content
+    as portable units, which is what a caller reading a file for the voices inside it asks for.
+    """
+    return tuple(extract(song, index) for index in range(len(song.instruments)))
+
+
 def combine(units: Sequence[InstrumentUnit]) -> tuple[tuple[Instrument, ...], tuple[Sample, ...]]:
     """One flat sample table for several units, each keymap restated against it.
 

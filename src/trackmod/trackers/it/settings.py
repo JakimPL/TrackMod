@@ -9,6 +9,7 @@ from trackmod.trackers.it.spec.defaults import (
     DEFAULT_CHANNEL_VOLUME,
     DEFAULT_FLAGS,
     DEFAULT_GLOBAL_VOLUME,
+    DEFAULT_MESSAGE,
     DEFAULT_MIX_VOLUME,
     DEFAULT_PANNING_SEPARATION,
 )
@@ -27,6 +28,9 @@ class ITSettings(BaseModel):
     The channel tables are as wide as the header stores them, which is the format's own channel count
     rather than the song's — a module with more channels than that leaves the extra ones at the defaults
     the tracker applies.
+
+    ``message`` is the free text the format attaches to a module, which a tracker shows beside the piece
+    and a producer is free to spend on whatever it wants a file to carry with it.
     """
 
     model_config = FROZEN
@@ -37,3 +41,4 @@ class ITSettings(BaseModel):
     channel_panning: ChannelBytes = DEFAULT_CHANNEL_PANNING
     channel_volume: ChannelBytes = DEFAULT_CHANNEL_VOLUME
     flags: HeaderFlag = DEFAULT_FLAGS
+    message: str = DEFAULT_MESSAGE

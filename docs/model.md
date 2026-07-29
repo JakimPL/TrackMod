@@ -118,6 +118,7 @@ songs:
 
 ```python
 unit = extract(song, 0)                        # the instrument and the waveforms it sounds
+voices = held(song)                            # the same, for every instrument the song numbers
 instruments, samples = combine([unit, other])  # one flat table, each keymap restated against it
 ```
 
@@ -140,6 +141,19 @@ XMInstrumentFile.from_unit(unit, compliance=Compliance.CANONICAL).save(Path("pia
 `trackmod.module.instrument.InstrumentFile` is the protocol both bindings answer, the counterpart of
 `TrackerModule` for a container holding one voice. The bounds are the format's own, so what an instrument
 can carry is the same question in either container.
+
+A caller holding bytes and the extension they were written under reaches the same units without naming a
+format, through `trackmod.trackers.registry`:
+
+```python
+voices = parse_units(data, extension=".iti")   # one voice, from a standalone instrument
+voices = parse_units(data, extension=".it")    # every voice a module numbers
+```
+
+Four extensions are read — `.it` and `.xm` for modules, `.iti` and `.xi` for one instrument — in either
+capitalisation, and `MODULE_EXTENSIONS` / `INSTRUMENT_EXTENSIONS` name which is which. This is what lets
+a consumer accept whichever container a producer of sampled instruments ships and hold the suffix table
+once, here.
 
 ## Timing
 

@@ -18,11 +18,13 @@ instrument headers                          554 bytes each
 sample headers                              80 bytes each
 packed patterns                             8-byte header + cell stream
 sample frames                               pointed at by each sample header
+song message                                pointed at by the file header, when there is one
 ```
 
-Sample frames sit last because a sample header carries a pointer to them, so where they land has to be
-resolved before the headers that point at them are built. `trackmod.trackers.it.writer.lay_out` does exactly that
-and nothing else.
+Sample frames sit last among the sections the offset tables reach, because a sample header carries a
+pointer to them, so where they land has to be resolved before the headers that point at them are built.
+`trackmod.trackers.it.writer.lay_out` does exactly that and nothing else. The song message closes the
+file, past everything those tables address.
 
 `trackmod.trackers.it.spec.storage.IT_STORAGE` states those sizes as the cost table a caller budgets
 against, with each section's four-byte offset entry folded into the section it points at — so one more
@@ -37,6 +39,19 @@ the parser drops both and `OrderList` holds only positions that play.
 The header reserves two 64-byte tables for per-channel panning and volume, which is the format's own
 channel count rather than the song's. `ITSettings` carries them at that width, along with the global
 volume, mix volume, panning separation and the song-wide flags.
+
+### The song message
+
+The format attaches free text to a module: the header states its length at offset 54 and points at it
+with a 32-bit offset at 56, and bit 0 of `special` at offset 46 says a block is attached at all.
+`ITSettings.message` carries it, and `MessageBlock` is where the writer settles the three fields
+together — a module attaching no message states a zero offset, a zero length and a clear switch.
+
+The text is terminated rather than padded, so a reader stops at the terminator inside the length the
+header reserves. Impulse Tracker's own editor keeps 8000 bytes and the field reaches 65535, which is the
+canonical and structural pair `message_bytes` states. Lines are separated by `\r`, which is what a
+tracker showing the message expects; the block is stored as given, so whatever a producer writes into it
+comes back out.
 
 ## Packed patterns
 
