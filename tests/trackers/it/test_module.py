@@ -19,6 +19,7 @@ from trackmod.trackers.it.spec.identity import (
 from trackmod.trackers.it.spec.storage import IT_STORAGE
 
 EXTRA_FRAMES = 64
+EXTRA_CHANNELS = 5
 
 
 def module(song: Song, *, compliance: Compliance = Compliance.EXTENDED) -> ITModule:
@@ -64,6 +65,21 @@ def test_a_written_module_parses_back_to_the_same_song(song: Song) -> None:
     assert recovered.order.entries == song.order.entries
     assert recovered.instruments == song.instruments
     assert recovered.patterns == song.patterns
+
+
+def test_a_song_wider_than_the_notes_it_plays_parses_back_at_its_own_width(song: Song) -> None:
+    # The format states a channel count nowhere, so the width comes back out of the patterns: a song
+    # holding channels in reserve — a stereo pair rounded up to, a part yet to be written — keeps them
+    # because each pattern names its widest channel.
+    widened = song.model_copy(
+        update={
+            "channels": song.channels + EXTRA_CHANNELS,
+            "patterns": tuple(pattern.widened(song.channels + EXTRA_CHANNELS) for pattern in song.patterns),
+        }
+    )
+    recovered = ITModule.parse(module(widened).to_bytes()).song
+    assert recovered.channels == widened.channels
+    assert recovered.patterns == widened.patterns
 
 
 def test_sample_headers_and_waveforms_survive_a_round_trip(song: Song) -> None:

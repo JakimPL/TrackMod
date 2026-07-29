@@ -3,6 +3,7 @@ from typing import Final
 
 CHANNEL_MARKER: Final = 0x80
 END_OF_ROW: Final = 0x00
+NO_COLUMNS: Final = 0x00
 UNSET: Final = -1
 
 CHANNEL_BYTE: Final = 1

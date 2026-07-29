@@ -10,7 +10,13 @@ from trackmod.core.patterns.grid import Pattern
 from trackmod.trackers.it.patterns.packer import pack_cells, stored_instrument
 from trackmod.trackers.it.patterns.parser import unpack_cells
 from trackmod.trackers.it.patterns.sizing import packed_bytes
-from trackmod.trackers.it.spec.cells import NO_INSTRUMENT, CellMask
+from trackmod.trackers.it.patterns.width import WIDTH_MARKER_BYTES, width_marker
+from trackmod.trackers.it.spec.cells import (
+    CHANNEL_MARKER,
+    NO_COLUMNS,
+    NO_INSTRUMENT,
+    CellMask,
+)
 from trackmod.trackers.it.spec.ranges import MAX_ROWS
 
 GRIDS = (
@@ -42,8 +48,33 @@ def test_a_channel_holding_steady_settles_to_one_byte_a_row() -> None:
 
 
 def test_a_silent_channel_costs_nothing() -> None:
+    # Every row is a lone terminator; the two bytes beyond them are the opening row naming the widest
+    # channel, which is what a pattern of pure silence has to spend to come back the width it went in.
     empty = Pattern.empty(rows=8, channels=16)
-    assert len(pack_cells(empty)) == empty.rows
+    assert len(pack_cells(empty)) == empty.rows + WIDTH_MARKER_BYTES
+
+
+def test_a_pattern_whose_widest_channels_are_silent_keeps_its_width() -> None:
+    builder = PatternBuilder(rows=4, channels=12)
+    builder.place(0, 0, Cell(note=Note(60), instrument=0, volume=64))
+    pattern = builder.build()
+    assert unpack_cells(pack_cells(pattern), rows=pattern.rows) == pattern
+
+
+def test_the_widest_channel_states_the_width_by_carrying_content() -> None:
+    # A pattern reaching its widest channel with a note needs no cell spent on the width.
+    builder = PatternBuilder(rows=4, channels=12)
+    builder.place(3, 11, Cell(note=Note(60), instrument=0, volume=64))
+    pattern = builder.build()
+    assert width_marker(pattern) == b""
+    assert unpack_cells(pack_cells(pattern), rows=pattern.rows) == pattern
+
+
+def test_the_width_is_named_by_a_cell_the_grid_reads_as_silence() -> None:
+    pattern = Pattern.empty(rows=1, channels=6)
+    stream = pack_cells(pattern)
+    assert stream[:WIDTH_MARKER_BYTES] == bytes([CHANNEL_MARKER | pattern.channels, NO_COLUMNS])
+    assert unpack_cells(stream, rows=1).cell(0, pattern.channels - 1) == Cell()
 
 
 def test_a_changed_volume_spends_a_byte_and_keeps_the_mask() -> None:

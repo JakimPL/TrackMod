@@ -37,6 +37,7 @@ from trackmod.trackers.it.instrument_file import ITInstrumentFile
 from trackmod.trackers.it.limits import it_limits
 from trackmod.trackers.it.module import ITModule
 from trackmod.trackers.it.patterns.sizing import packed_bytes as it_packed_bytes
+from trackmod.trackers.it.patterns.width import WIDTH_MARKER_BYTES
 from trackmod.trackers.it.timing import exact_timings as it_exact_timings
 from trackmod.trackers.it.timing import row_frames as it_row_frames
 from trackmod.trackers.registry import (
@@ -463,9 +464,11 @@ def test_both_formats_recover_the_same_waveforms_from_one_song(fade_envelope: En
 
 
 def test_silence_costs_a_row_in_one_format_and_a_cell_in_the_other() -> None:
+    # One format lists the channels that play, so silence is a terminator a row plus the one cell that
+    # holds the width; the other stores a full grid, so silence costs a cell wherever it sits.
     rows, channels = PORTABLE_ROWS[0], PORTABLE_CHANNELS
     empty = Pattern.empty(rows=rows, channels=channels)
-    assert it_packed_bytes(empty) == rows
+    assert it_packed_bytes(empty) == rows + WIDTH_MARKER_BYTES
     assert xm_packed_bytes(empty) == rows * channels
 
 

@@ -45,7 +45,8 @@ fills the grid cell by cell and freezes it with `build()`. Beyond `place(row, ch
 where a global effect such as a tempo change belongs.
 
 `Pattern.widened(channels)` pads a grid with silent channels, which formats storing one channel count
-for the whole module need.
+for the whole module need. A padded channel is carried through a file as such: `.xm` stores a full grid,
+and `.it` names its widest channel in the cell stream, so `channels` reads back as it was declared.
 
 ## Cell
 

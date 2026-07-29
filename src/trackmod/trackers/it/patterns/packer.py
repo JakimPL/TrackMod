@@ -5,6 +5,7 @@ from trackmod.trackers.it.layout.pattern import PATTERN_HEADER
 from trackmod.trackers.it.note import NOTE_BYTES
 from trackmod.trackers.it.patterns.encoded import EncodedCell
 from trackmod.trackers.it.patterns.memory import ChannelMemory
+from trackmod.trackers.it.patterns.width import WIDTH_ROW, width_marker
 from trackmod.trackers.it.spec.cells import (
     CHANNEL_MARKER,
     END_OF_ROW,
@@ -115,12 +116,16 @@ def pack_cells(pattern: Pattern) -> bytes:
     costs nothing. Each listed channel spends a mask byte only when its mask differs from the one it
     last used, and a column byte only when that column's value differs from the channel's last — which is
     what makes a channel holding steady settle to a single byte per row.
+
+    Because a row reaches only as far as its content, the opening row names the widest channel where the
+    grid leaves it silent, which is what carries the width the pattern was built at.
     """
     notes, instruments = pattern.note, pattern.instrument
     volumes, commands, parameters = pattern.volume, pattern.effect, pattern.parameter
     occupied = pattern.occupied
     memories = [ChannelMemory() for _ in range(pattern.channels)]
 
+    stated_width = width_marker(pattern)
     stream = bytearray()
     for row in range(pattern.rows):
         for channel in range(pattern.channels):
@@ -146,6 +151,9 @@ def pack_cells(pattern: Pattern) -> bytes:
                 memory.mask = encoded.mask
 
             stream.extend(encoded.payload)
+
+        if row == WIDTH_ROW:
+            stream.extend(stated_width)
 
         stream.append(END_OF_ROW)
 

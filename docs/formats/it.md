@@ -79,6 +79,21 @@ repeats costs a bit instead of a byte; a mask identical to the channel's previou
 entirely. A channel holding steady therefore settles to a single byte per row, and re-stating a note
 still re-triggers the sample.
 
+### How wide a pattern is
+
+The format states a channel count nowhere — not in the file header, not in a pattern's own header — so
+the width comes back out of the cell stream, as the widest channel any row lists. A song holding channels
+in reserve therefore comes back narrower than it went in: a stereo pair rounded up to, a part yet to be
+written, or a track whose voices never all sound at once.
+
+`trackmod.trackers.it.patterns.width` closes that gap. Where the grid leaves the widest channel silent,
+the opening row names it with a **mask over no columns** — two bytes, `0x80 | channels` and `0x00` — which
+decodes as the silence already sitting there. `Song.channels` then survives a round trip, and the size
+model counts the same two bytes the packer spends.
+
+Readers deriving a width from content read exactly the module they read before, since the cell states no
+column: libopenmpt reports such a file at the width its notes reach and renders it byte for byte the same.
+
 `trackmod.trackers.it.patterns.packer` writes that stream and `trackmod.trackers.it.patterns.parser` reads it.
 `trackmod.trackers.it.patterns.sizing.packed_bytes` computes its length without building it, a whole channel at a
 time: because the reuse bits depend only on that channel's previous stated value, each column reduces to

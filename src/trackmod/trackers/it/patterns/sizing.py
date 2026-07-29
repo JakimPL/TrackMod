@@ -7,6 +7,7 @@ from trackmod.core.patterns.grid import Pattern
 from trackmod.spec.grid import EMPTY
 from trackmod.spec.width import BYTE_MAX
 from trackmod.trackers.it.patterns.cost import ColumnCost
+from trackmod.trackers.it.patterns.width import WIDTH_MARKER_BYTES, states_width
 from trackmod.trackers.it.spec.cells import (
     CHANNEL_BYTE,
     COLUMN_BYTE,
@@ -103,9 +104,13 @@ def packed_bytes(pattern: Pattern) -> int:
 
     This is the exact counterpart of the packer, computed a whole channel at a time: the reuse bits make
     a column's cost depend only on that channel's previous stated value, so each column reduces to one
-    run-length comparison rather than a walk over the grid.
+    run-length comparison rather than a walk over the grid. The cell a silent widest channel spends on
+    stating the width is counted the same way the packer writes it.
     """
     total = ROW_TERMINATOR_BYTE * pattern.rows
+    if states_width(pattern):
+        total += WIDTH_MARKER_BYTES
+
     for channel in range(pattern.channels):
         total += channel_bytes(pattern, channel)
 
