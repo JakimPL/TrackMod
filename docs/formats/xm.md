@@ -178,6 +178,17 @@ The sustain is a **single point**, not a span, so an `Envelope` whose sustain sp
 point raises. The flag bits also sit in the opposite order to Impulse Tracker's: here sustain is `0x02`
 and loop is `0x04`.
 
+## Fadeout
+
+`trackmod.trackers.xm.fade` binds the shared fade to this format's counter, which is **32768**: a fading
+voice loses `fadeout` from it every tick, so it falls silent after `32768 / fadeout` ticks. The tracker's
+own editor counts a fadeout to `0xFFF`, whose eight ticks are the quickest fade it states.
+
+The fade starts at the **key off**, wherever the volume envelope has reached. A voice with no volume
+envelope at all is stopped by the key off instead, so a fade to state is a fade with a curve to state it
+against. Both were verified by rendering; Impulse Tracker begins the same fade elsewhere, which is worth
+knowing when one song is written to both.
+
 ## Samples
 
 `SAMPLE_HEADER` is 40 bytes and its lengths count **bytes rather than frames**, so a 16-bit sample's

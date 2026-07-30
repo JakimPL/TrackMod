@@ -42,7 +42,7 @@ Each format package repeats the same internal shape, so knowing one is knowing t
   patterns/     packer, parser, and the size model that is their exact counterpart
   samples/      waveform and header serialisation
   instruments/  header serialisation, keymaps, envelopes, the standalone instrument file
-  note limits timing settings checks sizing writer parser module instrument_file
+  note limits timing fade settings checks sizing writer parser module instrument_file
 ```
 
 Every `__init__.py` is empty. A name is imported from the module that defines it:

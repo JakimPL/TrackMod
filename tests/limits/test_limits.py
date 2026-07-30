@@ -78,6 +78,16 @@ def test_an_empty_checklist_raises_nothing() -> None:
     require(Checklist(limits(Compliance.CANONICAL)).violations)
 
 
+@pytest.mark.parametrize(("value", "clamped"), [(-5, 0), (0, 0), (32, 32), (64, 64), (100, 64)])
+def test_clamping_moves_a_value_to_the_nearer_end_of_the_range(value: int, clamped: int) -> None:
+    assert Bound(minimum=0, maximum=64).clamp(value) == clamped
+
+
+def test_a_bound_states_how_many_values_it_holds() -> None:
+    assert Bound(minimum=0, maximum=64).room == 65
+    assert Bound(minimum=7, maximum=7).room == 1
+
+
 def test_a_guarded_value_inside_its_bound_passes_through() -> None:
     bound = Bound(minimum=0, maximum=15)
     assert require_range(15, bound=bound, subject="delay") == 15

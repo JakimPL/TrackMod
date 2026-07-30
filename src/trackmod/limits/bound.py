@@ -24,5 +24,19 @@ class Bound(BaseModel):
         """Whether ``value`` lies within the range."""
         return self.minimum <= value <= self.maximum
 
+    def clamp(self, value: int) -> int:
+        """``value`` moved to the nearer end of the range whenever it lies outside.
+
+        This is for a caller writing a quantity a format has to hold whatever was asked for -- an
+        envelope node on its value grid, say -- where the nearest storable value is the answer and a
+        violation would leave nothing to write.
+        """
+        return min(self.maximum, max(self.minimum, value))
+
+    @property
+    def room(self) -> int:
+        """How many distinct values the range holds."""
+        return self.maximum - self.minimum + 1
+
     def __str__(self) -> str:
         return f"{self.minimum}..{self.maximum}"

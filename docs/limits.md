@@ -86,7 +86,7 @@ Two bounds separated by `/` are canonical and structural; a single bound is a fi
 | `envelope_points` | 1..25 | 1..12 |
 | `envelope_value` | -128..127 | 0..64 |
 | `envelope_tick` | 0..65535 | 0..65535 |
-| `fadeout` | 0..65535 | 0..65535 |
+| `fadeout` | 0..128 / 0..65535 | 0..4095 / 0..65535 |
 | `note` | 0..119 | 0..95 |
 | `tempo` | 32..255 | 32..255 / 1..65535 |
 | `speed` | 1..255 | 1..31 / 1..65535 |
@@ -121,6 +121,8 @@ layout, or **empirically**, verified by rendering a probe through `openmpt123` (
 | XM tempo 255 → **65535** | Structural. The header's tempo is a sixteen-bit field. Verified: modules at tempo 441 and 1000 play rows of exactly `speed * 5 / (2 * tempo)` seconds. |
 | XM speed 31 → **65535** | Structural. The header's speed is a sixteen-bit field. Verified: modules at speed 63 and 300 play rows of the length the clock computes. |
 | IT message 8000 → **65535** | Structural. The header states the block's length in a sixteen-bit field and points at it with a thirty-two-bit offset, so the record holds whatever that length reaches; 8000 bytes is what Impulse Tracker's own editor keeps. |
+| IT fadeout 128 → **65535** | Empirical. The header's fadeout is a sixteen-bit field and Impulse Tracker's own editor counts to 128. Verified by rendering: fadeouts of 256 and 512 both play, each falling silent in `1024 / fadeout` ticks like every value below the ceiling. |
+| XM fadeout 4095 → **65535** | Empirical. The header's fadeout is a sixteen-bit field and FastTracker 2's own editor counts to `0xFFF`. Verified by rendering: fadeouts of 8192 and 16384 both play, each falling silent in `32768 / fadeout` ticks. |
 
 The IT tempo bound stays at **255 at both levels**, and this is the one place the distinction earns its
 keep by refusing something. Impulse Tracker's header tempo is a single byte at offset 51. A tempo of 441

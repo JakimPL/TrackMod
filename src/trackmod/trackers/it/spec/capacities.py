@@ -15,6 +15,7 @@ from trackmod.spec.width import (
 )
 from trackmod.trackers.it.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
+    CANONICAL_MAX_FADEOUT,
     CANONICAL_MAX_MESSAGE_BYTES,
     CANONICAL_MAX_ORDERS,
     CANONICAL_MIN_ROWS,
@@ -57,7 +58,10 @@ CAPACITIES: Final = {
     Capability.ENVELOPE_POINTS: Capacity.fixed(Bound(minimum=1, maximum=ENVELOPE_NODES)),
     Capability.ENVELOPE_VALUE: Capacity.fixed(Bound(minimum=SIGNED_BYTE_MIN, maximum=SIGNED_BYTE_MAX)),
     Capability.ENVELOPE_TICK: Capacity.fixed(Bound(minimum=0, maximum=WORD_MAX)),
-    Capability.FADEOUT: Capacity.fixed(Bound(minimum=0, maximum=WORD_MAX)),
+    Capability.FADEOUT: Capacity(
+        canonical=Bound(minimum=0, maximum=CANONICAL_MAX_FADEOUT),
+        structural=Bound(minimum=0, maximum=WORD_MAX),
+    ),
     Capability.NOTE: Capacity.fixed(Bound(minimum=0, maximum=NOTE_COUNT - 1)),
     Capability.TEMPO: Capacity.fixed(Bound(minimum=MIN_TEMPO, maximum=MAX_TEMPO)),
     Capability.SPEED: Capacity.fixed(Bound(minimum=MIN_SPEED, maximum=MAX_SPEED)),

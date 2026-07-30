@@ -7,6 +7,7 @@ from trackmod.spec.levels import MAX_INSTRUMENT_VOLUME, MAX_PANNING, MAX_VOLUME
 from trackmod.spec.width import WORD_MAX
 from trackmod.trackers.xm.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
+    CANONICAL_MAX_FADEOUT,
     CANONICAL_MAX_INSTRUMENTS,
     CANONICAL_MAX_SPEED,
     CANONICAL_MAX_TEMPO,
@@ -57,7 +58,10 @@ CAPACITIES: Final = {
     Capability.ENVELOPE_POINTS: Capacity.fixed(Bound(minimum=1, maximum=ENVELOPE_POINTS)),
     Capability.ENVELOPE_VALUE: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME)),
     Capability.ENVELOPE_TICK: Capacity.fixed(Bound(minimum=0, maximum=WORD_MAX)),
-    Capability.FADEOUT: Capacity.fixed(Bound(minimum=0, maximum=WORD_MAX)),
+    Capability.FADEOUT: Capacity(
+        canonical=Bound(minimum=0, maximum=CANONICAL_MAX_FADEOUT),
+        structural=Bound(minimum=0, maximum=WORD_MAX),
+    ),
     Capability.NOTE: Capacity.fixed(Bound(minimum=0, maximum=MAX_NOTE)),
     Capability.TEMPO: Capacity(
         canonical=Bound(minimum=CANONICAL_MIN_TEMPO, maximum=CANONICAL_MAX_TEMPO),

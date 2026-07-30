@@ -7,11 +7,12 @@ from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
 from trackmod.limits.severity import Severity
-from trackmod.spec.width import BYTE_MAX
+from trackmod.spec.width import BYTE_MAX, WORD_MAX
 from trackmod.trackers.it.limits import it_limits
 from trackmod.trackers.it.module import ITModule
 from trackmod.trackers.it.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
+    CANONICAL_MAX_FADEOUT,
     EXTENDED_MAX_CHANNELS,
     MAX_ROWS,
 )
@@ -28,6 +29,21 @@ def test_the_channel_count_is_the_one_capability_with_headroom() -> None:
     extended = it_limits(Compliance.EXTENDED).bound(Capability.CHANNELS)
     assert canonical.maximum == CANONICAL_MAX_CHANNELS
     assert extended.maximum == EXTENDED_MAX_CHANNELS
+
+
+def test_the_fadeout_the_tracker_honours_stops_short_of_what_its_field_holds() -> None:
+    # The header keeps a word, and Impulse Tracker's own editor counts a fadeout up to 128.
+    assert it_limits(Compliance.CANONICAL).bound(Capability.FADEOUT).maximum == CANONICAL_MAX_FADEOUT
+    assert it_limits(Compliance.EXTENDED).bound(Capability.FADEOUT).maximum == WORD_MAX
+
+
+def test_a_fadeout_past_the_tracker_is_a_compliance_violation_the_extended_level_allows(song: Song) -> None:
+    faster = song.instruments[0].model_copy(update={"fadeout": 2 * CANONICAL_MAX_FADEOUT})
+    quick = song.model_copy(update={"instruments": (faster, *song.instruments[1:])})
+    canonical = ITModule.from_song(quick, compliance=Compliance.CANONICAL).violations()
+    assert [violation.capability for violation in canonical] == [Capability.FADEOUT]
+    assert canonical[0].severity is Severity.COMPLIANCE
+    assert ITModule.from_song(quick, compliance=Compliance.EXTENDED).violations() == ()
 
 
 def test_extra_channels_are_a_compliance_violation_the_extended_level_allows(song: Song) -> None:

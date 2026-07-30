@@ -110,6 +110,57 @@ named and leaves the rest silent.
 instrument carrying no envelope of a kind leaves that property alone, so absence rather than a flag is
 what switches an envelope off.
 
+### A curve stated in time
+
+An envelope stores **ticks**, and a tick's length follows the tempo, so one curve written for two clocks
+is two envelopes. `trackmod.core.envelopes.curve` states a curve in the terms it was measured in and
+binds it to a clock:
+
+```python
+from trackmod.core.envelopes.curve import Breakpoint, timed_envelope
+
+decline = timed_envelope(
+    (
+        Breakpoint(seconds=0.0, value=64),      # the onset, at the level the waveform was stored at
+        Breakpoint(seconds=0.5, value=64),      # still there where the loop takes over
+        Breakpoint(seconds=3.0, value=16),      # the level the recording fell to
+    ),
+    tempo=125,
+    tick_bound=limits.bound(Capability.ENVELOPE_TICK),
+    value_bound=limits.bound(Capability.ENVELOPE_VALUE),
+    sustain=EnvelopeSpan(begin=2, end=2),
+)
+```
+
+Each breakpoint lands on the tick its time falls on and each value on the grid the format numbers. The
+ticks come out ascending whatever was asked for: two breakpoints inside one tick are moved apart, and a
+curve reaching past the last tick a format counts is drawn back into the ticks that remain, so the end of
+a curve stays stated. `envelope_seconds(envelope, tempo=…)` is the way back, for measuring what a stored
+curve does against the trajectory it was fitted to.
+
+Because those ticks belong to a tempo, an instrument travelling on its own is worth keeping beside the
+tempo its envelopes were fitted at: an `.iti` or an `.xi` carries a curve and no clock to read it by.
+
+### Fading a released voice
+
+`fadeout` is a **rate**, not a length of time. A voice being faded carries a counter that starts full and
+drops by the instrument's fadeout every tick, and what remains of it scales the level the voice plays at,
+so the time it buys is `counter / fadeout` ticks. The counter's size is each format's own, so
+`trackmod.core.instruments.fade` takes it as a parameter and each format binds its own — the same shape
+`timing` has:
+
+```python
+from trackmod.trackers.it.fade import fade_seconds, fadeout_value
+
+fadeout_value(0.25, tempo=125)   # 82, the rate that fades a released voice out in a quarter second
+fade_seconds(82, tempo=125)      # 0.2498…, the same number read the other way
+```
+
+`NO_FADEOUT` leaves the counter full, which is a voice that keeps its level for as long as it sounds and
+reads as a fade of unbounded length. A fade slower than a counter step of one raises rather than rounding
+onto that value, since zero states the opposite of a slow fade. **When** the fade begins is each format's
+own convention, stated in the format documents.
+
 ## Carrying an instrument between songs
 
 A keymap names positions in the sample table of the song it belongs to, so an instrument on its own is
@@ -179,3 +230,13 @@ Each format package re-exposes these three bound to its own speed and tempo rang
 `trackmod.trackers.it.timing` and `trackmod.trackers.xm.timing`. The ranges are the whole difference: at 44100 Hz and
 speed 1 the shortest whole-frame row Impulse Tracker reaches is 441 frames, while FastTracker 2's
 sixteen-bit tempo reaches 2.
+
+The same clock read in seconds is `trackmod.core.timing.clock`:
+
+- `tick_seconds(tempo)` — `5 / (2 * tempo)`, the unit envelope breakpoints and note fades are counted in;
+- `row_seconds(speed, tempo)` — `row_frames` asked in seconds, for material laid out in time;
+- `elapsed_ticks(seconds, tempo)` — the whole tick a duration falls on.
+
+A caller fitting material to a whole-frame lattice works in frames; one placing a breakpoint or a fade
+works in ticks. These turn either into the other, and they are why the tempo travels with anything an
+instrument states about time.

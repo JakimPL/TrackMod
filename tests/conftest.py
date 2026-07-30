@@ -28,9 +28,11 @@ from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
 from trackmod.spec.pitch import NOTE_COUNT
+from trackmod.trackers.it.spec.ranges import CANONICAL_MAX_FADEOUT
 from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
 
 SAMPLE_RATE = 44100
+FADEOUT = CANONICAL_MAX_FADEOUT
 
 
 @dataclass(frozen=True)
@@ -139,7 +141,7 @@ def song(fade_envelope: Envelope) -> Song:
         ),
     )
     instruments = (
-        Instrument(name="piano", keymap=pitched_keymap(sample=0), volume_envelope=fade_envelope, fadeout=256),
+        Instrument(name="piano", keymap=pitched_keymap(sample=0), volume_envelope=fade_envelope, fadeout=FADEOUT),
         Instrument(
             name="router",
             keymap=routed_keymap(

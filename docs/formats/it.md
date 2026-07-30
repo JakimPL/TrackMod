@@ -133,6 +133,19 @@ The keymap is 120 pairs of `(played note, sample number)`. Sample numbers are on
 silences a key; an unmapped key still names its own pitch, which is the identity mapping a tracker writes
 for an instrument with nothing routed yet.
 
+## Fadeout
+
+`trackmod.trackers.it.fade` binds the shared fade to this format's counter, which is **1024**: a fading
+voice loses `fadeout` from it every tick, so it falls silent after `1024 / fadeout` ticks. Impulse
+Tracker's own editor counts a fadeout to 128, whose eight ticks are the quickest fade it states — the
+same eight ticks FastTracker 2 reaches through a number 32 times larger.
+
+The fade starts where the volume envelope **ends**, so an instrument with no volume envelope begins
+fading at the note off and one whose curve runs on for another 8000 ticks fades that much later. Both
+were verified by rendering. This is the one place the two formats disagree about a shared field, and it
+is why a released voice is worth playing down by the curve rather than by the fade when one song is
+written to both.
+
 ## One instrument on its own (`.iti`)
 
 The same records make a file of one instrument, written by

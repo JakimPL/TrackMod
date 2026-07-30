@@ -17,6 +17,7 @@ from trackmod.trackers.xm.limits import xm_limits
 from trackmod.trackers.xm.module import XMModule
 from trackmod.trackers.xm.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
+    CANONICAL_MAX_FADEOUT,
     CANONICAL_MAX_TEMPO,
     EXTENDED_MAX_CHANNELS,
     MAX_NOTE,
@@ -33,6 +34,21 @@ def test_the_tempo_word_is_where_this_format_has_its_headroom() -> None:
 def test_the_channel_count_has_headroom_too() -> None:
     assert xm_limits(Compliance.CANONICAL).bound(Capability.CHANNELS).maximum == CANONICAL_MAX_CHANNELS
     assert xm_limits(Compliance.EXTENDED).bound(Capability.CHANNELS).maximum == EXTENDED_MAX_CHANNELS
+
+
+def test_the_fadeout_the_tracker_honours_stops_short_of_what_its_field_holds() -> None:
+    # The header keeps a word, and FastTracker 2's own editor counts a fadeout up to 0xFFF.
+    assert xm_limits(Compliance.CANONICAL).bound(Capability.FADEOUT).maximum == CANONICAL_MAX_FADEOUT
+    assert xm_limits(Compliance.EXTENDED).bound(Capability.FADEOUT).maximum == WORD_MAX
+
+
+def test_a_fadeout_past_the_tracker_is_a_compliance_violation_the_extended_level_allows(xm_song: Song) -> None:
+    faster = xm_song.instruments[0].model_copy(update={"fadeout": 2 * CANONICAL_MAX_FADEOUT})
+    quick = xm_song.model_copy(update={"instruments": (faster, *xm_song.instruments[1:])})
+    canonical = XMModule.from_song(quick, compliance=Compliance.CANONICAL).violations()
+    assert [violation.capability for violation in canonical] == [Capability.FADEOUT]
+    assert canonical[0].severity is Severity.COMPLIANCE
+    assert XMModule.from_song(quick, compliance=Compliance.EXTENDED).violations() == ()
 
 
 def test_this_format_declares_no_song_wide_volume_at_all() -> None:

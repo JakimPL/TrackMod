@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
-from tests.conftest import keyed, lattice, rescaled
+from tests.conftest import FADEOUT, keyed, lattice, rescaled
 from trackmod.core.effects.catalog import EffectCatalog
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.instruments.instrument import Instrument
@@ -160,7 +160,7 @@ def portable_song(catalog: EffectCatalog, envelope: Envelope, *, seed: int) -> S
             name=sample.name,
             keymap=keyed(sample=index),
             volume_envelope=envelope if index == 0 else None,
-            fadeout=256,
+            fadeout=FADEOUT,
         )
         for index, sample in enumerate(samples)
     )
