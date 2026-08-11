@@ -14,6 +14,7 @@ from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
 from trackmod.trackers.it.instrument_file import ITInstrumentFile
 from trackmod.trackers.it.spec.identity import (
+    CREATED_WITH,
     INSTRUMENT_EXTENSION,
     MAGIC_INSTRUMENT,
     MAGIC_SAMPLE,
@@ -23,6 +24,9 @@ from trackmod.trackers.it.spec.sizes import INSTRUMENT_HEADER_BYTES, SAMPLE_HEAD
 ROUTER = 1
 STAGED_GAIN = 24
 REFUSED_FADEOUT = 100_000
+TRACKER_VERSION_AT = 28
+TRACKER_VERSION_BYTES = 2
+ENVELOPES_HERE_FROM = 0x0200  # the version from which an instrument keeps its envelopes where this writer puts them
 
 
 def instrument_file(unit: InstrumentUnit, *, compliance: Compliance = Compliance.EXTENDED) -> ITInstrumentFile:
@@ -62,6 +66,16 @@ def test_a_written_instrument_parses_back_to_the_same_voice(song: Song) -> None:
     assert recovered.volume_envelope == original.volume_envelope
     assert recovered.fadeout == original.fadeout
     assert recovered.new_note_action == original.new_note_action
+
+
+def test_the_file_states_the_version_its_envelopes_are_laid_out_by(song: Song) -> None:
+    # A module hands its loader the version its own file header carries; an instrument travelling alone
+    # carries the only copy of it, and a reader taking this field for a 1.x instrument looks for the
+    # envelopes where that version kept them and finds none.
+    data = instrument_file(router(song)).to_bytes()
+    stated = int.from_bytes(data[TRACKER_VERSION_AT : TRACKER_VERSION_AT + TRACKER_VERSION_BYTES], "little")
+    assert stated == CREATED_WITH
+    assert stated >= ENVELOPES_HERE_FROM
 
 
 def test_the_waveforms_survive_a_round_trip(song: Song) -> None:

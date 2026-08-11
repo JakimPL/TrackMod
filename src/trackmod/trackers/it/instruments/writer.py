@@ -10,7 +10,7 @@ from trackmod.trackers.it.layout.instrument import INSTRUMENT_HEADER
 from trackmod.trackers.it.panning import stored_panning
 from trackmod.trackers.it.samples.writer import sample_bytes, sample_header
 from trackmod.trackers.it.spec.defaults import C5_NOTE, PANNING_DISABLED
-from trackmod.trackers.it.spec.identity import MAGIC_INSTRUMENT
+from trackmod.trackers.it.spec.identity import CREATED_WITH, MAGIC_INSTRUMENT
 from trackmod.trackers.it.spec.sizes import (
     FILENAME_BYTES,
     INSTRUMENT_HEADER_BYTES,
@@ -24,6 +24,12 @@ def instrument_header(instrument: Instrument, *, samples: int) -> bytes:
 
     ``samples`` is how many sample slots the container behind this header holds for the instrument,
     which a module reads off its own table and a standalone file reads off this count alone.
+
+    The header states the version it was written to (:data:`~trackmod.trackers.it.spec.identity
+    .CREATED_WITH`), which is what a standalone instrument file is read by: a module hands its loader the
+    version its own file header carries, while an instrument travelling on its own carries the only copy
+    of it, and the versions from 2.00 onward are the ones laying the envelopes out where this writer puts
+    them.
     """
     panning = PANNING_DISABLED if instrument.panning is None else stored_panning(instrument.panning)
     values: dict[str, FieldValue | ArrayValue] = {
@@ -39,7 +45,7 @@ def instrument_header(instrument: Instrument, *, samples: int) -> bytes:
         "default_pan": panning,
         "random_volume": 0,
         "random_panning": 0,
-        "tracker_version": 0,
+        "tracker_version": CREATED_WITH,
         "sample_count": samples,
         "name": encode_name(instrument.name, NAME_BYTES),
         "filter_cutoff": 0,
