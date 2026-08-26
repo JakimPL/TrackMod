@@ -5,6 +5,7 @@ from trackmod.core.effects.effect import Effect
 from trackmod.core.notes.codec import decode_note, encode_note
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.column import Column, Columns
+from trackmod.core.volumes.codec import decode_volume, encode_volume
 from trackmod.spec.grid import EMPTY, GRID_DTYPE
 
 
@@ -23,7 +24,7 @@ def read_cell(columns: Columns, row: int, channel: int) -> Cell:
     return Cell(
         note=None if note == EMPTY else decode_note(note),
         instrument=None if instrument == EMPTY else instrument,
-        volume=None if volume == EMPTY else volume,
+        volume=None if volume == EMPTY else decode_volume(volume),
         effect=None if command == EMPTY else Effect(command=command, parameter=max(parameter, 0)),
     )
 
@@ -32,6 +33,6 @@ def write_cell(columns: Columns, row: int, channel: int, cell: Cell) -> None:
     """Scatter a cell's four columns across the five planes at one grid position."""
     columns[Column.NOTE][row, channel] = EMPTY if cell.note is None else encode_note(cell.note)
     columns[Column.INSTRUMENT][row, channel] = EMPTY if cell.instrument is None else cell.instrument
-    columns[Column.VOLUME][row, channel] = EMPTY if cell.volume is None else cell.volume
+    columns[Column.VOLUME][row, channel] = EMPTY if cell.volume is None else encode_volume(cell.volume)
     columns[Column.EFFECT][row, channel] = EMPTY if cell.effect is None else cell.effect.command
     columns[Column.PARAMETER][row, channel] = EMPTY if cell.effect is None else cell.effect.parameter

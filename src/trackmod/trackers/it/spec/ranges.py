@@ -1,10 +1,14 @@
 from typing import Final
 
+from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.width import BYTE_MAX
 
 PAN_CENTER: Final = 32
 PAN_MAX: Final = 64
 CHANNEL_VOLUME_FULL: Final = 64
+
+MAX_VOLUME_COMMAND: Final = 9
+MAX_VOLUME_PANNING: Final = MAX_VOLUME
 
 MAX_GLOBAL_VOLUME: Final = 128
 MAX_MIX_VOLUME: Final = 128

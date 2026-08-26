@@ -2,7 +2,7 @@ from typing import Final
 
 from trackmod.core.samples.depth import BitDepth
 from trackmod.spec.pitch import NOTES_PER_OCTAVE, RATE_NOTE
-from trackmod.spec.width import BYTE_MAX, DOUBLE_WORD_MAX, WORD_MAX
+from trackmod.spec.width import BYTE_MAX, DOUBLE_WORD_MAX, NIBBLE_MAX, WORD_MAX
 from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
 from trackmod.trackers.xm.spec.tuning import (
     MAX_RELATIVE_NOTE,
@@ -12,6 +12,9 @@ from trackmod.trackers.xm.spec.tuning import (
 )
 
 PAN_CENTER: Final = 128
+
+MAX_VOLUME_COMMAND: Final = NIBBLE_MAX
+MAX_VOLUME_PANNING: Final = NIBBLE_MAX
 
 MAX_NOTE: Final = KEYMAP_NOTES - 1
 

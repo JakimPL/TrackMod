@@ -2,8 +2,9 @@ from pydantic import BaseModel
 
 from trackmod.core.effects.effect import Effect
 from trackmod.core.notes.command import NoteValue
+from trackmod.core.volumes.command import VolumeValue
 from trackmod.schema.config import FROZEN
-from trackmod.schema.scalars import Index, Volume
+from trackmod.schema.scalars import Index
 
 
 class Cell(BaseModel):
@@ -17,7 +18,7 @@ class Cell(BaseModel):
 
     note: NoteValue | None = None
     instrument: Index | None = None
-    volume: Volume | None = None
+    volume: VolumeValue | None = None
     effect: Effect | None = None
 
     @property

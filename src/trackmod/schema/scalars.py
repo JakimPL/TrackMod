@@ -13,6 +13,7 @@ from trackmod.spec.levels import (
     MIN_PANNING,
     MIN_VOLUME,
 )
+from trackmod.spec.volumes import MAX_AMOUNT
 
 Index = Annotated[int, Field(ge=0)]
 Count = Annotated[int, Field(ge=0)]
@@ -22,6 +23,7 @@ Frames = Annotated[int, Field(ge=0)]
 Rate = Annotated[int, Field(gt=0)]
 
 Volume = Annotated[int, Field(ge=MIN_VOLUME, le=MAX_VOLUME)]
+VolumeAmount = Annotated[int, Field(ge=0, le=MAX_AMOUNT)]
 Panning = Annotated[int, Field(ge=MIN_PANNING, le=MAX_PANNING)]
 InstrumentVolume = Annotated[int, Field(ge=MIN_INSTRUMENT_VOLUME, le=MAX_INSTRUMENT_VOLUME)]
 Fadeout = Annotated[int, Field(ge=MIN_FADEOUT)]

@@ -26,6 +26,8 @@ class Capability(StrEnum):
     TEMPO = "tempo"
     SPEED = "speed"
     VOLUME = "volume"
+    VOLUME_COMMAND = "volume_command"
+    VOLUME_PANNING = "volume_panning"
     SONG_VOLUME = "song_volume"
     MIX_VOLUME = "mix_volume"
     PANNING = "panning"

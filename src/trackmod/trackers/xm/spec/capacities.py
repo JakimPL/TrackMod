@@ -25,6 +25,8 @@ from trackmod.trackers.xm.spec.ranges import (
     MAX_SAMPLES,
     MAX_SPEED,
     MAX_TEMPO,
+    MAX_VOLUME_COMMAND,
+    MAX_VOLUME_PANNING,
     MIN_ROWS,
     MIN_SAMPLE_RATE,
     MIN_SPEED,
@@ -72,5 +74,7 @@ CAPACITIES: Final = {
         structural=Bound(minimum=MIN_SPEED, maximum=MAX_SPEED),
     ),
     Capability.VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME)),
+    Capability.VOLUME_COMMAND: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME_COMMAND)),
+    Capability.VOLUME_PANNING: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME_PANNING)),
     Capability.PANNING: Capacity.fixed(Bound(minimum=0, maximum=MAX_PANNING)),
 }
