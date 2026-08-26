@@ -192,6 +192,27 @@ unit = extract(song, 0)
 ITInstrumentFile.from_unit(unit, compliance=Compliance.CANONICAL).save(Path("piano.iti"))
 ```
 
+## What a later writer adds
+
+Impulse Tracker left the file room past the records its own header points at, and the trackers that came
+after it spend that room. Three kinds of block reach the model, all through
+`ITSettings.extensions`:
+
+- **An editing history** sits directly after the offset tables. Nothing points at it, so the header's
+  own `HISTORY` switch is the whole of how a reader knows it is there, and it is carried as the bytes it
+  was found as.
+- **Channel and pattern names** follow it, each a four-byte tag, the length that follows, and one
+  fixed-width field per name — twenty bytes for a channel, thirty-two for a pattern. The blocks are
+  walked by their own lengths, so a tag this library has no reading for is stepped over rather than
+  stopping the walk.
+- **Whatever a writer appended** past the last record any header points at closes the file. OpenMPT
+  keeps its own extended properties there. Nothing points at it either, so it is found by where this
+  format's own content stops and carried whole.
+
+The stated blocks sit between the offset tables and the records those tables point at, so what they
+occupy moves every offset the header states — `body_start` counts them, and the size model counts them
+with it.
+
 ## What wrote a file
 
 The header carries the version of whatever program wrote the module, and the programs writing this

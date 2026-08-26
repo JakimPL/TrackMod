@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from typing import Final
 
 import numpy as np
@@ -82,27 +83,41 @@ def _block_frames(reader: BitReader, count: int, *, depth: BitDepth) -> list[int
     return frames
 
 
-def decompress(data: bytes, *, frames: int, depth: BitDepth, doubled: bool) -> NDArray[np.int64]:
-    """The waveform a block-compressed sample holds, as the stored integers its frames sit on.
+def _blocks(data: bytes, *, frames: int, depth: BitDepth) -> Iterator[tuple[bytes, int, int]]:
+    """Each compressed block a waveform is stored in: its payload, its frames, and where it ends.
 
-    Impulse Tracker stores a long waveform in blocks, each opening with the byte count that follows it,
-    and each block's fields are the differences of a running sum. Version 2.15 sums twice, which carries
-    a smoother waveform in narrower fields, and ``doubled`` is what the file's own compatibility version
-    states about which sum was written.
+    A block opens with the byte count that follows it, so the blocks are walked by their own lengths and
+    a caller reading only how far they reach pays nothing for the fields inside them.
     """
-    dtype = _STORED_DTYPES[depth]
     written = 0
     position = 0
-    blocks: list[NDArray[np.int64]] = []
     while written < frames:
         length = int.from_bytes(data[position : position + BLOCK_LENGTH_BYTES], "little")
         position += BLOCK_LENGTH_BYTES
         count = min(BLOCK_FRAMES[depth], frames - written)
-        reader = BitReader(data[position : position + length])
+        yield data[position : position + length], count, position + length
         position += length
-        stated = np.asarray(_block_frames(reader, count, depth=depth), dtype=dtype)
+        written += count
+
+
+def compressed_bytes(data: bytes, *, frames: int, depth: BitDepth) -> int:
+    """How many bytes a block-compressed waveform occupies, read from the block lengths alone."""
+    return max((end for _, _, end in _blocks(data, frames=frames, depth=depth)), default=0)
+
+
+def decompress(data: bytes, *, frames: int, depth: BitDepth, doubled: bool) -> NDArray[np.int64]:
+    """The waveform a block-compressed sample holds, as the stored integers its frames sit on.
+
+    Impulse Tracker stores a long waveform in blocks, and each block's fields are the differences of a
+    running sum that restarts with it. Version 2.15 sums twice, which carries a smoother waveform in
+    narrower fields, and ``doubled`` is what the file's own compatibility version states about which sum
+    was written.
+    """
+    dtype = _STORED_DTYPES[depth]
+    blocks: list[NDArray[np.int64]] = []
+    for payload, count, _ in _blocks(data, frames=frames, depth=depth):
+        stated = np.asarray(_block_frames(BitReader(payload), count, depth=depth), dtype=dtype)
         summed = np.cumsum(stated, dtype=dtype)
         blocks.append(np.asarray(np.cumsum(summed, dtype=dtype) if doubled else summed, dtype=np.int64))
-        written += count
 
     return np.concatenate(blocks) if blocks else np.zeros(0, dtype=np.int64)

@@ -18,6 +18,8 @@ class SpecialFlag(IntFlag):
     """The file header's switches over the optional blocks it points at past the module itself."""
 
     MESSAGE = 0x01
+    HISTORY = 0x02
+    HIGHLIGHT = 0x04
 
 
 @unique

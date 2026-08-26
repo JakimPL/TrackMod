@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from trackmod.schema.config import FROZEN
 from trackmod.spec.width import BYTE_MAX
+from trackmod.trackers.it.extensions import Extensions
 from trackmod.trackers.it.spec.defaults import (
     DEFAULT_CHANNEL_PANNING,
     DEFAULT_CHANNEL_VOLUME,
@@ -37,6 +38,10 @@ class ITSettings(BaseModel):
     (:func:`~trackmod.trackers.it.version.wrote`). A file read here keeps the one it arrived with, so a
     module written back states the same origin it stated before, and a song built from nothing states
     the version this format's own tracker wrote.
+
+    ``extensions`` holds what a writer appended past the records Impulse Tracker itself laid out, so a
+    file carrying channel names, an editing history or the properties a later tracker keeps for itself
+    reads with all of them and writes them back (:class:`~trackmod.trackers.it.extensions.Extensions`).
     """
 
     model_config = FROZEN
@@ -49,3 +54,4 @@ class ITSettings(BaseModel):
     flags: HeaderFlag = DEFAULT_FLAGS
     message: str = DEFAULT_MESSAGE
     created_with: int = CREATED_WITH
+    extensions: Extensions = Extensions()

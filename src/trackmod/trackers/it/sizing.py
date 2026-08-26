@@ -15,7 +15,8 @@ def module_bytes(song: Song, settings: ITSettings) -> SizeReport:
 
     Every record byte is read off this format's storage table, so what the table states and what the
     writer lays out answer to one another. What remains is what no table predicts: the packed cell
-    streams, the waveforms, and the song message the settings attach.
+    streams, the waveforms, the song message the settings attach, and the blocks a later writer states
+    beside the records -- names, an editing history, and whatever it appended past them all.
     """
     per_pattern = [packed_bytes(pattern) for pattern in song.patterns]
     return SizeReport(
@@ -27,7 +28,9 @@ def module_bytes(song: Song, settings: ITSettings) -> SizeReport:
             patterns=len(song.patterns),
             orders=song.order.length,
         )
-        + len(message_data(settings.message)),
+        + len(message_data(settings.message))
+        + settings.extensions.named_bytes
+        + len(settings.extensions.appended),
         largest_pattern=max(per_pattern, default=0),
     )
 

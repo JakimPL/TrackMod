@@ -9,17 +9,33 @@ from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
+from trackmod.trackers.it.extensions import Extensions, block_names
 from trackmod.trackers.it.instruments.parser import parse_instrument
 from trackmod.trackers.it.layout.file import FILE_HEADER
 from trackmod.trackers.it.layout.instrument import INSTRUMENT_HEADER
+from trackmod.trackers.it.layout.pattern import PATTERN_HEADER
+from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.it.patterns.parser import unpack_pattern
-from trackmod.trackers.it.samples.parser import read_sample
+from trackmod.trackers.it.samples.parser import read_sample, stored_end
 from trackmod.trackers.it.settings import ITSettings
 from trackmod.trackers.it.spec.defaults import DEFAULT_MESSAGE
+from trackmod.trackers.it.spec.extensions import (
+    CHANNEL_NAME_BYTES,
+    CHANNEL_NAMES_MAGIC,
+    HISTORY_COUNT_BYTES,
+    HISTORY_ENTRY_BYTES,
+    PATTERN_NAME_BYTES,
+    PATTERN_NAMES_MAGIC,
+)
 from trackmod.trackers.it.spec.flags import HeaderFlag, SpecialFlag
 from trackmod.trackers.it.spec.identity import DOUBLED_COMPRESSION, MAGIC_MODULE
 from trackmod.trackers.it.spec.orders import ORDER_SEPARATOR, ORDER_TERMINATOR
-from trackmod.trackers.it.spec.sizes import OFFSET_TABLE_ENTRY_BYTES
+from trackmod.trackers.it.spec.sizes import (
+    INSTRUMENT_HEADER_BYTES,
+    OFFSET_TABLE_ENTRY_BYTES,
+    PATTERN_HEADER_BYTES,
+    SAMPLE_HEADER_BYTES,
+)
 
 
 class ModuleReader:
@@ -36,6 +52,7 @@ class ModuleReader:
         self._instrument_offsets = self._read_table(cursor, "instrument_count")
         self._sample_offsets = self._read_table(cursor, "sample_count")
         self._pattern_offsets = self._read_table(cursor, "pattern_count")
+        self._tables_end = cursor.position
 
     def song(self) -> Song:
         """The format-agnostic content the file carries."""
@@ -64,7 +81,62 @@ class ModuleReader:
             channel_volume=tuple(read_bytes(self._header, "channel_volume")),
             flags=HeaderFlag(read_int(self._header, "flags")),
             message=self._message(),
+            extensions=self._extensions(),
             created_with=read_int(self._header, "created_with"),
+        )
+
+    @property
+    def _body_start(self) -> int:
+        """Where the first record the header points at sits, which the blocks before it stop at."""
+        pointed = (*self._instrument_offsets, *self._sample_offsets, *self._pattern_offsets)
+        return min(pointed, default=self._tables_end)
+
+    @property
+    def _appended_start(self) -> int:
+        """The byte past every record the header points at, where a writer's own blocks begin.
+
+        Each kind of record states its own length -- an instrument and a sample header by their fixed
+        size, a pattern and a compressed waveform by the count they open with -- so the furthest any of
+        them reaches is where this format's own content ends.
+        """
+        reaches = [self._body_start]
+        reaches += [offset + INSTRUMENT_HEADER_BYTES for offset in self._instrument_offsets]
+        for offset in self._sample_offsets:
+            values = SAMPLE_HEADER.unpack(self._data[offset:])
+            reaches += [offset + SAMPLE_HEADER_BYTES, stored_end(values, self._data)]
+
+        for offset in self._pattern_offsets:
+            header = PATTERN_HEADER.unpack(self._data[offset:])
+            reaches.append(offset + PATTERN_HEADER_BYTES + read_int(header, "packed_size"))
+
+        message = read_int(self._header, "message_offset")
+        if SpecialFlag.MESSAGE & read_int(self._header, "special"):
+            reaches.append(message + read_int(self._header, "message_length"))
+
+        return max(reaches)
+
+    def _history(self) -> bytes:
+        """The record of editing sessions a file carries, which its own switch says whether it holds."""
+        if not SpecialFlag.HISTORY & read_int(self._header, "special"):
+            return b""
+
+        start = self._tables_end
+        entries = int.from_bytes(self._data[start : start + HISTORY_COUNT_BYTES], "little")
+        return self._data[start : start + HISTORY_COUNT_BYTES + HISTORY_ENTRY_BYTES * entries]
+
+    def _extensions(self) -> Extensions:
+        """Everything a writer put beside the records this format's own header points at.
+
+        The stated blocks sit between the offset tables and the first record, and whatever a writer keeps
+        for itself follows the last of them, so the two are found by where the header's own offsets stop.
+        """
+        history = self._history()
+        heading = self._data[self._tables_end + len(history) : self._body_start]
+        return Extensions(
+            channel_names=block_names(heading, CHANNEL_NAMES_MAGIC, width=CHANNEL_NAME_BYTES),
+            pattern_names=block_names(heading, PATTERN_NAMES_MAGIC, width=PATTERN_NAME_BYTES),
+            history=history,
+            appended=self._data[self._appended_start :],
         )
 
     def _message(self) -> str:

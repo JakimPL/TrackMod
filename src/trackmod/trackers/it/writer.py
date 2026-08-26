@@ -24,10 +24,15 @@ from trackmod.trackers.it.spec.sizes import (
 )
 
 
-def body_start(song: Song) -> int:
-    """The offset the first instrument header sits at, past the file header and the offset tables."""
+def body_start(song: Song, settings: ITSettings) -> int:
+    """The offset the first instrument header sits at, past the header, the tables and the stated blocks.
+
+    The blocks a later writer states -- an editing history, channel and pattern names -- sit between the
+    offset tables and the records those tables point at, so what they occupy moves every offset along.
+    """
     entries = len(song.instruments) + len(song.samples) + len(song.patterns)
-    return FILE_HEADER_BYTES + song.order.length + ORDER_TERMINATOR_BYTES + OFFSET_TABLE_ENTRY_BYTES * entries
+    tables = FILE_HEADER_BYTES + song.order.length + ORDER_TERMINATOR_BYTES + OFFSET_TABLE_ENTRY_BYTES * entries
+    return tables + settings.extensions.named_bytes
 
 
 def lay_out(
@@ -77,7 +82,7 @@ def file_header(
             "created_with": settings.created_with,
             "compatible_with": COMPATIBLE_WITH,
             "flags": int(settings.flags),
-            "special": int(message.special),
+            "special": int(message.special | settings.extensions.special),
             "global_volume": settings.global_volume,
             "mix_volume": settings.mix_volume,
             "speed": song.playback.speed,
@@ -95,12 +100,13 @@ def file_header(
 def write_module(song: Song, settings: ITSettings) -> bytes:
     """Serialise a song and its settings as a whole Impulse Tracker file.
 
-    The song message closes the file, past the frames the sample headers point at, so every offset the
-    header states is settled before the block that follows them all is placed.
+    The song message follows the frames the sample headers point at, so every offset the header states is
+    settled before the block that follows them all is placed. Whatever a writer appended past this
+    format's own records closes the file, since nothing points at it.
     """
     instruments = [instrument_header(instrument, samples=len(instrument.samples)) for instrument in song.instruments]
     patterns = [pack_pattern(pattern) for pattern in song.patterns]
-    start = body_start(song)
+    start = body_start(song, settings)
     tables, body = lay_out(song, instruments, patterns, start)
     message = MessageBlock.of(settings.message, start=start + len(body))
 
@@ -117,4 +123,4 @@ def write_module(song: Song, settings: ITSettings) -> bytes:
     for offset in tables:
         out += struct.pack(OFFSET_CODE, offset)
 
-    return bytes(out + body + message.data)
+    return bytes(out + settings.extensions.heading() + body + message.data + settings.extensions.appended)

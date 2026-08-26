@@ -10,7 +10,7 @@ from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.sample import Sample
 from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.it.panning import shared_panning
-from trackmod.trackers.it.samples.compression import decompress
+from trackmod.trackers.it.samples.compression import compressed_bytes, decompress
 from trackmod.trackers.it.spec.flags import SampleFlag, SamplePanning
 from trackmod.trackers.it.spec.storage import PCM_ENCODING
 
@@ -32,6 +32,16 @@ def stored_frames(values: RecordValues) -> int:
     and stops once the frame count the header names is out.
     """
     return read_int(values, "length") * stored_depth(values).bytes_per_frame
+
+
+def stored_end(values: RecordValues, data: bytes) -> int:
+    """The byte past the frames a sample header points at, which a compressed block states for itself."""
+    start = read_int(values, "sample_pointer")
+    if not is_compressed(values):
+        return start + stored_frames(values)
+
+    reach = compressed_bytes(data[start:], frames=read_int(values, "length"), depth=stored_depth(values))
+    return start + reach
 
 
 def loop_mode(flags: SampleFlag, ping_pong: SampleFlag) -> LoopMode:
