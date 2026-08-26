@@ -108,8 +108,9 @@ class XMModule(BaseModel):
 
         A bound this format leaves room for is reported rather than raised, so a caller sees every
         problem at once. Content it has no encoding for at all — a note cut, a sustain loop, a pitch
-        envelope, or a keymap that transposes one key of a sample differently from another — is not a
-        quantity to bound and raises where it is met.
+        envelope, a volume-column effect its own column has no run for, or a keymap that transposes
+        one key of a sample differently from another — is not a quantity to bound and raises where it
+        is met.
 
         Raises:
             LimitError: when the song carries values this format refuses at its compliance level.

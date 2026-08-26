@@ -5,6 +5,7 @@ from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
+from trackmod.core.volumes.checks import check_volumes
 from trackmod.limits.capability import Capability
 from trackmod.limits.checklist import Checklist
 from trackmod.limits.table import Limits
@@ -37,10 +38,11 @@ def check_song(checklist: Checklist, song: Song) -> None:
 
 
 def check_patterns(checklist: Checklist, song: Song) -> None:
-    """Grade each pattern's height and the size of the stream it packs into."""
+    """Grade each pattern's height, the size of the stream it packs into and the volumes it states."""
     for index, pattern in enumerate(song.patterns):
         checklist.check(Capability.PATTERN_ROWS, pattern.rows, subject=f"pattern {index}")
         checklist.check(Capability.PATTERN_BYTES, packed_bytes(pattern), subject=f"pattern {index}")
+        check_volumes(checklist, pattern, subject=f"pattern {index}")
 
 
 def check_samples(checklist: Checklist, samples: Sequence[Sample]) -> None:

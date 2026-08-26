@@ -1,8 +1,12 @@
 import pytest
 
 from tests.conftest import GridShape, random_pattern, rescaled
+from trackmod.core.notes.pitch import Note
+from trackmod.core.patterns.builder import PatternBuilder
+from trackmod.core.patterns.cell import Cell
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.song import Song
+from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
@@ -15,6 +19,8 @@ from trackmod.trackers.it.spec.ranges import (
     CANONICAL_MAX_FADEOUT,
     EXTENDED_MAX_CHANNELS,
     MAX_ROWS,
+    MAX_VOLUME_COMMAND,
+    MAX_VOLUME_PANNING,
 )
 
 
@@ -92,3 +98,59 @@ def test_a_pattern_over_the_size_field_is_reported(song: Song) -> None:
         violation.capability for violation in ITModule.from_song(wide, compliance=Compliance.EXTENDED).violations()
     ]
     assert Capability.PATTERN_BYTES in reported
+
+
+PATTERN_ROWS = 32
+SPARE_EFFECT = VolumeEffect.VIBRATO_DEPTH
+UNNAMED_EFFECT = VolumeEffect.VIBRATO_SPEED
+
+
+def volumed(song: Song, volume: VolumeCommand) -> Song:
+    """The song with one pattern stating ``volume``, which is what a volume-column bound is graded over."""
+    builder = PatternBuilder(rows=PATTERN_ROWS, channels=song.channels)
+    builder.place(0, 0, Cell(note=Note(60), instrument=0, volume=volume))
+    return song.model_copy(update={"patterns": (builder.build(),), "order": OrderList.sequential(1)})
+
+
+def test_the_amounts_a_volume_column_holds_are_bounded_apart_from_its_panning() -> None:
+    limits = it_limits(Compliance.CANONICAL)
+    assert limits.bound(Capability.VOLUME_COMMAND).maximum == MAX_VOLUME_COMMAND
+    assert limits.bound(Capability.VOLUME_PANNING).maximum == MAX_VOLUME_PANNING
+
+
+def test_an_amount_past_what_the_column_holds_is_reported(song: Song) -> None:
+    past = volumed(song, VolumeCommand(effect=VolumeEffect.VOLUME_SLIDE_UP, amount=MAX_VOLUME_COMMAND + 1))
+    (violation,) = ITModule.from_song(past, compliance=Compliance.EXTENDED).violations()
+    assert violation.capability is Capability.VOLUME_COMMAND
+    assert violation.value == MAX_VOLUME_COMMAND + 1
+    assert violation.severity is Severity.STRUCTURAL
+    assert violation.subject == "pattern 0"
+
+
+def test_a_panning_position_is_graded_on_its_own_field(song: Song) -> None:
+    # Panning counts a different number of steps from the rates, so the two are bounded apart.
+    held = volumed(song, VolumeCommand(effect=VolumeEffect.PANNING, amount=MAX_VOLUME_PANNING))
+    assert ITModule.from_song(held, compliance=Compliance.EXTENDED).violations() == ()
+
+    past = volumed(song, VolumeCommand(effect=VolumeEffect.PANNING, amount=MAX_VOLUME_PANNING + 1))
+    (violation,) = ITModule.from_song(past, compliance=Compliance.EXTENDED).violations()
+    assert violation.capability is Capability.VOLUME_PANNING
+
+
+def test_a_pattern_states_one_violation_per_quantity_however_many_cells_carry_one(song: Song) -> None:
+    builder = PatternBuilder(rows=PATTERN_ROWS, channels=song.channels)
+    for row, amount in enumerate((MAX_VOLUME_COMMAND + 1, MAX_VOLUME_COMMAND + 3, MAX_VOLUME_COMMAND + 2)):
+        builder.place(row, 0, Cell(note=Note(60), volume=VolumeCommand(effect=SPARE_EFFECT, amount=amount)))
+
+    crowded = song.model_copy(update={"patterns": (builder.build(),), "order": OrderList.sequential(1)})
+    (violation,) = ITModule.from_song(crowded, compliance=Compliance.EXTENDED).violations()
+    assert violation.value == MAX_VOLUME_COMMAND + 3
+
+
+def test_an_effect_this_column_has_no_run_for_raises_where_it_is_met(song: Song) -> None:
+    # A bound says use a smaller number; content the column cannot state at all has no bound to report.
+    unnamed = volumed(song, VolumeCommand(effect=UNNAMED_EFFECT, amount=0))
+    module = ITModule.from_song(unnamed, compliance=Compliance.EXTENDED)
+    assert module.violations() == ()
+    with pytest.raises(ValueError, match="no run for"):
+        module.to_bytes()

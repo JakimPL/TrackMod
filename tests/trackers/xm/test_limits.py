@@ -7,6 +7,7 @@ from trackmod.core.patterns.cell import Cell
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
+from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
@@ -21,6 +22,8 @@ from trackmod.trackers.xm.spec.ranges import (
     CANONICAL_MAX_TEMPO,
     EXTENDED_MAX_CHANNELS,
     MAX_NOTE,
+    MAX_VOLUME_COMMAND,
+    MAX_VOLUME_PANNING,
 )
 
 
@@ -125,3 +128,59 @@ def test_a_sample_asking_for_gain_this_format_cannot_apply_is_reported(xm_song: 
         violation.capability for violation in XMModule.from_song(song, compliance=Compliance.EXTENDED).violations()
     ]
     assert reported == [Capability.SAMPLE_GAIN]
+
+
+PATTERN_ROWS = 32
+SPARE_EFFECT = VolumeEffect.VIBRATO_DEPTH
+UNNAMED_EFFECT = VolumeEffect.PITCH_SLIDE_UP
+
+
+def volumed(song: Song, volume: VolumeCommand) -> Song:
+    """The song with one pattern stating ``volume``, which is what a volume-column bound is graded over."""
+    builder = PatternBuilder(rows=PATTERN_ROWS, channels=song.channels)
+    builder.place(0, 0, Cell(note=Note(60), instrument=0, volume=volume))
+    return song.model_copy(update={"patterns": (builder.build(),), "order": OrderList.sequential(1)})
+
+
+def test_the_amounts_a_volume_column_holds_are_bounded_apart_from_its_panning() -> None:
+    limits = xm_limits(Compliance.CANONICAL)
+    assert limits.bound(Capability.VOLUME_COMMAND).maximum == MAX_VOLUME_COMMAND
+    assert limits.bound(Capability.VOLUME_PANNING).maximum == MAX_VOLUME_PANNING
+
+
+def test_an_amount_past_what_the_column_holds_is_reported(xm_song: Song) -> None:
+    past = volumed(xm_song, VolumeCommand(effect=VolumeEffect.VOLUME_SLIDE_UP, amount=MAX_VOLUME_COMMAND + 1))
+    (violation,) = XMModule.from_song(past, compliance=Compliance.EXTENDED).violations()
+    assert violation.capability is Capability.VOLUME_COMMAND
+    assert violation.value == MAX_VOLUME_COMMAND + 1
+    assert violation.severity is Severity.STRUCTURAL
+    assert violation.subject == "pattern 0"
+
+
+def test_a_panning_position_is_graded_on_its_own_field(xm_song: Song) -> None:
+    # Panning counts a different number of steps from the rates, so the two are bounded apart.
+    held = volumed(xm_song, VolumeCommand(effect=VolumeEffect.PANNING, amount=MAX_VOLUME_PANNING))
+    assert XMModule.from_song(held, compliance=Compliance.EXTENDED).violations() == ()
+
+    past = volumed(xm_song, VolumeCommand(effect=VolumeEffect.PANNING, amount=MAX_VOLUME_PANNING + 1))
+    (violation,) = XMModule.from_song(past, compliance=Compliance.EXTENDED).violations()
+    assert violation.capability is Capability.VOLUME_PANNING
+
+
+def test_a_pattern_states_one_violation_per_quantity_however_many_cells_carry_one(xm_song: Song) -> None:
+    builder = PatternBuilder(rows=PATTERN_ROWS, channels=xm_song.channels)
+    for row, amount in enumerate((MAX_VOLUME_COMMAND + 1, MAX_VOLUME_COMMAND + 3, MAX_VOLUME_COMMAND + 2)):
+        builder.place(row, 0, Cell(note=Note(60), volume=VolumeCommand(effect=SPARE_EFFECT, amount=amount)))
+
+    crowded = xm_song.model_copy(update={"patterns": (builder.build(),), "order": OrderList.sequential(1)})
+    (violation,) = XMModule.from_song(crowded, compliance=Compliance.EXTENDED).violations()
+    assert violation.value == MAX_VOLUME_COMMAND + 3
+
+
+def test_an_effect_this_column_has_no_run_for_raises_where_it_is_met(xm_song: Song) -> None:
+    # A bound says use a smaller number; content the column cannot state at all has no bound to report.
+    unnamed = volumed(xm_song, VolumeCommand(effect=UNNAMED_EFFECT, amount=0))
+    module = XMModule.from_song(unnamed, compliance=Compliance.EXTENDED)
+    assert module.violations() == ()
+    with pytest.raises(ValueError, match="no run for"):
+        module.to_bytes()

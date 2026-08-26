@@ -20,5 +20,14 @@ def decode_volume(code: int) -> VolumeValue:
     if 0 <= code < LEVEL_COUNT:
         return code
 
+    return decode_command(code)
+
+
+def decode_command(code: int) -> VolumeCommand:
+    """The command a volume column's integer past the level range stands for.
+
+    Raises:
+        ValueError: when ``code`` names no command.
+    """
     effect, amount = divmod(code - LEVEL_COUNT, AMOUNT_COUNT)
     return VolumeCommand(effect=VolumeEffect(effect), amount=amount)

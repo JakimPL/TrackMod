@@ -101,8 +101,13 @@ class ITModule(BaseModel):
     def to_bytes(self) -> bytes:
         """Serialise the whole module.
 
+        A bound this format leaves room for is reported rather than raised, so a caller sees every
+        problem at once. Content it has no encoding for at all — a volume-column effect its own column
+        has no run for — is not a quantity to bound and raises where it is met.
+
         Raises:
             LimitError: when the song carries values this format refuses at its compliance level.
+            ValueError: when the song carries content this format has no encoding for.
         """
         require(self.violations())
         return write_module(self.song, self.settings)
