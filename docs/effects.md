@@ -93,6 +93,7 @@ if effect is not None and effect.command == ITEffect.SET_TEMPO:
     tempo = effect.parameter
 ```
 
-FastTracker 2's volume column carries its own small effect set beside plain levels — slides, vibrato,
-panning. Only the level range `0x10..0x50` maps onto the shared model's `volume`, so a parser reads
-those as levels and leaves the rest out of the cell rather than misreading a slide as a loudness.
+Both formats' volume columns carry a small effect set of their own beside plain levels — slides,
+vibrato, panning. Those are *not* format-specific the way an effect command is: the intents are shared
+and each format states which of them its own column reaches, so they live in the model rather than in a
+command byte. See [`volume.md`](volume.md).

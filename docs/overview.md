@@ -15,6 +15,7 @@ job: `trackmod` produces and consumes bytes.
 | [`model.md`](model.md) | The shared domain model: songs, patterns, samples, instruments, timing |
 | [`limits.md`](limits.md) | Capabilities, compliance levels, and where every bound comes from |
 | [`effects.md`](effects.md) | The effect column, and the two spellings of one vocabulary |
+| [`volume.md`](volume.md) | The volume column: one vocabulary, and the runs each format divides its byte into |
 | [`formats/it.md`](formats/it.md) | What Impulse Tracker stores and how |
 | [`formats/xm.md`](formats/xm.md) | What FastTracker 2 stores and how |
 

@@ -105,12 +105,32 @@ zero-based write produces a module that a player renders as silence while every 
 library's own parser still passes — which is how this was found, and why the probes in
 [`limits.md`](../limits.md) render through a real player rather than trusting the parser alone.
 
+### The volume column
+
+The column holds a level in `0..64` and spends the rest of its byte on the effects it also carries —
+fine and plain volume slides, pitch slides, panning, portamento and a vibrato depth. Each occupies a run
+of ten values apiece, panning the sixty-five that mirror the level grid, and
+`trackmod.trackers.it.spec.volume` states those runs as data. The bytes between the runs name nothing
+this format defines and read as an absent volume, reported once for a whole pattern. See
+[`volume.md`](../volume.md).
+
 ## Notes
 
 Impulse Tracker numbers its keyboard from C-0 exactly as the shared model does, so a key is stored as
 its own number. The commands sit at the top of the byte range: fade `253`, cut `254`, off `255`.
 
 ## Samples
+
+**Waveforms may be compressed.** A sample header's `COMPRESSED` flag says its frames are stored in
+blocks rather than as plain PCM, and this is what nearly every module written by a modern tracker
+carries. Each block opens with the byte count that follows it and holds at most `0x8000` frames of an
+eight-bit waveform or `0x4000` of a sixteen-bit one. Inside a block the values are bit fields of a width
+that changes as the waveform allows: it opens one bit wider than the depth, and three ranges of the
+field announce a new width instead of carrying a value. What the fields carry are the differences of a
+running sum, which restarts at each block; version 2.15 sums twice, and the header's compatible-with
+version is what says which. `trackmod.trackers.it.samples.compression` reads them, and the writer stores
+plain frames.
+
 
 `SAMPLE_HEADER` is 80 bytes. The rate is stored as **C5Speed**: the frequency in hertz at which the
 sample sounds when key C-5 is pressed, which is exactly the shared model's `Sample.rate`, written
@@ -171,6 +191,17 @@ from trackmod.limits.compliance import Compliance
 unit = extract(song, 0)
 ITInstrumentFile.from_unit(unit, compliance=Compliance.CANONICAL).save(Path("piano.iti"))
 ```
+
+## What wrote a file
+
+The header carries the version of whatever program wrote the module, and the programs writing this
+format each took a number of their own to sit above it: `0x0` is Impulse Tracker, `0x1` Schism Tracker,
+`0x5` OpenMPT. `trackmod.trackers.it.version.wrote` reads that number and `version` the bits below it,
+each program spelling those its own way.
+
+`ITSettings.created_with` carries the field, so a module read here and written back states the origin it
+arrived with rather than this library's own. A song built from nothing states Impulse Tracker 2.14,
+which is the version the writer's records are laid out for.
 
 ## Timing
 

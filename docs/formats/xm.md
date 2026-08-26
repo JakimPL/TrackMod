@@ -66,9 +66,12 @@ other than `OFF` raises.
 Instrument numbers are one-based here too, with zero meaning "stay on the instrument this channel already
 carries".
 
-The volume column stores a level as `0x10 + level`. The same column also carries slides, vibrato and
-panning in its other ranges; a parser reads only the level range into `Cell.volume` and leaves the rest
-out rather than misreading a slide as a loudness.
+The volume column stores a level as `0x10 + level`, and spends the rest of its byte on the effects it
+also carries — volume slides, fine slides, a vibrato speed and depth, panning, panning slides and a
+portamento. Each occupies a run of sixteen values, and `trackmod.trackers.xm.spec.volume` states those
+runs as data. `0x00` is what a cell stating every column writes where it holds no volume, so that byte
+reads as an absence; the bytes between it and the level range name nothing this format defines and read
+the same way, reported once for a whole pattern. See [`volume.md`](../volume.md).
 
 ## Tuning: how a rate becomes a transposition
 

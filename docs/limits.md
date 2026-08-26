@@ -56,10 +56,13 @@ The limits system grades **quantities**. A value outside a `Bound` becomes a `Vi
 raises `LimitError` after collecting every one of them.
 
 Content a format has no encoding for at all is not a quantity. There is no bound to report it against,
-so it raises `ValueError` where it is met. FastTracker 2 is where this line falls: a note cut or fade in
-the note column (it stores a key off and nothing else), a sustain loop, a pitch envelope, an envelope
-sustaining over a span of points rather than one point, and a keymap that transposes one key of a sample
-differently from another. `XMModule.to_bytes` documents both paths in its `Raises:` clause.
+so it raises `ValueError` where it is met. FastTracker 2 is where most of this line falls: a note cut or
+fade in the note column (it stores a key off and nothing else), a sustain loop, a pitch envelope, an
+envelope sustaining over a span of points rather than one point, and a keymap that transposes one key of
+a sample differently from another. The volume column is where it falls for both: each names ten of the
+twelve intents the two state between them, so a pitch slide written as FastTracker 2 and a vibrato speed
+written as Impulse Tracker each raise (see [`volume.md`](volume.md)). Both `to_bytes` methods document
+the two paths in their `Raises:` clauses.
 
 The distinction is worth keeping because the two call for different fixes. A `LimitError` says *use a
 smaller number*; a `ValueError` says *this idea has no home in this format, express it another way*.
@@ -71,7 +74,7 @@ Two bounds separated by `/` are canonical and structural; a single bound is a fi
 | Capability | Impulse Tracker | FastTracker 2 |
 |---|---|---|
 | `channels` | 1..64 / 1..127 | 1..32 / 1..192 |
-| `patterns` | 0..200 | 0..256 |
+| `patterns` | 0..200 / 0..254 | 0..256 |
 | `orders` | 0..256 / 0..65535 | 0..256 |
 | `pattern_rows` | 32..200 / 1..200 | 1..256 |
 | `pattern_bytes` | 0..65535 | 0..65535 |
@@ -91,6 +94,8 @@ Two bounds separated by `/` are canonical and structural; a single bound is a fi
 | `tempo` | 32..255 | 32..255 / 1..65535 |
 | `speed` | 1..255 | 1..31 / 1..65535 |
 | `volume` | 0..64 | 0..64 |
+| `volume_command` | 0..9 | 0..15 |
+| `volume_panning` | 0..64 | 0..15 |
 | `song_volume` | 0..128 | — |
 | `mix_volume` | 0..128 | — |
 | `message_bytes` | 0..8000 / 0..65535 | — |
@@ -104,6 +109,12 @@ asking for a value out of range.
 Two capacities are pinned to a single value for the same reason: `sample_gain` at 64 and
 `instrument_volume` at 128 say that FastTracker 2 applies no such multiplier. A song asking for a
 quieter sample gain is told so instead of having the request dropped in silence.
+
+`samples` and `instruments` stay at 255 for Impulse Tracker at both levels, and the reason is a
+**reference** rather than a count. The header counts each in a sixteen-bit field, so the table itself has
+room to spare — but an instrument names its sample in one byte of its note map, and a pattern cell names
+its instrument in one byte too. A module numbering more than 255 of either would carry waveforms no
+keymap can reach, so the byte that names one is the bound worth stating.
 
 ## Where each extended bound comes from
 
@@ -120,6 +131,7 @@ layout, or **empirically**, verified by rendering a probe through `openmpt123` (
 | XM samples per instrument 16 → **255** | Empirical. The instrument header's sample count is a sixteen-bit field; a 255-sample instrument loads. |
 | XM tempo 255 → **65535** | Structural. The header's tempo is a sixteen-bit field. Verified: modules at tempo 441 and 1000 play rows of exactly `speed * 5 / (2 * tempo)` seconds. |
 | XM speed 31 → **65535** | Structural. The header's speed is a sixteen-bit field. Verified: modules at speed 63 and 300 play rows of the length the clock computes. |
+| IT patterns 200 → **254** | Structural. The header counts patterns in a sixteen-bit field, and an order-list entry is a byte whose `0xFE` and `0xFF` are the separator and the end of song — so the patterns an order can name run `0..253`, and 254 of them are reachable. Impulse Tracker's own editor keeps 200. |
 | IT message 8000 → **65535** | Structural. The header states the block's length in a sixteen-bit field and points at it with a thirty-two-bit offset, so the record holds whatever that length reaches; 8000 bytes is what Impulse Tracker's own editor keeps. |
 | IT fadeout 128 → **65535** | Empirical. The header's fadeout is a sixteen-bit field and Impulse Tracker's own editor counts to 128. Verified by rendering: fadeouts of 256 and 512 both play, each falling silent in `1024 / fadeout` ticks like every value below the ceiling. |
 | XM fadeout 4095 → **65535** | Empirical. The header's fadeout is a sixteen-bit field and FastTracker 2's own editor counts to `0xFFF`. Verified by rendering: fadeouts of 8192 and 16384 both play, each falling silent in `32768 / fadeout` ticks. |

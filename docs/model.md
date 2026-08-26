@@ -70,6 +70,17 @@ MIDI octave of the same pitch, so tracker C-5 is MIDI 72 and `Note.from_midi(m) 
 instead of starting a pitch — `OFF`, `CUT`, `FADE`. Their values continue past the key range, so one
 integer plane holds either kind and `NoteValue = Note | NoteCommand`.
 
+## Volumes
+
+`Cell.volume` holds either a level in `0..64` or a `trackmod.core.volumes.command.VolumeCommand` — one
+of the twelve intents both formats' volume columns state beside levels, paired with the amount it
+carries. `VolumeValue = Volume | VolumeCommand` is the union, and the commands continue past the level
+range in one integer exactly as the note column's do past the key range.
+
+The amount is stated on the grid the format's own column counts in, which is what keeps a stored column
+reading back as the value it holds. [`volume.md`](volume.md) states the runs each format divides its
+byte into and what each of them refuses.
+
 ## Samples
 
 `trackmod.core.samples.sample.Sample` carries float PCM in `[-1, 1]`, a `rate` in **hertz**, a
