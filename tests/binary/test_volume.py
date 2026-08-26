@@ -72,3 +72,20 @@ def test_the_byte_a_format_writes_for_no_volume_states_no_volume() -> None:
     assert FAST_TRACKER.states_volume(FAST_TRACKER.level_base)
     assert not FAST_TRACKER.states_volume(0x00)
     assert FAST_TRACKER.stated(0x00) is None
+
+
+def test_the_two_columns_share_the_vocabulary_the_documents_state() -> None:
+    # docs/volume.md counts these, so a run added to either column brings the count with it.
+    impulse = {span.effect for span in IMPULSE_TRACKER.spans}
+    fast = {span.effect for span in FAST_TRACKER.spans}
+    assert (len(impulse), len(fast), len(impulse & fast)) == (9, 10, 7)
+    assert impulse | fast == set(VolumeEffect)
+    assert impulse - fast == {VolumeEffect.PITCH_SLIDE_UP, VolumeEffect.PITCH_SLIDE_DOWN}
+
+
+def test_an_amount_both_columns_count_carries_a_command_between_them() -> None:
+    portable = min(span.amounts.maximum for column in COLUMNS for span in column.spans)
+    for effect in {span.effect for span in IMPULSE_TRACKER.spans} & {span.effect for span in FAST_TRACKER.spans}:
+        command = VolumeCommand(effect=effect, amount=portable)
+        assert IMPULSE_TRACKER.stored(command) is not None
+        assert FAST_TRACKER.stored(command) is not None

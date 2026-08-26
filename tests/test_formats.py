@@ -23,6 +23,7 @@ from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
+from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
@@ -85,6 +86,20 @@ def portable_rate(rate: int) -> int:
     return tuned_rate(tuning_for(rate, key=reference, sounded=reference), key=reference, sounded=reference)
 
 
+PORTABLE_AMOUNT = 9  # the furthest a rate reaches in the narrower of the two columns
+
+
+def portable_volume(rng: np.random.Generator, draw: float) -> int | VolumeCommand | None:
+    """A volume column both formats store: a level, or one of the seven commands each of them names."""
+    if draw >= 0.7:
+        return None
+
+    if draw >= 0.6:
+        return VolumeCommand(effect=VolumeEffect.VOLUME_SLIDE_DOWN, amount=int(rng.integers(0, PORTABLE_AMOUNT + 1)))
+
+    return int(rng.integers(0, MAX_VOLUME + 1))
+
+
 def portable_pattern(catalog: EffectCatalog, *, rows: int, seed: int) -> Pattern:
     """A grid both formats store, whose first row states every channel so the width is unambiguous.
 
@@ -109,7 +124,7 @@ def portable_pattern(catalog: EffectCatalog, *, rows: int, seed: int) -> Pattern
                 Cell(
                     note=Note(int(rng.integers(0, MAX_NOTE + 1))) if draw < 0.85 else NoteCommand.OFF,
                     instrument=int(rng.integers(0, PORTABLE_INSTRUMENTS)) if draw < 0.8 else None,
-                    volume=int(rng.integers(0, MAX_VOLUME + 1)) if draw < 0.7 else None,
+                    volume=portable_volume(rng, draw),
                     effect=catalog.note_delay(int(rng.integers(0, NIBBLE_MAX + 1))) if draw > 0.9 else None,
                 ),
             )

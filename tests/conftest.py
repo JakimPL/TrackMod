@@ -27,6 +27,7 @@ from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
+from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.spec.pitch import NOTE_COUNT
 from trackmod.trackers.it.spec.ranges import CANONICAL_MAX_FADEOUT
 from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
@@ -67,11 +68,23 @@ def make_sample(name: str, *, frames: int = 32, depth: BitDepth = BitDepth.SIXTE
     return Sample(name=name, pcm=rng.uniform(-1.0, 1.0, frames), rate=SAMPLE_RATE, depth=depth)
 
 
+def drawn_volume(rng: np.random.Generator, draw: float) -> int | VolumeCommand | None:
+    """A level, one of the commands both columns state, or nothing at all."""
+    if draw >= 0.7:
+        return None
+
+    if draw >= 0.6:
+        return VolumeCommand(effect=VolumeEffect.VIBRATO_DEPTH, amount=int(rng.integers(0, 10)))
+
+    return int(rng.integers(0, 65))
+
+
 def random_pattern(shape: GridShape) -> Pattern:
     """A grid whose cells cover every combination of present and absent columns.
 
     Randomising column presence independently is what exercises the reuse bits: a packer that only ever
-    sees fully populated cells never has to decide what an absent column costs.
+    sees fully populated cells never has to decide what an absent column costs. The volume column draws a
+    command as well as a level, since the two share one plane and a packer prices them alike.
     """
     rng = np.random.default_rng(shape.seed)
     builder = PatternBuilder(rows=shape.rows, channels=shape.channels)
@@ -88,7 +101,7 @@ def random_pattern(shape: GridShape) -> Pattern:
                 Cell(
                     note=note,
                     instrument=int(rng.integers(0, shape.instruments)) if draw < 0.8 else None,
-                    volume=int(rng.integers(0, 65)) if draw < 0.7 else None,
+                    volume=drawn_volume(rng, draw),
                     effect=Effect(command=1, parameter=int(rng.integers(0, 256))) if draw > 0.9 else None,
                 ),
             )

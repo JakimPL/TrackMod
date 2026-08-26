@@ -205,3 +205,17 @@ def test_the_size_model_agrees_with_the_packer_over_volume_commands() -> None:
 
 def test_an_absent_volume_is_written_as_absent() -> None:
     assert stored_volume(EMPTY) == EMPTY
+
+
+def test_a_note_byte_the_column_leaves_unnamed_reads_as_absent_and_is_reported() -> None:
+    # The keys stop at 119 and the commands sit at 253..255, so the values between them name nothing.
+    stream = bytes([1 | CHANNEL_MARKER, CellMask.NOTE, 200, 0x00])
+    with pytest.warns(UnnamedByteWarning, match="200"):
+        recovered = unpack_cells(stream, rows=1)
+
+    assert recovered.cell(0, 0) == Cell()
+
+
+def test_the_commands_at_the_top_of_the_byte_range_still_read() -> None:
+    stream = bytes([1 | CHANNEL_MARKER, CellMask.NOTE, 255, 0x00])
+    assert unpack_cells(stream, rows=1).cell(0, 0) == Cell(note=NoteCommand.OFF)

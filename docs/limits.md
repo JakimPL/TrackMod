@@ -59,10 +59,10 @@ Content a format has no encoding for at all is not a quantity. There is no bound
 so it raises `ValueError` where it is met. FastTracker 2 is where most of this line falls: a note cut or
 fade in the note column (it stores a key off and nothing else), a sustain loop, a pitch envelope, an
 envelope sustaining over a span of points rather than one point, and a keymap that transposes one key of
-a sample differently from another. The volume column is where it falls for both: each names ten of the
-twelve intents the two state between them, so a pitch slide written as FastTracker 2 and a vibrato speed
-written as Impulse Tracker each raise (see [`volume.md`](volume.md)). Both `to_bytes` methods document
-the two paths in their `Raises:` clauses.
+a sample differently from another. The volume column is where it falls for both: Impulse Tracker names
+nine of the twelve intents the two state between them and FastTracker 2 ten, so a pitch slide written as
+FastTracker 2 and a vibrato speed written as Impulse Tracker each raise (see [`volume.md`](volume.md)).
+Both `to_bytes` methods document the two paths in their `Raises:` clauses.
 
 The distinction is worth keeping because the two call for different fixes. A `LimitError` says *use a
 smaller number*; a `ValueError` says *this idea has no home in this format, express it another way*.

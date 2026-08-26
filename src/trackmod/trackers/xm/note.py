@@ -48,17 +48,17 @@ def encode_note(note: NoteValue) -> int:
     return byte
 
 
-def decode_note(byte: int) -> NoteValue:
-    """The note-column entry a stored note byte stands for.
+def decode_note(byte: int) -> NoteValue | None:
+    """The note-column entry a stored note byte stands for, or ``None`` when it names nothing.
 
-    Raises:
-        ValueError: when the byte names neither a key nor a command this format defines.
+    This format numbers its keys from one across eight octaves and keeps one byte for a key off, so the
+    values above them state something this vocabulary has no term for.
     """
     command = BYTE_COMMANDS.get(byte)
     if command is not None:
         return command
 
-    return Note(byte - NOTE_OFFSET)
+    return Note(byte - NOTE_OFFSET) if NOTE_OFFSET <= byte <= MAX_NOTE + NOTE_OFFSET else None
 
 
 NOTE_BYTES: Final = tuple(

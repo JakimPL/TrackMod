@@ -2,6 +2,7 @@ from trackmod.binary.cursor import Cursor
 from trackmod.binary.records.values import read_int
 from trackmod.binary.warnings import UnnamedBytes
 from trackmod.core.effects.effect import Effect
+from trackmod.core.notes.command import NoteValue
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.column import Column
@@ -66,6 +67,15 @@ def decode_effect(
     )
 
 
+def stated_note(byte: int, unnamed: UnnamedBytes) -> NoteValue | None:
+    """The note a stored byte states, recording a byte this format's note column leaves unnamed."""
+    note = decode_note(byte)
+    if note is None:
+        unnamed.met(byte, column=Column.NOTE)
+
+    return note
+
+
 def stated_volume(byte: int, unnamed: UnnamedBytes) -> VolumeValue | None:
     """The volume a stored byte states, recording a byte this format's column leaves unnamed."""
     volume = decode_volume(byte)
@@ -100,7 +110,7 @@ def decode_cell(cursor: Cursor, memory: ChannelMemory, unnamed: UnnamedBytes) ->
         remembered=memory.volume,
     )
     return Cell(
-        note=None if note == EMPTY else decode_note(note),
+        note=None if note == EMPTY else stated_note(note, unnamed),
         instrument=None if instrument in (EMPTY, NO_INSTRUMENT) else instrument - INSTRUMENT_OFFSET,
         volume=None if volume == EMPTY else stated_volume(volume, unnamed),
         effect=decode_effect(cursor, mask, memory),

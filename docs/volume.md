@@ -72,8 +72,9 @@ for an absent volume:
 | `0xD0..0xDF` / `0xE0..0xEF` | panning slide left / right | `0..15` |
 | `0xF0..0xFF` | portamento | `0..15` |
 
-Impulse Tracker names ten of the twelve intents and FastTracker 2 the other ten; eight are shared, and a
-song using only those eight carries its volume column into either format.
+Impulse Tracker names nine of the twelve intents and FastTracker 2 ten; seven are shared. A song using
+only those seven carries its volume column into either format, at an amount both columns count — one
+counts a rate in ten steps and the other in sixteen, so nine is as far as a portable amount reaches.
 
 ## What a column refuses
 
@@ -102,6 +103,10 @@ column reads as absent and the parse reports what it met, once for a whole patte
 ```
 UnnamedByteWarning: bytes this format leaves unnamed, read as absent: volume 213
 ```
+
+The note column reads the same way, for the same reason: Impulse Tracker numbers keys to 119 and keeps
+its commands at the top of the byte range, FastTracker 2 numbers eight octaves from one and keeps `97`
+for a key off, and the values between those name nothing either vocabulary holds.
 
 `trackmod.binary.warnings.UnnamedByteWarning` is what a caller filters on to raise, silence or collect
 those. Gathering them and warning once is the choice `Checklist` already makes for violations: a file

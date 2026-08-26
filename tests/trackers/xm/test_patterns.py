@@ -19,6 +19,7 @@ from trackmod.trackers.xm.patterns.packer import pack_cells
 from trackmod.trackers.xm.patterns.parser import unpack_cells
 from trackmod.trackers.xm.patterns.sizing import packed_bytes
 from trackmod.trackers.xm.spec.cells import (
+    KEY_OFF,
     PACKED_BYTE,
     RAW_CELL_BYTES,
     VOLUME_COLUMN_BASE,
@@ -181,3 +182,17 @@ def test_the_size_model_agrees_with_the_packer_over_volume_commands() -> None:
 
 def test_an_absent_volume_is_written_as_absent() -> None:
     assert stored_volume(EMPTY) == EMPTY
+
+
+def test_a_note_byte_the_column_leaves_unnamed_reads_as_absent_and_is_reported() -> None:
+    # This format numbers eight octaves from one and keeps 97 for a key off; above that names nothing.
+    stream = bytes([CellMask.PACKED | CellMask.NOTE, 120])
+    with pytest.warns(UnnamedByteWarning, match="120"):
+        recovered = unpack_cells_at(stream)
+
+    assert recovered.cell(0, 0) == Cell()
+
+
+def test_the_key_off_this_column_keeps_still_reads() -> None:
+    stream = bytes([CellMask.PACKED | CellMask.NOTE, KEY_OFF])
+    assert unpack_cells_at(stream).cell(0, 0) == Cell(note=NoteCommand.OFF)
