@@ -14,6 +14,7 @@ from trackmod.trackers.it.spec.defaults import (
     DEFAULT_PANNING_SEPARATION,
 )
 from trackmod.trackers.it.spec.flags import HeaderFlag
+from trackmod.trackers.it.spec.identity import CREATED_WITH
 from trackmod.trackers.it.spec.sizes import CHANNELS_STORED
 
 ChannelBytes = Annotated[
@@ -31,6 +32,11 @@ class ITSettings(BaseModel):
 
     ``message`` is the free text the format attaches to a module, which a tracker shows beside the piece
     and a producer is free to spend on whatever it wants a file to carry with it.
+
+    ``created_with`` is the version field naming the program that wrote a file
+    (:func:`~trackmod.trackers.it.version.wrote`). A file read here keeps the one it arrived with, so a
+    module written back states the same origin it stated before, and a song built from nothing states
+    the version this format's own tracker wrote.
     """
 
     model_config = FROZEN
@@ -42,3 +48,4 @@ class ITSettings(BaseModel):
     channel_volume: ChannelBytes = DEFAULT_CHANNEL_VOLUME
     flags: HeaderFlag = DEFAULT_FLAGS
     message: str = DEFAULT_MESSAGE
+    created_with: int = CREATED_WITH

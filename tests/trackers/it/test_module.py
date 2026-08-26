@@ -17,6 +17,7 @@ from trackmod.trackers.it.spec.identity import (
     MAGIC_SAMPLE,
 )
 from trackmod.trackers.it.spec.storage import IT_STORAGE
+from trackmod.trackers.it.version import Tracker, wrote
 
 EXTRA_FRAMES = 64
 EXTRA_CHANNELS = 5
@@ -107,3 +108,16 @@ def test_a_written_module_can_be_saved_and_loaded(tmp_path: Path, song: Song) ->
 def test_parsing_something_that_is_not_a_module_raises() -> None:
     with pytest.raises(ValueError):
         ITModule.parse(b"not a module" + bytes(256))
+
+
+def test_a_module_keeps_the_version_of_whatever_wrote_it(song: Song) -> None:
+    # Reading a file and writing it back leaves it stating the program it arrived from, not this one.
+    written = ITModule.from_song(song, compliance=Compliance.EXTENDED, settings=ITSettings(created_with=0x5132))
+    recovered = ITModule.parse(written.to_bytes())
+    assert recovered.settings.created_with == 0x5132
+    assert wrote(recovered.settings.created_with) is Tracker.OPEN_MPT
+
+
+def test_a_song_built_from_nothing_states_the_version_this_format_writes(song: Song) -> None:
+    recovered = ITModule.parse(ITModule.from_song(song, compliance=Compliance.EXTENDED).to_bytes())
+    assert wrote(recovered.settings.created_with) is Tracker.IMPULSE_TRACKER

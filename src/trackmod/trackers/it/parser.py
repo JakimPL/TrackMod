@@ -64,6 +64,7 @@ class ModuleReader:
             channel_volume=tuple(read_bytes(self._header, "channel_volume")),
             flags=HeaderFlag(read_int(self._header, "flags")),
             message=self._message(),
+            created_with=read_int(self._header, "created_with"),
         )
 
     def _message(self) -> str:

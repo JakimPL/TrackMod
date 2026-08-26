@@ -14,10 +14,13 @@ from trackmod.limits.severity import Severity
 from trackmod.spec.width import BYTE_MAX, WORD_MAX
 from trackmod.trackers.it.limits import it_limits
 from trackmod.trackers.it.module import ITModule
+from trackmod.trackers.it.spec.orders import ORDER_SEPARATOR
 from trackmod.trackers.it.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
     CANONICAL_MAX_FADEOUT,
     EXTENDED_MAX_CHANNELS,
+    EXTENDED_MAX_PATTERNS,
+    MAX_PATTERNS,
     MAX_ROWS,
     MAX_VOLUME_COMMAND,
     MAX_VOLUME_PANNING,
@@ -154,3 +157,17 @@ def test_an_effect_this_column_has_no_run_for_raises_where_it_is_met(song: Song)
     assert module.violations() == ()
     with pytest.raises(ValueError, match="no run for"):
         module.to_bytes()
+
+
+def test_more_patterns_than_the_tracker_edits_are_a_compliance_violation_the_extended_level_allows() -> None:
+    # The header counts patterns in a word and an order names one in a byte, so 254 of them are reachable.
+    assert it_limits(Compliance.CANONICAL).bound(Capability.PATTERNS).maximum == MAX_PATTERNS
+    assert it_limits(Compliance.EXTENDED).bound(Capability.PATTERNS).maximum == EXTENDED_MAX_PATTERNS
+    assert EXTENDED_MAX_PATTERNS == ORDER_SEPARATOR
+
+
+def test_the_samples_a_module_numbers_stop_where_a_keymap_can_name_them() -> None:
+    # A keymap states its sample in one byte, so the word the header counts them in reaches no further.
+    for level in Compliance:
+        assert it_limits(level).bound(Capability.SAMPLES).maximum == BYTE_MAX
+        assert it_limits(level).bound(Capability.INSTRUMENTS).maximum == BYTE_MAX

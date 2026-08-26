@@ -74,7 +74,7 @@ def file_header(
             "instrument_count": instrument_count,
             "sample_count": len(song.samples),
             "pattern_count": pattern_count,
-            "created_with": CREATED_WITH,
+            "created_with": settings.created_with,
             "compatible_with": COMPATIBLE_WITH,
             "flags": int(settings.flags),
             "special": int(message.special),

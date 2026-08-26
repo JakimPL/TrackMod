@@ -2,6 +2,7 @@ from typing import Final
 
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.width import BYTE_MAX
+from trackmod.trackers.it.spec.orders import ORDER_SEPARATOR
 
 PAN_CENTER: Final = 32
 PAN_MAX: Final = 64
@@ -14,6 +15,7 @@ MAX_GLOBAL_VOLUME: Final = 128
 MAX_MIX_VOLUME: Final = 128
 
 MAX_PATTERNS: Final = 200
+EXTENDED_MAX_PATTERNS: Final = ORDER_SEPARATOR  # the order byte names 0..253, so 254 patterns are reachable
 CANONICAL_MAX_ORDERS: Final = 256
 
 CANONICAL_MIN_ROWS: Final = 32
