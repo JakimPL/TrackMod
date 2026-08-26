@@ -2,10 +2,13 @@ from typing import Final
 
 from trackmod.binary.cursor import Cursor
 from trackmod.binary.records.values import read_int
+from trackmod.binary.warnings import UnnamedBytes
 from trackmod.core.effects.effect import Effect
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
+from trackmod.core.patterns.column import Column
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.volumes.command import VolumeValue
 from trackmod.spec.grid import EMPTY
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.trackers.xm.layout.pattern import PATTERN_HEADER
@@ -15,9 +18,10 @@ from trackmod.trackers.xm.spec.cells import (
     NO_EFFECT,
     NO_INSTRUMENT,
     RAW_CELL_COLUMNS,
-    VOLUME_COLUMN_BASE,
+    VOLUME_COLUMN_EMPTY,
     CellMask,
 )
+from trackmod.trackers.xm.volume import decode_volume
 
 COLUMN_BITS: Final = (
     CellMask.NOTE,
@@ -41,16 +45,17 @@ def stated_columns(cursor: Cursor) -> list[int]:
     return [cursor.take(1)[0] if first & bit else EMPTY for bit in COLUMN_BITS]
 
 
-def decode_volume(volume: int) -> int | None:
-    """The level a volume-column byte sets, or ``None`` when it holds one of the column's own effects.
+def stated_volume(byte: int, unnamed: UnnamedBytes) -> VolumeValue | None:
+    """The volume a stored byte states, recording a byte this format's column leaves unnamed.
 
-    Only the setting range maps onto a level; the slides and vibrato the column also encodes have no
-    place in the shared model and are dropped rather than misread as a level.
+    The byte a cell writes where it states no volume names an absence rather than an unknown, so it is
+    read as one and passes without report.
     """
-    if not VOLUME_COLUMN_BASE <= volume <= VOLUME_COLUMN_BASE + MAX_VOLUME:
-        return None
+    volume = decode_volume(byte)
+    if volume is None and byte != VOLUME_COLUMN_EMPTY:
+        unnamed.met(byte, column=Column.VOLUME)
 
-    return volume - VOLUME_COLUMN_BASE
+    return volume
 
 
 def decode_effect(command: int, parameter: int) -> Effect | None:
@@ -62,13 +67,13 @@ def decode_effect(command: int, parameter: int) -> Effect | None:
     return Effect(command=stated, parameter=argument)
 
 
-def decode_cell(cursor: Cursor) -> Cell:
+def decode_cell(cursor: Cursor, unnamed: UnnamedBytes) -> Cell:
     """One cell, read from the cursor's position."""
     note, instrument, volume, command, parameter = stated_columns(cursor)
     return Cell(
         note=None if note == EMPTY else decode_note(note),
         instrument=None if instrument in (EMPTY, NO_INSTRUMENT) else instrument - INSTRUMENT_OFFSET,
-        volume=None if volume == EMPTY else decode_volume(volume),
+        volume=None if volume == EMPTY else stated_volume(volume, unnamed),
         effect=decode_effect(command, parameter),
     )
 
@@ -79,11 +84,13 @@ def unpack_cells(stream: bytes, *, rows: int, channels: int) -> Pattern:
         return Pattern.empty(rows=rows, channels=channels)
 
     cursor = Cursor(stream)
+    unnamed = UnnamedBytes()
     builder = PatternBuilder(rows=rows, channels=channels)
     for row in range(rows):
         for channel in range(channels):
-            builder.place(row, channel, decode_cell(cursor))
+            builder.place(row, channel, decode_cell(cursor, unnamed))
 
+    unnamed.warn()
     return builder.build()
 
 

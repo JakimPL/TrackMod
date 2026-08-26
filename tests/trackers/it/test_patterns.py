@@ -1,12 +1,16 @@
 import pytest
 
 from tests.conftest import GridShape, random_pattern
+from trackmod.binary.volume import VolumeSpan
+from trackmod.binary.warnings import UnnamedByteWarning
 from trackmod.core.effects.effect import Effect
 from trackmod.core.notes.command import NoteCommand
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
+from trackmod.spec.grid import EMPTY
 from trackmod.trackers.it.patterns.packer import pack_cells, stored_instrument
 from trackmod.trackers.it.patterns.parser import unpack_cells
 from trackmod.trackers.it.patterns.sizing import packed_bytes
@@ -18,6 +22,8 @@ from trackmod.trackers.it.spec.cells import (
     CellMask,
 )
 from trackmod.trackers.it.spec.ranges import MAX_ROWS
+from trackmod.trackers.it.spec.volume import VOLUME_COLUMN
+from trackmod.trackers.it.volume import stored_volume
 
 GRIDS = (
     GridShape(rows=16, channels=4, instruments=2, seed=1),
@@ -139,3 +145,63 @@ def test_an_instrument_survives_a_round_trip() -> None:
     builder.place(0, 0, Cell(note=Note(60), instrument=0, volume=64))
     recovered = unpack_cells(pack_cells(builder.build()), rows=1)
     assert recovered.cell(0, 0).instrument == 0
+
+
+UNNAMED_EFFECT = VolumeEffect.VIBRATO_SPEED
+UNNAMED_BYTE = 213
+
+
+def volume_stream(byte: int) -> bytes:
+    """One packed cell on channel zero stating only a volume, then the end of its row."""
+    return bytes([1 | CHANNEL_MARKER, CellMask.VOLUME, byte, 0x00])
+
+
+def unpack_cells_at(stream: bytes) -> Pattern:
+    """The one-row pattern a stream packs to."""
+    return unpack_cells(stream, rows=1)
+
+
+@pytest.mark.parametrize("span", VOLUME_COLUMN.spans, ids=lambda span: span.effect.name)
+def test_every_effect_the_column_names_round_trips_byte_for_byte(span: VolumeSpan) -> None:
+    command = VolumeCommand(effect=span.effect, amount=span.amounts.maximum)
+    builder = PatternBuilder(rows=1, channels=1)
+    builder.place(0, 0, Cell(volume=command))
+    stream = pack_cells(builder.build())
+    assert span.stored(span.amounts.maximum) in stream
+    assert unpack_cells_at(stream).cell(0, 0).volume == command
+
+
+def test_an_effect_the_column_has_no_run_for_is_refused() -> None:
+    builder = PatternBuilder(rows=1, channels=1)
+    builder.place(0, 0, Cell(volume=VolumeCommand(effect=UNNAMED_EFFECT, amount=0)))
+    with pytest.raises(ValueError, match="no run for"):
+        pack_cells(builder.build())
+
+
+def test_an_amount_past_the_run_it_sits_in_is_refused() -> None:
+    span = VOLUME_COLUMN.span(VolumeEffect.VOLUME_SLIDE_UP)
+    assert span is not None
+    builder = PatternBuilder(rows=1, channels=1)
+    builder.place(0, 0, Cell(volume=VolumeCommand(effect=span.effect, amount=span.amounts.maximum + 1)))
+    with pytest.raises(ValueError, match="lies outside"):
+        pack_cells(builder.build())
+
+
+def test_a_byte_the_column_leaves_unnamed_reads_as_absent_and_is_reported() -> None:
+    with pytest.warns(UnnamedByteWarning, match=str(UNNAMED_BYTE)):
+        recovered = unpack_cells_at(volume_stream(UNNAMED_BYTE))
+
+    assert recovered.cell(0, 0).volume is None
+
+
+def test_the_size_model_agrees_with_the_packer_over_volume_commands() -> None:
+    builder = PatternBuilder(rows=4, channels=1)
+    for row, span in enumerate(VOLUME_COLUMN.spans[:4]):
+        builder.place(row, 0, Cell(note=Note(60), volume=VolumeCommand(effect=span.effect, amount=1)))
+
+    pattern = builder.build()
+    assert packed_bytes(pattern) == len(pack_cells(pattern))
+
+
+def test_an_absent_volume_is_written_as_absent() -> None:
+    assert stored_volume(EMPTY) == EMPTY

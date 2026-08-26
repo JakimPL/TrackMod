@@ -12,6 +12,7 @@ from trackmod.trackers.it.spec.cells import (
     INSTRUMENT_OFFSET,
     CellMask,
 )
+from trackmod.trackers.it.volume import stored_volume
 
 
 def encode_column(
@@ -137,7 +138,7 @@ def pack_cells(pattern: Pattern) -> bytes:
             encoded = encode_cell(
                 stored_note(int(notes[row, channel])),
                 stored_instrument(int(instruments[row, channel])),
-                int(volumes[row, channel]),
+                stored_volume(int(volumes[row, channel])),
                 command,
                 stored_parameter(command, int(parameters[row, channel])),
                 memory,

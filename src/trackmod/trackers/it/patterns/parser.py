@@ -1,9 +1,12 @@
 from trackmod.binary.cursor import Cursor
 from trackmod.binary.records.values import read_int
+from trackmod.binary.warnings import UnnamedBytes
 from trackmod.core.effects.effect import Effect
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
+from trackmod.core.patterns.column import Column
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.volumes.command import VolumeValue
 from trackmod.spec.grid import EMPTY
 from trackmod.trackers.it.layout.pattern import PATTERN_HEADER
 from trackmod.trackers.it.note import decode_note
@@ -16,6 +19,7 @@ from trackmod.trackers.it.spec.cells import (
     UNSET,
     CellMask,
 )
+from trackmod.trackers.it.volume import decode_volume
 
 
 def decode_column(
@@ -62,7 +66,16 @@ def decode_effect(
     )
 
 
-def decode_cell(cursor: Cursor, memory: ChannelMemory) -> Cell:
+def stated_volume(byte: int, unnamed: UnnamedBytes) -> VolumeValue | None:
+    """The volume a stored byte states, recording a byte this format's column leaves unnamed."""
+    volume = decode_volume(byte)
+    if volume is None:
+        unnamed.met(byte, column=Column.VOLUME)
+
+    return volume
+
+
+def decode_cell(cursor: Cursor, memory: ChannelMemory, unnamed: UnnamedBytes) -> Cell:
     """One cell, read against the mask and the values its channel last stated."""
     mask = memory.mask
     note, memory.note = decode_column(
@@ -89,7 +102,7 @@ def decode_cell(cursor: Cursor, memory: ChannelMemory) -> Cell:
     return Cell(
         note=None if note == EMPTY else decode_note(note),
         instrument=None if instrument in (EMPTY, NO_INSTRUMENT) else instrument - INSTRUMENT_OFFSET,
-        volume=None if volume == EMPTY else volume,
+        volume=None if volume == EMPTY else stated_volume(volume, unnamed),
         effect=decode_effect(cursor, mask, memory),
     )
 
@@ -101,6 +114,7 @@ def unpack_cells(stream: bytes, *, rows: int) -> Pattern:
         ValueError: when a channel reuses a mask it has never stated, which no writer produces.
     """
     cursor = Cursor(stream)
+    unnamed = UnnamedBytes()
     memories: dict[int, ChannelMemory] = {}
     placed: list[tuple[int, int, Cell]] = []
     for row in range(rows):
@@ -113,9 +127,10 @@ def unpack_cells(stream: bytes, *, rows: int) -> Pattern:
             elif memory.mask == UNSET:
                 raise ValueError(f"channel {channel} reuses a mask it has not stated, at row {row}")
 
-            placed.append((row, channel, decode_cell(cursor, memory)))
+            placed.append((row, channel, decode_cell(cursor, memory, unnamed)))
             marker = cursor.take(1)[0]
 
+    unnamed.warn()
     channels = max((channel for _, channel, _ in placed), default=0) + 1
     builder = PatternBuilder(rows=rows, channels=channels)
     for row, channel, cell in placed:

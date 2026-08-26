@@ -5,11 +5,11 @@ from trackmod.trackers.xm.note import stored_note
 from trackmod.trackers.xm.patterns.encoded import EncodedCell, StatedColumn
 from trackmod.trackers.xm.spec.cells import (
     INSTRUMENT_OFFSET,
-    VOLUME_COLUMN_BASE,
     CellMask,
 )
 from trackmod.trackers.xm.spec.defaults import PACKING_TYPE
 from trackmod.trackers.xm.spec.sizes import PATTERN_HEADER_BYTES
+from trackmod.trackers.xm.volume import stored_volume
 
 
 def encode_cell(note: int, instrument: int, volume: int, command: int, parameter: int) -> EncodedCell:
@@ -26,7 +26,7 @@ def encode_cell(note: int, instrument: int, volume: int, command: int, parameter
         columns.append((CellMask.INSTRUMENT, instrument + INSTRUMENT_OFFSET))
 
     if volume != EMPTY:
-        columns.append((CellMask.VOLUME, VOLUME_COLUMN_BASE + volume))
+        columns.append((CellMask.VOLUME, stored_volume(volume)))
 
     if command != EMPTY:
         columns.append((CellMask.EFFECT, command))

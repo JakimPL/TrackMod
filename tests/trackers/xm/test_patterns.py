@@ -1,12 +1,18 @@
+import warnings
+
 import pytest
 
 from tests.trackers.xm.conftest import xm_pattern
+from trackmod.binary.volume import VolumeSpan
+from trackmod.binary.warnings import UnnamedByteWarning
 from trackmod.core.effects.effect import Effect
 from trackmod.core.notes.command import NoteCommand
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
+from trackmod.spec.grid import EMPTY
 from trackmod.spec.pitch import NOTE_COUNT
 from trackmod.trackers.xm.note import stored_note
 from trackmod.trackers.xm.patterns.packer import pack_cells
@@ -16,9 +22,12 @@ from trackmod.trackers.xm.spec.cells import (
     PACKED_BYTE,
     RAW_CELL_BYTES,
     VOLUME_COLUMN_BASE,
+    VOLUME_COLUMN_EMPTY,
     CellMask,
 )
 from trackmod.trackers.xm.spec.ranges import MAX_ROWS
+from trackmod.trackers.xm.spec.volume import VOLUME_COLUMN
+from trackmod.trackers.xm.volume import stored_volume
 
 GRIDS = (
     (16, 4, 2, 1),
@@ -100,7 +109,75 @@ def test_a_key_above_the_octaves_this_format_numbers_is_refused() -> None:
         pack_cells(builder.build())
 
 
-def test_a_volume_column_effect_is_dropped_rather_than_read_as_a_level() -> None:
-    # 0x60 opens the column's own slide range, which the shared model has no cell to hold.
-    recovered = unpack_cells(bytes([CellMask.PACKED | CellMask.VOLUME, 0x60]), rows=1, channels=1)
-    assert recovered.cell(0, 0) == Cell()
+def test_a_volume_column_effect_is_read_as_the_command_it_states() -> None:
+    # 0x60 opens the column's own slide range, which the shared model now holds as a command.
+    recovered = unpack_cells_at(volume_stream(0x60))
+    assert recovered.cell(0, 0).volume == VolumeCommand(effect=VolumeEffect.VOLUME_SLIDE_DOWN, amount=0)
+
+
+def test_the_byte_a_cell_writes_for_no_volume_states_an_absence() -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        recovered = unpack_cells_at(volume_stream(VOLUME_COLUMN_EMPTY))
+
+    assert recovered.cell(0, 0).volume is None
+
+
+UNNAMED_EFFECT = VolumeEffect.PITCH_SLIDE_UP
+UNNAMED_BYTE = 0x05
+
+
+def volume_stream(byte: int) -> bytes:
+    """One packed cell stating only a volume."""
+    return bytes([CellMask.PACKED | CellMask.VOLUME, byte])
+
+
+def unpack_cells_at(stream: bytes) -> Pattern:
+    """The one-cell pattern a stream packs to."""
+    return unpack_cells(stream, rows=1, channels=1)
+
+
+@pytest.mark.parametrize("span", VOLUME_COLUMN.spans, ids=lambda span: span.effect.name)
+def test_every_effect_the_column_names_round_trips_byte_for_byte(span: VolumeSpan) -> None:
+    command = VolumeCommand(effect=span.effect, amount=span.amounts.maximum)
+    builder = PatternBuilder(rows=1, channels=1)
+    builder.place(0, 0, Cell(volume=command))
+    stream = pack_cells(builder.build())
+    assert span.stored(span.amounts.maximum) in stream
+    assert unpack_cells_at(stream).cell(0, 0).volume == command
+
+
+def test_an_effect_the_column_has_no_run_for_is_refused() -> None:
+    builder = PatternBuilder(rows=1, channels=1)
+    builder.place(0, 0, Cell(volume=VolumeCommand(effect=UNNAMED_EFFECT, amount=0)))
+    with pytest.raises(ValueError, match="no run for"):
+        pack_cells(builder.build())
+
+
+def test_an_amount_past_the_run_it_sits_in_is_refused() -> None:
+    span = VOLUME_COLUMN.span(VolumeEffect.VOLUME_SLIDE_UP)
+    assert span is not None
+    builder = PatternBuilder(rows=1, channels=1)
+    builder.place(0, 0, Cell(volume=VolumeCommand(effect=span.effect, amount=span.amounts.maximum + 1)))
+    with pytest.raises(ValueError, match="lies outside"):
+        pack_cells(builder.build())
+
+
+def test_a_byte_the_column_leaves_unnamed_reads_as_absent_and_is_reported() -> None:
+    with pytest.warns(UnnamedByteWarning, match=str(UNNAMED_BYTE)):
+        recovered = unpack_cells_at(volume_stream(UNNAMED_BYTE))
+
+    assert recovered.cell(0, 0).volume is None
+
+
+def test_the_size_model_agrees_with_the_packer_over_volume_commands() -> None:
+    builder = PatternBuilder(rows=4, channels=1)
+    for row, span in enumerate(VOLUME_COLUMN.spans[:4]):
+        builder.place(row, 0, Cell(note=Note(60), volume=VolumeCommand(effect=span.effect, amount=1)))
+
+    pattern = builder.build()
+    assert packed_bytes(pattern) == len(pack_cells(pattern))
+
+
+def test_an_absent_volume_is_written_as_absent() -> None:
+    assert stored_volume(EMPTY) == EMPTY
