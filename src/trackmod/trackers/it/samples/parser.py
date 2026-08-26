@@ -1,4 +1,8 @@
+import numpy as np
+from numpy.typing import NDArray
+
 from trackmod.binary.pcm.codec import decode_pcm
+from trackmod.binary.pcm.quantise import dequantise
 from trackmod.binary.records.values import RecordValues, read_bytes, read_int
 from trackmod.binary.text import decode_name
 from trackmod.core.samples.depth import BitDepth
@@ -6,6 +10,7 @@ from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.sample import Sample
 from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.it.panning import shared_panning
+from trackmod.trackers.it.samples.compression import decompress
 from trackmod.trackers.it.spec.flags import SampleFlag, SamplePanning
 from trackmod.trackers.it.spec.storage import PCM_ENCODING
 
@@ -15,8 +20,17 @@ def stored_depth(values: RecordValues) -> BitDepth:
     return BitDepth.SIXTEEN if SampleFlag(read_int(values, "flags")) & SampleFlag.SIXTEEN_BIT else BitDepth.EIGHT
 
 
+def is_compressed(values: RecordValues) -> bool:
+    """Whether a sample header states its waveform is stored in compressed blocks."""
+    return SampleFlag.COMPRESSED in SampleFlag(read_int(values, "flags"))
+
+
 def stored_frames(values: RecordValues) -> int:
-    """How many bytes of waveform a sample header points at."""
+    """How many bytes of waveform a sample header points at.
+
+    A compressed waveform states its own length block by block, so a reader is given the rest of the file
+    and stops once the frame count the header names is out.
+    """
     return read_int(values, "length") * stored_depth(values).bytes_per_frame
 
 
@@ -34,7 +48,16 @@ def read_loop(values: RecordValues, *, begin: str, end: str, mode: LoopMode) -> 
     return Loop(begin=first, end=last, mode=mode)
 
 
-def parse_sample(values: RecordValues, data: bytes) -> Sample:
+def stored_pcm(values: RecordValues, data: bytes, *, depth: BitDepth, doubled: bool) -> NDArray[np.float64]:
+    """The waveform a sample header points at, however the frames behind it are stored."""
+    if is_compressed(values):
+        frames = decompress(data, frames=read_int(values, "length"), depth=depth, doubled=doubled)
+        return dequantise(frames, depth)
+
+    return decode_pcm(data, depth=depth, encoding=PCM_ENCODING)
+
+
+def parse_sample(values: RecordValues, data: bytes, *, doubled: bool) -> Sample:
     """Rebuild a sample from its header fields and the frames the header points at."""
     flags = SampleFlag(read_int(values, "flags"))
     depth = stored_depth(values)
@@ -56,7 +79,7 @@ def parse_sample(values: RecordValues, data: bytes) -> Sample:
     )
     return Sample(
         name=decode_name(read_bytes(values, "name")),
-        pcm=decode_pcm(data, depth=depth, encoding=PCM_ENCODING),
+        pcm=stored_pcm(values, data, depth=depth, doubled=doubled),
         rate=read_int(values, "c5speed"),
         depth=depth,
         volume=read_int(values, "default_volume"),
@@ -67,7 +90,7 @@ def parse_sample(values: RecordValues, data: bytes) -> Sample:
     )
 
 
-def read_sample(data: bytes, *, offset: int) -> Sample:
+def read_sample(data: bytes, *, offset: int, doubled: bool) -> Sample:
     """The sample whose header sits at ``offset``, with the frames the header points at.
 
     Both containers this format writes find a waveform the same way — through a pointer counted from the
@@ -75,4 +98,7 @@ def read_sample(data: bytes, *, offset: int) -> Sample:
     """
     values = SAMPLE_HEADER.unpack(data[offset:])
     start = read_int(values, "sample_pointer")
-    return parse_sample(values, data[start : start + stored_frames(values)])
+    if is_compressed(values):
+        return parse_sample(values, data[start:], doubled=doubled)
+
+    return parse_sample(values, data[start : start + stored_frames(values)], doubled=doubled)

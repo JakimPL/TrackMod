@@ -17,7 +17,7 @@ from trackmod.trackers.it.samples.parser import read_sample
 from trackmod.trackers.it.settings import ITSettings
 from trackmod.trackers.it.spec.defaults import DEFAULT_MESSAGE
 from trackmod.trackers.it.spec.flags import HeaderFlag, SpecialFlag
-from trackmod.trackers.it.spec.identity import MAGIC_MODULE
+from trackmod.trackers.it.spec.identity import DOUBLED_COMPRESSION, MAGIC_MODULE
 from trackmod.trackers.it.spec.orders import ORDER_SEPARATOR, ORDER_TERMINATOR
 from trackmod.trackers.it.spec.sizes import OFFSET_TABLE_ENTRY_BYTES
 
@@ -93,7 +93,8 @@ class ModuleReader:
         )
 
     def _samples(self) -> tuple[Sample, ...]:
-        return tuple(read_sample(self._data, offset=offset) for offset in self._sample_offsets)
+        doubled = read_int(self._header, "compatible_with") >= DOUBLED_COMPRESSION
+        return tuple(read_sample(self._data, offset=offset, doubled=doubled) for offset in self._sample_offsets)
 
     def _patterns(self) -> tuple[Pattern, ...]:
         patterns = []

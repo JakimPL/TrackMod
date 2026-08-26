@@ -14,7 +14,7 @@ from trackmod.trackers.it.layout.instrument import INSTRUMENT_HEADER
 from trackmod.trackers.it.panning import shared_panning
 from trackmod.trackers.it.samples.parser import read_sample
 from trackmod.trackers.it.spec.flags import SamplePanning
-from trackmod.trackers.it.spec.identity import MAGIC_INSTRUMENT
+from trackmod.trackers.it.spec.identity import DOUBLED_COMPRESSION, MAGIC_INSTRUMENT
 from trackmod.trackers.it.spec.sizes import INSTRUMENT_HEADER_BYTES, SAMPLE_HEADER_BYTES
 
 
@@ -51,7 +51,9 @@ def parse_instrument_file(data: bytes) -> InstrumentUnit:
         raise ValueError("data does not open with the Impulse Tracker instrument tag")
 
     count = read_int(values, "sample_count")
+    doubled = read_int(values, "tracker_version") >= DOUBLED_COMPRESSION
     samples = tuple(
-        read_sample(data, offset=INSTRUMENT_HEADER_BYTES + SAMPLE_HEADER_BYTES * index) for index in range(count)
+        read_sample(data, offset=INSTRUMENT_HEADER_BYTES + SAMPLE_HEADER_BYTES * index, doubled=doubled)
+        for index in range(count)
     )
     return InstrumentUnit(instrument=parse_instrument(values), samples=samples)
