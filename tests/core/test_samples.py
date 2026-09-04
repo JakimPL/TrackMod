@@ -4,6 +4,7 @@ import pytest
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.sample import Sample
+from trackmod.core.samples.vibrato import NO_VIBRATO, Vibrato
 from trackmod.spec.levels import MAX_VOLUME
 
 RATE = 44100
@@ -50,9 +51,24 @@ def test_a_level_off_the_shared_scale_is_rejected() -> None:
         Sample(name="s", pcm=np.zeros(8), rate=RATE, volume=MAX_VOLUME + 1)
 
 
-def test_stereo_waveforms_are_rejected() -> None:
+def test_a_stereo_waveform_is_accepted() -> None:
+    stereo = Sample(name="s", pcm=np.zeros((8, 2)), rate=RATE)
+    assert stereo.channels == 2
+    assert stereo.frames == 8
+
+
+def test_a_three_dimensional_waveform_is_rejected() -> None:
     with pytest.raises(ValueError):
-        Sample(name="s", pcm=np.zeros((8, 2)), rate=RATE)
+        Sample(name="s", pcm=np.zeros((8, 2, 1)), rate=RATE)
+
+
+def test_a_waveform_with_more_than_two_channels_is_rejected() -> None:
+    with pytest.raises(ValueError, match="channels"):
+        Sample(name="s", pcm=np.zeros((8, 3)), rate=RATE)
+
+
+def test_stored_size_accounts_for_stereo_channels() -> None:
+    assert Sample(name="s", pcm=np.zeros((10, 2)), rate=RATE).stored_bytes == 40
 
 
 def test_samples_compare_by_their_waveform_and_settings() -> None:
@@ -61,3 +77,27 @@ def test_samples_compare_by_their_waveform_and_settings() -> None:
     assert first == second
     assert hash(first) == hash(second)
     assert first != Sample(name="s", pcm=np.zeros(8), rate=RATE)
+
+
+def test_a_mono_and_a_stereo_sample_of_the_same_frame_count_are_unequal() -> None:
+    mono = Sample(name="s", pcm=np.zeros(8), rate=RATE)
+    stereo = Sample(name="s", pcm=np.zeros((8, 2)), rate=RATE)
+    assert mono != stereo
+
+
+def test_filename_and_vibrato_default_to_absent() -> None:
+    plain = Sample(name="s", pcm=np.zeros(8), rate=RATE)
+    assert plain.filename == ""
+    assert plain.vibrato == NO_VIBRATO
+
+
+def test_filename_and_vibrato_round_trip_through_construction() -> None:
+    vibrato = Vibrato(speed=1, depth=2, rate=3, waveform=0)
+    sample = Sample(name="s", pcm=np.zeros(8), rate=RATE, filename="SAMPLE.WAV", vibrato=vibrato)
+    assert sample.filename == "SAMPLE.WAV"
+    assert sample.vibrato == vibrato
+
+
+def test_a_vibrato_value_off_the_byte_range_is_rejected() -> None:
+    with pytest.raises(ValueError):
+        Vibrato(speed=256, depth=0, rate=0, waveform=0)

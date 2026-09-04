@@ -196,7 +196,8 @@ knowing when one song is written to both.
 
 `SAMPLE_HEADER` is 40 bytes and its lengths count **bytes rather than frames**, so a 16-bit sample's
 stored length is twice its frame count. The loop mode is the low two bits of the type byte and the
-16-bit flag is `0x10`. There is no sustain loop, and a sample carrying one raises.
+16-bit flag is `0x10`. There is no sustain loop, and a sample carrying one raises. There is no stereo
+storage either, and a sample carrying two channels raises.
 
 Frames are stored as **deltas**: successive differences that the player integrates with a running sum in
 the stored width. `trackmod.binary.pcm.codec` takes the differences in a wider type and casts back, so a

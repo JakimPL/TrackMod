@@ -143,6 +143,20 @@ The panning byte reserves its high bit as an enable switch and stores a position
 sample's shared `0..255` panning is scaled on the way in and back out. `gain` maps onto the header's
 global volume, which is the per-sample multiplier FastTracker 2 has no equivalent for.
 
+**Waveforms may be stereo.** The header's `STEREO` flag says a sample's frames are two channels rather
+than one, and `length` counts frames per channel either way. Impulse Tracker's own editor never writes
+this — the format's own flag documentation calls it unsupported — but OpenMPT, Schism Tracker and other
+later players read and write it by a shared convention: the two channels are stored **planar**, never
+interleaved. An uncompressed waveform is the whole left channel's frames followed by the whole right
+channel's; a compressed one is two independent compressed streams, the left channel's blocks in full
+before the right channel's own fresh sequence begins. Loop, sustain loop, volume, gain, panning and rate
+are single fields shared by both channels — the 80-byte header carries exactly one of each.
+
+`filename` and the four `vibrato_*` bytes are read and written alongside every other header field.
+`filename` is the DOS 8.3 name a sample was imported under, distinct from the `name` field a tracker
+displays; the vibrato bytes are a per-sample auto-vibrato Impulse Tracker's own editor exposes, carried
+here without further interpretation.
+
 ## Instruments
 
 `INSTRUMENT_HEADER` is 554 bytes and carries **three** envelopes — volume, panning and pitch — at offsets

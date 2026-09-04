@@ -149,6 +149,13 @@ def test_a_sustain_loop_this_format_cannot_store_is_refused(xm_song: Song) -> No
         module(song).to_bytes()
 
 
+def test_a_stereo_sample_this_format_cannot_store_is_refused(xm_song: Song) -> None:
+    stereo = Sample(name="stereo", pcm=np.zeros((8, 2)), rate=44100)
+    song = replace_samples(xm_song, (stereo, *xm_song.samples[1:]))
+    with pytest.raises(ValueError, match="stereo"):
+        module(song).to_bytes()
+
+
 def test_a_pitch_envelope_this_format_cannot_store_is_refused(xm_song: Song) -> None:
     shaped = xm_song.instruments[0].model_copy(
         update={"pitch_envelope": Envelope(points=(EnvelopePoint(tick=0, value=0),))}

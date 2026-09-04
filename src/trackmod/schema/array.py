@@ -25,7 +25,7 @@ class Shaped:
     """
 
     dtype: type[np.generic]
-    dimensions: int
+    dimensions: tuple[int, ...]
 
     def __get_pydantic_core_schema__(
         self,
@@ -36,14 +36,14 @@ class Shaped:
         return core_schema.no_info_plain_validator_function(self.validate)
 
     def validate(self, value: object) -> NDArray[Any]:
-        """Coerce ``value`` to this shape's dtype and confirm its rank.
+        """Coerce ``value`` to this shape's dtype and confirm its rank is one this shape accepts.
 
         Raises:
-            ValueError: when the value has the wrong number of dimensions.
+            ValueError: when the value's number of dimensions is none of the accepted ones.
         """
         array = np.asarray(value, dtype=self.dtype)
-        if array.ndim != self.dimensions:
-            raise ValueError(f"expected {self.dimensions} dimensions, got {array.ndim}")
+        if array.ndim not in self.dimensions:
+            raise ValueError(f"expected one of {self.dimensions} dimensions, got {array.ndim}")
 
         return array
 

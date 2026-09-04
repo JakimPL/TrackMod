@@ -100,6 +100,14 @@ writer derives its own encoding. A sample with no frames is a valid placeholder 
 per-sample multiplier, so it bounds `gain` to full and reports anything quieter, telling a caller the
 scaling has to be baked into the waveform.
 
+`pcm` is shaped `(frames,)` for a mono waveform or `(frames, 2)` for a stereo one, left channel first. A
+stereo waveform shares every field above between its two channels — no format this library reads gives
+them their own loop, volume, panning or rate.
+
+`filename` and `vibrato` are Impulse Tracker's own DOS filename and sample-level auto-vibrato. A format
+with no room for either — FastTracker 2 is the only other format this library reads — leaves them at
+their default of an empty name and no vibrato.
+
 ## Instruments
 
 `trackmod.core.instruments.instrument.Instrument` is a named routing of keys onto samples, plus the

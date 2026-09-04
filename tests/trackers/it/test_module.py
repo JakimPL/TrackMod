@@ -5,6 +5,7 @@ import pytest
 
 from tests.conftest import make_sample
 from trackmod.core.instruments.instrument import Instrument
+from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
 from trackmod.limits.compliance import Compliance
 from trackmod.spec.pitch import NOTE_COUNT
@@ -91,6 +92,19 @@ def test_sample_headers_and_waveforms_survive_a_round_trip(song: Song) -> None:
         assert restored.depth == original.depth
         assert restored.loop == original.loop
         assert np.allclose(restored.pcm, original.pcm, atol=1.5 / original.depth.scale)
+
+
+def test_a_stereo_sample_round_trips_through_the_whole_module(song: Song) -> None:
+    left = np.linspace(-1.0, 1.0, 16)
+    right = np.linspace(1.0, -1.0, 16)
+    stereo = Sample(name="stereo", pcm=np.stack([left, right], axis=1), rate=44100)
+    widened = song.model_copy(update={"samples": (*song.samples, stereo)})
+
+    recovered = ITModule.parse(module(widened).to_bytes()).song.samples[-1]
+
+    assert recovered.channels == 2
+    assert recovered.frames == 16
+    assert np.allclose(recovered.pcm, stereo.pcm, atol=1.5 / stereo.depth.scale)
 
 
 def test_settings_survive_a_round_trip(song: Song) -> None:

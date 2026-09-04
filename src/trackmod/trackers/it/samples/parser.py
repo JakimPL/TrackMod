@@ -1,3 +1,5 @@
+from typing import Final
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -7,17 +9,25 @@ from trackmod.binary.records.values import RecordValues, read_bytes, read_int
 from trackmod.binary.text import decode_name
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
-from trackmod.core.samples.sample import Sample
+from trackmod.core.samples.sample import STEREO_CHANNELS, Sample
+from trackmod.core.samples.vibrato import Vibrato
 from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.it.panning import shared_panning
 from trackmod.trackers.it.samples.compression import compressed_bytes, decompress
 from trackmod.trackers.it.spec.flags import SampleFlag, SamplePanning
 from trackmod.trackers.it.spec.storage import PCM_ENCODING
 
+MONO_CHANNELS: Final = 1
+
 
 def stored_depth(values: RecordValues) -> BitDepth:
     """The bit depth a sample header's flags declare its frames are stored at."""
     return BitDepth.SIXTEEN if SampleFlag(read_int(values, "flags")) & SampleFlag.SIXTEEN_BIT else BitDepth.EIGHT
+
+
+def stored_channels(values: RecordValues) -> int:
+    """How many channels a sample header's flags declare its frames are stored as."""
+    return STEREO_CHANNELS if SampleFlag(read_int(values, "flags")) & SampleFlag.STEREO else MONO_CHANNELS
 
 
 def is_compressed(values: RecordValues) -> bool:
@@ -26,12 +36,27 @@ def is_compressed(values: RecordValues) -> bool:
 
 
 def stored_frames(values: RecordValues) -> int:
-    """How many bytes of waveform a sample header points at.
+    """How many bytes of waveform a sample header points at, across every channel it stores.
 
     A compressed waveform states its own length block by block, so a reader is given the rest of the file
     and stops once the frame count the header names is out.
     """
-    return read_int(values, "length") * stored_depth(values).bytes_per_frame
+    return read_int(values, "length") * stored_depth(values).bytes_per_frame * stored_channels(values)
+
+
+def _compressed_extents(data: bytes, *, frames: int, depth: BitDepth, channels: int) -> tuple[int, ...]:
+    """How many bytes each channel of a compressed waveform occupies, one entry per channel.
+
+    A stereo waveform stores two independent streams, the left channel's blocks in full before the right
+    channel's own fresh sequence begins, so the right channel's extent is measured from where the left
+    one ended.
+    """
+    left = compressed_bytes(data, frames=frames, depth=depth)
+    if channels == MONO_CHANNELS:
+        return (left,)
+
+    right = compressed_bytes(data[left:], frames=frames, depth=depth)
+    return left, right
 
 
 def stored_end(values: RecordValues, data: bytes) -> int:
@@ -40,8 +65,10 @@ def stored_end(values: RecordValues, data: bytes) -> int:
     if not is_compressed(values):
         return start + stored_frames(values)
 
-    reach = compressed_bytes(data[start:], frames=read_int(values, "length"), depth=stored_depth(values))
-    return start + reach
+    extents = _compressed_extents(
+        data[start:], frames=read_int(values, "length"), depth=stored_depth(values), channels=stored_channels(values)
+    )
+    return start + sum(extents)
 
 
 def loop_mode(flags: SampleFlag, ping_pong: SampleFlag) -> LoopMode:
@@ -59,12 +86,25 @@ def read_loop(values: RecordValues, *, begin: str, end: str, mode: LoopMode) -> 
 
 
 def stored_pcm(values: RecordValues, data: bytes, *, depth: BitDepth, doubled: bool) -> NDArray[np.float64]:
-    """The waveform a sample header points at, however the frames behind it are stored."""
-    if is_compressed(values):
-        frames = decompress(data, frames=read_int(values, "length"), depth=depth, doubled=doubled)
-        return dequantise(frames, depth)
+    """The waveform a sample header points at, however its frames and channels are stored."""
+    length = read_int(values, "length")
+    if stored_channels(values) == MONO_CHANNELS:
+        if is_compressed(values):
+            frames = decompress(data, frames=length, depth=depth, doubled=doubled)
+            return dequantise(frames, depth)
 
-    return decode_pcm(data, depth=depth, encoding=PCM_ENCODING)
+        return decode_pcm(data, depth=depth, encoding=PCM_ENCODING)
+
+    if is_compressed(values):
+        left_bytes, _ = _compressed_extents(data, frames=length, depth=depth, channels=STEREO_CHANNELS)
+        left = decompress(data, frames=length, depth=depth, doubled=doubled)
+        right = decompress(data[left_bytes:], frames=length, depth=depth, doubled=doubled)
+        return dequantise(np.stack([left, right], axis=1), depth)
+
+    mono_bytes = length * depth.bytes_per_frame
+    left_pcm = decode_pcm(data[:mono_bytes], depth=depth, encoding=PCM_ENCODING)
+    right_pcm = decode_pcm(data[mono_bytes:], depth=depth, encoding=PCM_ENCODING)
+    return np.stack([left_pcm, right_pcm], axis=1)
 
 
 def parse_sample(values: RecordValues, data: bytes, *, doubled: bool) -> Sample:
@@ -97,6 +137,13 @@ def parse_sample(values: RecordValues, data: bytes, *, doubled: bool) -> Sample:
         panning=shared_panning(panning & ~SamplePanning.ENABLED) if panning & SamplePanning.ENABLED else None,
         loop=loop,
         sustain_loop=sustain,
+        filename=decode_name(read_bytes(values, "filename")),
+        vibrato=Vibrato(
+            speed=read_int(values, "vibrato_speed"),
+            depth=read_int(values, "vibrato_depth"),
+            rate=read_int(values, "vibrato_rate"),
+            waveform=read_int(values, "vibrato_waveform"),
+        ),
     )
 
 

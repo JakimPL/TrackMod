@@ -4,7 +4,7 @@ from trackmod.binary.pcm.codec import encode_pcm
 from trackmod.binary.text import encode_name
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import LoopMode
-from trackmod.core.samples.sample import Sample
+from trackmod.core.samples.sample import STEREO_CHANNELS, Sample
 from trackmod.trackers.xm.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.xm.spec.defaults import DEFAULT_PANNING
 from trackmod.trackers.xm.spec.flags import LoopType, SampleFlag
@@ -38,8 +38,19 @@ def loop_type(sample: Sample) -> LoopType:
     return LOOP_TYPES[sample.loop.mode]
 
 
+def reject_stereo(sample: Sample) -> None:
+    """Refuse to serialise a sample this format has no encoding for.
+
+    Raises:
+        ValueError: when the sample is stereo, which this format cannot store.
+    """
+    if sample.channels == STEREO_CHANNELS:
+        raise ValueError(f"sample {sample.name!r} is stereo, which this format cannot store")
+
+
 def sample_header(sample: Sample, *, tuning: Tuning) -> bytes:
     """Serialise a sample header, whose lengths count bytes rather than frames."""
+    reject_stereo(sample)
     stride = sample.depth.bytes_per_frame
     flags = int(loop_type(sample))
     if sample.depth is BitDepth.SIXTEEN:

@@ -2,7 +2,7 @@ from trackmod.binary.pcm.codec import encode_pcm
 from trackmod.binary.text import encode_name
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
-from trackmod.core.samples.sample import Sample
+from trackmod.core.samples.sample import STEREO_CHANNELS, Sample
 from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.it.panning import stored_panning
 from trackmod.trackers.it.spec.flags import SampleConvert, SampleFlag, SamplePanning
@@ -12,8 +12,18 @@ from trackmod.trackers.it.spec.storage import PCM_ENCODING
 
 
 def sample_bytes(sample: Sample) -> bytes:
-    """Serialise a sample's waveform as this format stores it: signed frames, no differencing."""
-    return encode_pcm(sample.pcm, depth=sample.depth, encoding=PCM_ENCODING)
+    """Serialise a sample's waveform as this format stores it: signed frames, no differencing.
+
+    A stereo waveform is stored planar, so each channel is encoded from its own 1-D slice and the two
+    are placed one after the other — never interleaved, which is what encoding the 2-D array whole would
+    produce instead.
+    """
+    if sample.channels != STEREO_CHANNELS:
+        return encode_pcm(sample.pcm, depth=sample.depth, encoding=PCM_ENCODING)
+
+    left = encode_pcm(sample.pcm[:, 0], depth=sample.depth, encoding=PCM_ENCODING)
+    right = encode_pcm(sample.pcm[:, 1], depth=sample.depth, encoding=PCM_ENCODING)
+    return left + right
 
 
 def loop_flags(sample: Sample) -> SampleFlag:
@@ -43,13 +53,16 @@ def sample_header(sample: Sample, *, data_offset: int) -> bytes:
     if sample.depth is BitDepth.SIXTEEN:
         flags |= SampleFlag.SIXTEEN_BIT
 
+    if sample.channels == STEREO_CHANNELS:
+        flags |= SampleFlag.STEREO
+
     loop_begin, loop_end = loop_bounds(sample.loop)
     sustain_begin, sustain_end = loop_bounds(sample.sustain_loop)
     panning = 0 if sample.panning is None else SamplePanning.ENABLED | stored_panning(sample.panning)
     return SAMPLE_HEADER.pack(
         {
             "magic": MAGIC_SAMPLE,
-            "filename": encode_name(sample.name, FILENAME_BYTES),
+            "filename": encode_name(sample.filename, FILENAME_BYTES),
             "global_volume": sample.gain,
             "flags": int(flags),
             "default_volume": sample.volume,
@@ -63,9 +76,9 @@ def sample_header(sample: Sample, *, data_offset: int) -> bytes:
             "sustain_begin": sustain_begin,
             "sustain_end": sustain_end,
             "sample_pointer": data_offset,
-            "vibrato_speed": 0,
-            "vibrato_depth": 0,
-            "vibrato_rate": 0,
-            "vibrato_waveform": 0,
+            "vibrato_speed": sample.vibrato.speed,
+            "vibrato_depth": sample.vibrato.depth,
+            "vibrato_rate": sample.vibrato.rate,
+            "vibrato_waveform": sample.vibrato.waveform,
         }
     )

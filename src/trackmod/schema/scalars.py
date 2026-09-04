@@ -7,10 +7,12 @@ from trackmod.spec.grid import MIN_CHANNELS, MIN_ROWS
 from trackmod.spec.levels import (
     MAX_INSTRUMENT_VOLUME,
     MAX_PANNING,
+    MAX_VIBRATO_UNIT,
     MAX_VOLUME,
     MIN_FADEOUT,
     MIN_INSTRUMENT_VOLUME,
     MIN_PANNING,
+    MIN_VIBRATO_UNIT,
     MIN_VOLUME,
 )
 from trackmod.spec.volumes import MAX_AMOUNT
@@ -27,6 +29,7 @@ VolumeAmount = Annotated[int, Field(ge=0, le=MAX_AMOUNT)]
 Panning = Annotated[int, Field(ge=MIN_PANNING, le=MAX_PANNING)]
 InstrumentVolume = Annotated[int, Field(ge=MIN_INSTRUMENT_VOLUME, le=MAX_INSTRUMENT_VOLUME)]
 Fadeout = Annotated[int, Field(ge=MIN_FADEOUT)]
+VibratoUnit = Annotated[int, Field(ge=MIN_VIBRATO_UNIT, le=MAX_VIBRATO_UNIT)]
 
 Speed = Annotated[int, Field(ge=MIN_SPEED)]
 Tempo = Annotated[int, Field(ge=MIN_TEMPO)]
