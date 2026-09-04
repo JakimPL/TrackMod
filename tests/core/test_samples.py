@@ -101,3 +101,15 @@ def test_filename_and_vibrato_round_trip_through_construction() -> None:
 def test_a_vibrato_value_off_the_byte_range_is_rejected() -> None:
     with pytest.raises(ValueError):
         Vibrato(speed=256, depth=0, rate=0, waveform=0)
+
+
+def test_relative_note_and_finetune_default_to_no_transposition() -> None:
+    plain = Sample(name="s", pcm=np.zeros(8), rate=RATE)
+    assert plain.relative_note == 0
+    assert plain.finetune == 0
+
+
+def test_relative_note_and_finetune_round_trip_through_construction() -> None:
+    sample = Sample(name="s", pcm=np.zeros(8), rate=RATE, relative_note=5, finetune=-30)
+    assert sample.relative_note == 5
+    assert sample.finetune == -30

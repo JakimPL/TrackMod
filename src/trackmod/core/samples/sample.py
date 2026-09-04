@@ -36,6 +36,12 @@ class Sample(BaseModel):
 
     ``filename`` and ``vibrato`` are Impulse Tracker's own DOS filename and sample-level auto-vibrato; a
     format with no room for either leaves them at their default of an empty name and no vibrato.
+
+    ``relative_note`` and ``finetune`` are FastTracker 2's own stored transposition -- the whole
+    semitones and finetune trim its header states instead of a rate outright, which ``rate`` above is
+    already derived from. They are carried here only so a caller reading a stored sample back can see
+    the exact bytes the header held, not a value reconstructed from ``rate``; a format with no room for
+    them leaves both at their default of no transposition.
     """
 
     model_config = FROZEN
@@ -51,6 +57,8 @@ class Sample(BaseModel):
     sustain_loop: Loop | None = None
     filename: str = ""
     vibrato: Vibrato = NO_VIBRATO
+    relative_note: int = 0
+    finetune: int = 0
 
     @model_validator(mode="after")
     def _loops_fit(self) -> Sample:
@@ -109,4 +117,6 @@ class Sample(BaseModel):
             sample.channels,
             sample.filename,
             sample.vibrato,
+            sample.relative_note,
+            sample.finetune,
         )

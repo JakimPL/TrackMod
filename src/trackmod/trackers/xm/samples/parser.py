@@ -53,18 +53,23 @@ def parse_sample(values: RecordValues, data: bytes) -> Sample:
     """Rebuild a sample from its header fields and the frames that follow it.
 
     A stored sample states no rate, only how far it is transposed from the key that plays it, so the
-    rate is read back at the key the shared model states a rate against.
+    rate is read back at the key the shared model states a rate against. The transposition itself is
+    also carried onto the sample as read, so a caller can see the header's own bytes rather than only
+    the rate they were derived into.
     """
     depth = stored_depth(values)
     reference = Note(RATE_NOTE)
+    tuning = stored_tuning(values)
     return Sample(
         name=decode_name(read_bytes(values, "name")),
         pcm=decode_pcm(data, depth=depth, encoding=PCM_ENCODING),
-        rate=tuned_rate(stored_tuning(values), key=reference, sounded=reference),
+        rate=tuned_rate(tuning, key=reference, sounded=reference),
         depth=depth,
         volume=read_int(values, "volume"),
         panning=read_int(values, "panning"),
         loop=read_loop(values, stride=depth.bytes_per_frame),
+        relative_note=tuning.relative_note,
+        finetune=tuning.finetune,
     )
 
 
