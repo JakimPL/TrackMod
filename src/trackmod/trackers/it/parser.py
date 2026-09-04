@@ -109,11 +109,19 @@ class ModuleReader:
             header = PATTERN_HEADER.unpack(self._data[offset:])
             reaches.append(offset + PATTERN_HEADER_BYTES + read_int(header, "packed_size"))
 
-        message = read_int(self._header, "message_offset")
-        if SpecialFlag.MESSAGE & read_int(self._header, "special"):
-            reaches.append(message + read_int(self._header, "message_length"))
+        message_range = self._message_range()
+        if message_range is not None:
+            reaches.append(message_range[1])
 
         return max(reaches)
+
+    def _message_range(self) -> tuple[int, int] | None:
+        """The byte range the header's message occupies, or ``None`` when the file attaches none."""
+        if not SpecialFlag.MESSAGE & read_int(self._header, "special"):
+            return None
+
+        offset = read_int(self._header, "message_offset")
+        return offset, offset + read_int(self._header, "message_length")
 
     def _history(self) -> bytes:
         """The record of editing sessions a file carries, which its own switch says whether it holds."""
@@ -129,9 +137,19 @@ class ModuleReader:
 
         The stated blocks sit between the offset tables and the first record, and whatever a writer keeps
         for itself follows the last of them, so the two are found by where the header's own offsets stop.
+        A later writer may also place the song message in this same gap, immediately before the first
+        record, rather than after every record the way this library's own writer does -- so the message's
+        own range is carved out of the region read for stated blocks wherever it falls inside it, or the
+        message's own bytes would be misread as one.
         """
         history = self._history()
-        heading = self._data[self._tables_end + len(history) : self._body_start]
+        start = self._tables_end + len(history)
+        stop = self._body_start
+        message_range = self._message_range()
+        if message_range is not None and start <= message_range[0] < stop:
+            stop = message_range[0]
+
+        heading = self._data[start:stop]
         return Extensions(
             channel_names=block_names(heading, CHANNEL_NAMES_MAGIC, width=CHANNEL_NAME_BYTES),
             pattern_names=block_names(heading, PATTERN_NAMES_MAGIC, width=PATTERN_NAME_BYTES),
@@ -145,12 +163,12 @@ class ModuleReader:
         The header reserves a length for the block and the text inside it is terminated, so a reader
         stops at the terminator rather than at the length the writer reserved.
         """
-        if not SpecialFlag.MESSAGE & read_int(self._header, "special"):
+        message_range = self._message_range()
+        if message_range is None:
             return DEFAULT_MESSAGE
 
-        offset = read_int(self._header, "message_offset")
-        length = read_int(self._header, "message_length")
-        return decode_text(self._data[offset : offset + length])
+        start, stop = message_range
+        return decode_text(self._data[start:stop])
 
     def _read_order(self, cursor: Cursor) -> OrderList:
         raw = cursor.take(read_int(self._header, "order_count"))
