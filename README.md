@@ -1,12 +1,19 @@
 # TrackMod
 
-A library for reading and writing tracker modules. It holds one format-agnostic domain model of a piece
-of tracker music, binds that model to the **Impulse Tracker** (`.it`) and **FastTracker 2** (`.xm`) file
-formats, and states in data what each format can carry — including the room a format's fields leave beyond
-what the tracker it was written for ever read.
+A library for reading and writing **tracker modules** — the files a tracker saves a piece of music as, in
+which the notes, the effects and the recorded sounds all travel in one file. TrackMod holds a single model
+of a song and binds it to each format, so a piece read from one can be written to another.
 
-It depends on `numpy` and `pydantic`, and nothing else. Rendering and sample ripping are somebody else's
-job: `trackmod` produces and consumes bytes.
+| Tracker | Module | One instrument on its own |
+|---|---|---|
+| Impulse Tracker | `.it` | `.iti` |
+| FastTracker 2 | `.xm` | `.xi` |
+
+Each format is also described in data: what it can hold, and how much room its fields leave beyond what
+the tracker it was written for ever read. A caller can therefore ask what will fit before writing it.
+
+TrackMod depends on `numpy` and `pydantic`, and nothing else. Playing the music and ripping the sounds out
+of it are somebody else's job: this library produces and consumes bytes.
 
 ```python
 from pathlib import Path
@@ -20,18 +27,13 @@ print(module.violations())          # every bound the song breaks, empty when it
 module.save(Path("song.it"))
 ```
 
-The same song goes to the other format by naming the other class, and a module read back with
-`ITModule.load` yields the same `Song` model a writer consumes — so a file in one format can be written to
-the other, carrying whatever both formats hold.
+The same song goes to another format by naming that format's class, and a module read back with
+`ITModule.load` yields the same song a writer consumes — so a file in one format can be written to
+another, carrying whatever both formats hold.
 
-## Documentation
+## Installing it
 
-[`docs/overview.md`](docs/overview.md) is the entry point and indexes the rest: the shared domain model,
-the limits system, the effect column, and one document per format.
-
-## Using it
-
-`trackmod` is not published; consumers take it as a git submodule, so a checkout pins the exact revision it
+TrackMod is not published; consumers take it as a git submodule, so a checkout pins the exact revision it
 was built against.
 
 ```bash
@@ -46,6 +48,11 @@ dependencies = ["trackmod"]
 [tool.uv.sources]
 trackmod = { path = "TrackMod", editable = true }
 ```
+
+## Documentation
+
+[`docs/overview.md`](docs/overview.md) is the entry point and indexes the rest: the shared model of a song,
+the limits system, the pattern columns, and one document per format.
 
 ## Development
 

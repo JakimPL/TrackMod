@@ -3,8 +3,8 @@
 A tracker format has two ceilings, and they are rarely the same one. There is what the file's fields can
 physically hold, which follows from the record layout, and there is what the tracker the format was
 written for actually honoured. FastTracker 2 stores its tempo in sixteen bits and reads eight of them.
-That gap is not a curiosity: it is room, and a module written into it plays correctly in every modern
-player. `trackmod` makes the gap explicit so a caller can use it deliberately.
+That gap is not a curiosity: it is room, and a module written into it plays in the players descended from
+those trackers. `trackmod` makes the gap explicit so a caller can use it deliberately.
 
 ## The pieces
 
@@ -20,7 +20,7 @@ class Violation(BaseModel):  capability; value; bound; severity; subject
 class LimitError(ValueError): violations: tuple[Violation, ...]
 ```
 
-`Capability` is the shared vocabulary: one name per quantity, stated identically by both formats so a
+`Capability` is the shared vocabulary: one name per quantity, stated the same way by every format, so a
 caller asking "how many channels may I use?" phrases the question once.
 
 Each format declares a `Capacity` per capability in its `spec/capacities.py`. `structural` is what the
@@ -41,7 +41,7 @@ validation, it is one validated against the wider of the two bounds.
 ## Reporting, not raising one at a time
 
 `Module.violations()` walks the whole song and returns every violation it found, so a caller sees all of
-its problems at once rather than one per attempt. `to_bytes()` calls `require(...)`, which raises
+its problems at once. `to_bytes()` calls `require(...)`, which raises
 `LimitError` carrying the full tuple.
 
 ```python
@@ -69,7 +69,8 @@ smaller number*; a `ValueError` says *this idea has no home in this format, expr
 
 ## The table
 
-Two bounds separated by `/` are canonical and structural; a single bound is a field with no headroom.
+One column per format, and one row per capability. Two bounds separated by `/` are canonical and
+structural; a single bound is a field with no headroom.
 
 | Capability | Impulse Tracker | FastTracker 2 |
 |---|---|---|
@@ -108,7 +109,7 @@ asking for a value out of range.
 
 Two capacities are pinned to a single value for the same reason: `sample_gain` at 64 and
 `instrument_volume` at 128 say that FastTracker 2 applies no such multiplier. A song asking for a
-quieter sample gain is told so instead of having the request dropped in silence.
+quieter sample gain is told so.
 
 `samples` and `instruments` stay at 255 for Impulse Tracker at both levels, and the reason is a
 **reference** rather than a count. The header counts each in a sixteen-bit field, so the table itself has
@@ -118,23 +119,24 @@ keymap can reach, so the byte that names one is the bound worth stating.
 
 ## Where each extended bound comes from
 
-Every bound wider than the canonical one is justified either **structurally**, provable from the record
-layout, or **empirically**, verified by rendering a probe through `openmpt123` (libopenmpt 0.8.4).
+A caller choosing `EXTENDED` is choosing a bound the original tracker never honoured, so each one says
+where it comes from. A bound is **structural**, provable from the record layout, or **observed**, taken
+from what the players descended from these trackers read.
 
-| Bound | Provenance |
+| Bound | Why it reaches that far |
 |---|---|
-| IT channels 64 → **127** | Structural. A packed cell announces its channel with the byte `(channel + 1) \| 0x80`, so the channel number occupies seven bits. Verified: a 127-channel module loads and plays. |
+| IT channels 64 → **127** | Structural. A packed cell announces its channel with the byte `(channel + 1) \| 0x80`, so the channel number occupies seven bits. |
+| IT patterns 200 → **254** | Structural. The header counts patterns in sixteen bits, and an order-list entry is a byte whose `0xFE` and `0xFF` are the separator and the end of song — so an order names `0..253`, and 254 patterns are reachable. Impulse Tracker's own editor keeps 200. |
 | IT orders 256 → **65535** | Structural. The header's order count is a sixteen-bit field, and the order table is written at whatever length it declares. |
 | IT pattern rows floor 32 → **1** | Structural. The pattern header stores the row count in sixteen bits; the floor of 32 is Impulse Tracker's own editing convention. |
-| XM channels 32 → **192** | Empirical. The header's channel count is a sixteen-bit field, but libopenmpt refuses to load a module above 192 channels. Verified by sweep: 192 loads, 193 is refused. |
-| XM instruments 128 → **255** | Empirical. The header's instrument count is a sixteen-bit field; a 255-instrument module loads. |
-| XM samples per instrument 16 → **255** | Empirical. The instrument header's sample count is a sixteen-bit field; a 255-sample instrument loads. |
-| XM tempo 255 → **65535** | Structural. The header's tempo is a sixteen-bit field. Verified: modules at tempo 441 and 1000 play rows of exactly `speed * 5 / (2 * tempo)` seconds. |
-| XM speed 31 → **65535** | Structural. The header's speed is a sixteen-bit field. Verified: modules at speed 63 and 300 play rows of the length the clock computes. |
-| IT patterns 200 → **254** | Structural. The header counts patterns in a sixteen-bit field, and an order-list entry is a byte whose `0xFE` and `0xFF` are the separator and the end of song — so the patterns an order can name run `0..253`, and 254 of them are reachable. Impulse Tracker's own editor keeps 200. |
-| IT message 8000 → **65535** | Structural. The header states the block's length in a sixteen-bit field and points at it with a thirty-two-bit offset, so the record holds whatever that length reaches; 8000 bytes is what Impulse Tracker's own editor keeps. |
-| IT fadeout 128 → **65535** | Empirical. The header's fadeout is a sixteen-bit field and Impulse Tracker's own editor counts to 128. Verified by rendering: fadeouts of 256 and 512 both play, each falling silent in `1024 / fadeout` ticks like every value below the ceiling. |
-| XM fadeout 4095 → **65535** | Empirical. The header's fadeout is a sixteen-bit field and FastTracker 2's own editor counts to `0xFFF`. Verified by rendering: fadeouts of 8192 and 16384 both play, each falling silent in `32768 / fadeout` ticks. |
+| IT message 8000 → **65535** | Structural. The header states the block's length in sixteen bits and points at it with a thirty-two-bit offset, so the record holds whatever that length reaches; 8000 bytes is what the editor keeps. |
+| IT fadeout 128 → **65535** | Structural. The header's fadeout is a sixteen-bit field, and 128 is where Impulse Tracker's own editor stops. |
+| XM instruments 128 → **255** | Structural. A pattern cell names its instrument in one byte, so 255 is as far as a cell reaches; 128 is FastTracker 2's own editing ceiling. |
+| XM samples per instrument 16 → **255** | Structural. An instrument's keymap names a sample in one byte per key, so one instrument routes to 255 of them; 16 is the editor's own. |
+| XM tempo 255 → **65535** | Structural. The header's tempo is a sixteen-bit field, and a row lasts `speed * 5 / (2 * tempo)` seconds at whatever it holds. |
+| XM speed 31 → **65535** | Structural. The header's speed is a sixteen-bit field. |
+| XM fadeout 4095 → **65535** | Structural. The header's fadeout is a sixteen-bit field, and `0xFFF` is where FastTracker 2's own editor stops. |
+| XM channels 32 → **192** | Observed. The header's channel count is a sixteen-bit field, and 192 is the width the players descended from FastTracker 2 read. |
 
 The IT tempo bound stays at **255 at both levels**, and this is the one place the distinction earns its
 keep by refusing something. Impulse Tracker's header tempo is a single byte at offset 51. A tempo of 441

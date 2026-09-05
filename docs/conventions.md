@@ -9,7 +9,7 @@ them, and so that adding a fifth format touches one new file and one column in f
 |---|---|---|
 | Guide | [`../README.md`](../README.md), [`overview.md`](overview.md) | Plain English. Type names where a caller types them, and no byte offsets. |
 | Reference | [`model.md`](model.md), [`limits.md`](limits.md), [`effects.md`](effects.md), [`volume.md`](volume.md) | Plain English about a technical subject. Type names are the payload. |
-| Specification | [`formats/`](formats/) | Offsets, widths, bit meanings. Dense through tables. |
+| Specification | [`formats/`](formats/) | Offsets, widths, bit meanings. Dense through tables. Its own `README.md` indexes them. |
 
 Where a document sits declares its tier. A reader opening a format document expects byte offsets; a
 reader opening the README expects a sentence about what the library is for.

@@ -1,23 +1,20 @@
-# trackmod
+# Overview
 
-A library for reading and writing tracker modules. It holds one format-agnostic domain model of a piece
-of tracker music, binds that model to the **Impulse Tracker** (`.it`) and **FastTracker 2** (`.xm`) file
-formats, and states in data what each format can carry — including the room a format's fields leave
-beyond what the tracker it was written for ever read.
-
-It depends on `numpy` and `pydantic`, and nothing else. Rendering and sample ripping are somebody else's
-job: `trackmod` produces and consumes bytes.
+This is the entry point to the documentation. TrackMod reads and writes tracker modules through one
+format-agnostic model of a piece of music, and the documents below take that apart from three directions:
+what the model holds, what each format can carry, and how the two are joined.
 
 ## Reading order
 
 | Document | What it covers |
 |---|---|
-| [`model.md`](model.md) | The shared domain model: songs, patterns, samples, instruments, timing |
+| [`model.md`](model.md) | The shared model: songs, patterns, voices, samples, instruments, timing |
 | [`limits.md`](limits.md) | Capabilities, compliance levels, and where every bound comes from |
-| [`effects.md`](effects.md) | The effect column, and the two spellings of one vocabulary |
-| [`volume.md`](volume.md) | The volume column: one vocabulary, and the runs each format divides its byte into |
-| [`formats/it.md`](formats/it.md) | What Impulse Tracker stores and how |
-| [`formats/xm.md`](formats/xm.md) | What FastTracker 2 stores and how |
+| [`effects.md`](effects.md) | The effect column, and the one vocabulary each format spells its own way |
+| [`volume.md`](volume.md) | The volume column: one vocabulary, and what each format's byte reaches |
+| [`formats/README.md`](formats/README.md) | The formats side by side, and where they disagree about one field |
+| [`formats/it.md`](formats/it.md) | What Impulse Tracker stores, and how |
+| [`formats/xm.md`](formats/xm.md) | What FastTracker 2 stores, and how |
 | [`conventions.md`](conventions.md) | How these documents and this library are written |
 
 ## Shape
@@ -29,12 +26,12 @@ The library is layered downward: every package depends only on the ones above it
 | `trackmod/spec` | Constants every layer shares: the pitch numbering, level ranges, the grid sentinel, integer widths, the tracker clock |
 | `trackmod/schema` | Pydantic plumbing: the frozen model config, the constrained scalar aliases, the numpy array annotations |
 | `trackmod/limits` | The capability vocabulary, bounds, compliance levels, violations |
-| `trackmod/core` | The format-agnostic music: notes, patterns, samples, instruments, envelopes, songs, timing |
+| `trackmod/core` | The format-agnostic music: notes, patterns, samples, instruments, envelopes, voices, songs, timing |
 | `trackmod/binary` | Byte-level machinery: declarative records, a cursor, fixed-width text, PCM quantisation and encoding |
 | `trackmod/module` | What a format binding offers: the size report, the storage table and the `TrackerModule` and `InstrumentFile` protocols |
-| `trackmod/trackers/it`, `trackmod/trackers/xm` | One format each: its constants, its record layouts, its packers, parsers, size model, module class and instrument-file class |
+| `trackmod/trackers/<format>` | One format each: its constants, its record layouts, its packers, parsers, size model, module class and instrument-file class |
 
-Each format package repeats the same internal shape, so knowing one is knowing the other:
+Each format package repeats the same internal shape, so knowing one is knowing the next:
 
 ```
 <format>/
@@ -73,13 +70,18 @@ print(module.violations())          # every bound the song breaks, empty when it
 module.save(Path("song.it"))
 ```
 
-The same song goes to the other format by naming the other class:
+The same song goes to another format by naming that format's class:
 
 ```python
 from trackmod.trackers.xm.module import XMModule
 
 XMModule.from_song(song, compliance=Compliance.EXTENDED).save(Path("song.xm"))
 ```
+
+A format states which kind of voice table it writes — samples a cell names directly, or instruments that
+route keys onto samples — so a song carrying the other kind is refused by name, and
+`trackmod.core.voices.convert` is where a caller turns one into the other deliberately. See
+[`model.md`](model.md).
 
 ## Reading a module
 
@@ -88,13 +90,14 @@ recovered = ITModule.load(Path("song.it"))
 recovered.song.patterns[0].cell(row=0, channel=3)
 ```
 
-Parsing yields the same `Song` model a writer consumes, so a module read from one format can be written
-to the other. What survives that trip is what both formats carry — see [`limits.md`](limits.md).
+Parsing yields the same `Song` model a writer consumes, so a module read from one format can be written to
+another. What survives that trip is what both formats carry — see [`limits.md`](limits.md). A file stating
+a value the model holds no room for is read as it stands and reported, once, as a `RepairWarning`.
 
 ## One instrument on its own
 
-Both formats also store a single voice as a file of its own — `.iti` and `.xi` — which is what a producer
-of sampled instruments ships when the instrument rather than the piece is the product. The content is an
+Each format also stores a single voice as a file of its own — `.iti` and `.xi` — which is what a producer
+of sampled instruments ships when the instrument is the product. The content is an
 `InstrumentUnit`: one instrument and the samples its keymap reaches (see [`model.md`](model.md)).
 
 ```python
@@ -107,7 +110,7 @@ print(instrument.violations())      # every bound the unit breaks, empty when it
 ```
 
 The surface mirrors a module's, so the two are read the same way. `trackmod.module.instrument.InstrumentFile`
-is the protocol a caller names to hold one without naming its format:
+is the protocol a caller names to hold one of either format:
 
 ```python
 from trackmod.module.instrument import InstrumentFile
@@ -119,7 +122,7 @@ def report(instrument: InstrumentFile) -> str:
 ## Reading whichever container a producer ships
 
 A producer of sampled instruments picks the container: a whole module, or one voice on its own, in either
-format. A consumer holding the bytes and the extension they were written under reads all four the same
+format. A consumer holding the bytes and the extension they were written under reads them all the same
 way, through `trackmod.trackers.registry`:
 
 ```python
@@ -128,12 +131,10 @@ from trackmod.trackers.registry import EXTENSIONS, parse_voices
 voices = parse_voices(path.read_bytes(), extension=path.suffix)
 ```
 
-The result is the voice table the format that wrote the bytes addresses — samples a cell names directly,
-or instruments that route keys onto samples — so the choice of container stops mattering at the point the
-bytes are read. The extension is
-matched in either capitalisation, and one that no format here writes is refused by name. `EXTENSIONS`,
-`MODULE_EXTENSIONS` and `INSTRUMENT_EXTENSIONS` state the four, so the suffix table lives here rather
-than in each consumer.
+The result is the voice table the format that wrote the bytes addresses, so the choice of container stops
+mattering at the point the bytes are read. The extension is matched in either capitalisation, and one that
+no format here writes is refused by name. `EXTENSIONS`, `MODULE_EXTENSIONS` and `INSTRUMENT_EXTENSIONS`
+state which suffixes are read, so the suffix table lives here, once.
 
 ## Budgeting
 
@@ -150,21 +151,21 @@ storage.frames_budget(48_000, depth=BitDepth.SIXTEEN)        # the longest wavef
 ```
 
 Each count covers the table entry a section occupies as well as the record itself, so a format found
-through offset tables charges the entry here rather than leaving it for a caller to remember, and
-`sample` is charged per stored **slot** — once per waveform where a sample table is shared, once per
-owner where an instrument owns its samples.
+through offset tables charges the entry here, where a caller budgets against one number, and `sample`
+is charged per stored **slot** — once per waveform where a sample table is shared, once per owner where an
+instrument owns its samples.
 
-The table is what each format's size model reads, so `SizeReport.headers` *is* the table evaluated
-against the counts a song declares. What the table states and what the writer lays out therefore have one
-home, and adding an instrument and its sample grows the file by exactly what
-`instrument_bytes` and `sample_bytes` predicted.
+The table is what each format's size model reads, so `SizeReport.headers` *is* the table evaluated against
+the counts a song declares. What the table states and what the writer lays out therefore have one home,
+and adding an instrument and its sample grows the file by exactly what `instrument_bytes` and
+`sample_bytes` predicted.
 
 ## Staying format-agnostic
 
-`ITModule` and `XMModule` share no base class, and neither do `ITInstrumentFile` and `XMInstrumentFile`.
-The surface each pair has in common is a protocol — `trackmod.module.protocol.TrackerModule` and
-`trackmod.module.instrument.InstrumentFile` — so a caller that does not care which format it is holding
-can say so in its own signature:
+The module classes share no base class, and neither do the instrument-file classes. The surface each pair
+has in common is a protocol — `trackmod.module.protocol.TrackerModule` and
+`trackmod.module.instrument.InstrumentFile` — so a caller holding either of them can say so in its own
+signature:
 
 ```python
 from trackmod.module.protocol import TrackerModule
@@ -175,5 +176,4 @@ def report(module: TrackerModule) -> str:
 
 ## Conventions
 
-How these documents and this library are written is stated once, in
-[`conventions.md`](conventions.md).
+How these documents and this library are written is stated once, in [`conventions.md`](conventions.md).
