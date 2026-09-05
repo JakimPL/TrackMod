@@ -15,6 +15,8 @@ what the model holds, what each format can carry, and how the two are joined.
 | [`formats/README.md`](formats/README.md) | The formats side by side, and where they disagree about one field |
 | [`formats/it.md`](formats/it.md) | What Impulse Tracker stores, and how |
 | [`formats/xm.md`](formats/xm.md) | What FastTracker 2 stores, and how |
+| [`formats/mod.md`](formats/mod.md) | What Amiga ProTracker stores, and how |
+| [`formats/s3m.md`](formats/s3m.md) | What Scream Tracker 3 stores, and how |
 | [`conventions.md`](conventions.md) | How these documents and this library are written |
 
 ## Shape
@@ -43,6 +45,10 @@ Each format package repeats the same internal shape, so knowing one is knowing t
   instruments/  header serialisation, keymaps, envelopes, the standalone instrument file
   note limits timing fade settings checks sizing writer parser module instrument_file
 ```
+
+A package holds the parts its own format keeps records for: the three whose cells name a sample directly
+have no `instruments/` and no envelopes, and each format adds the files its layout calls for — a table of
+dialects for Amiga ProTracker, the paragraph arithmetic for Scream Tracker 3.
 
 Every `__init__.py` is empty. A name is imported from the module that defines it:
 
@@ -91,7 +97,7 @@ recovered.song.patterns[0].cell(row=0, channel=3)
 ```
 
 Parsing yields the same `Song` model a writer consumes, so a module read from one format can be written to
-another. What survives that trip is what both formats carry — see [`limits.md`](limits.md). A file stating
+another. What survives that trip is what both ends carry — see [`limits.md`](limits.md). A file stating
 a value the model holds no room for is read as it stands and reported, once, as a `RepairWarning`.
 
 A module also says how far it reaches past the tracker its format names: `recovered.reach` is the strictest
@@ -100,9 +106,10 @@ there.
 
 ## One instrument on its own
 
-Each format also stores a single voice as a file of its own — `.iti` and `.xi` — which is what a producer
-of sampled instruments ships when the instrument is the product. The content is an
-`InstrumentUnit`: one instrument and the samples its keymap reaches (see [`model.md`](model.md)).
+The two formats that keep instrument records also store a single voice as a file of its own — `.iti` and
+`.xi` — which is what a producer of sampled instruments ships when the instrument is the product. The
+content is an `InstrumentUnit`: one instrument and the samples its keymap reaches (see
+[`model.md`](model.md)).
 
 ```python
 from trackmod.trackers.it.instrument_file import ITInstrumentFile

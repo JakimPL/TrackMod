@@ -1,7 +1,8 @@
 # Conventions
 
 The rules these documents are written to. They exist so a reader can predict what a document will tell
-them, and so that adding a fifth format touches one new file and one column in five tables.
+them, and so that adding a fifth format touches one new file, one column in four shared tables, and one
+row in each of the three indexes.
 
 ## Three tiers
 
@@ -94,8 +95,8 @@ formats hold keeps its row in the fixed tables and drops its heading.
 ```
 
 **Budget: 115 lines of prose, and a prose paragraph runs to five lines at most.** A whole document
-lands near 280 lines, of which the two fixed tables are about 50: density belongs in the tables, and the
-prose budget is what keeps a document readable.
+lands between 220 and 290 lines, of which the two fixed tables are about 50: density belongs in the
+tables, and the prose budget is what keeps a document readable.
 
 ### The two fixed tables
 

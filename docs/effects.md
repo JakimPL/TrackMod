@@ -11,8 +11,8 @@ class Effect(BaseModel):
 ```
 
 The pair travels together because a tracker reads it together: a parameter means something beside its
-command and nowhere else. Impulse Tracker spells "set tempo" as command 20 (`T`), FastTracker 2 as command 15 (`F`). One
-song therefore carries effects for one format at a time.
+command and nowhere else. Impulse Tracker spells "set tempo" as command 20 (`T`), FastTracker 2 as
+command 15 (`F`). One song therefore carries effects for one format at a time.
 
 ## The shared vocabulary
 
@@ -26,28 +26,31 @@ from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
 builder.place(row, channel, Cell(effect=XM_EFFECTS.note_delay(3)))
 ```
 
-| Intent | Impulse Tracker | FastTracker 2 |
-|---|---|---|
-| `set_speed(ticks)` | `Axx`, `1..255` | `Fxx`, parameter below `0x20` |
-| `set_tempo(beats_per_minute)` | `Txx`, `32..255` | `Fxx`, parameter at `0x20` and above |
-| `position_jump(order)` | `Bxx` | `Bxx` |
-| `pattern_break(row)` | `Cxx`, the row itself | `Dxx`, a decimal digit to each nibble |
-| `note_delay(ticks)` | `SDx` | `EDx` |
-| `note_cut(ticks)` | `SCx` | `ECx` |
-| `volume_slide(up=…, down=…)` | `Dxy` | `Axy` |
-| `set_panning(position)` | `Xxx`, `0..255` | `8xx`, `0..255` |
+| Intent | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 |
+|---|---|---|---|---|
+| `set_speed(ticks)` | `Axx`, `1..255` | `Fxx`, below `0x20` | `Fxx`, below `0x20` | `Axx`, `1..255` |
+| `set_tempo(beats_per_minute)` | `Txx`, `32..255` | `Fxx`, at `0x20` and above | `Fxx`, at `0x20` and above | `Txx`, `32..255` |
+| `position_jump(order)` | `Bxx` | `Bxx` | `Bxx` | `Bxx` |
+| `pattern_break(row)` | `Cxx`, the row itself | `Dxx`, decimal digits | `Dxx`, decimal digits | `Cxx`, decimal digits |
+| `note_delay(ticks)` | `SDx` | `EDx` | `EDx` | `SDx` |
+| `note_cut(ticks)` | `SCx` | `ECx` | `ECx` | `SCx` |
+| `volume_slide(up=…, down=…)` | `Dxy` | `Axy` | `Axy` | `Dxy` |
+| `set_panning(position)` | `Xxx`, `0..255` | `8xx`, `0..255` | `8xx`, `0..255` | `Xxx`, `0..255` onto 129 steps |
 
 Every method validates its argument against the room its format's parameter byte leaves, so a delay of 16
 raises — which is the class of bug that packing `0xD0 | ticks` by hand invites.
 
 Three rows of that table are worth reading twice.
 
-**Speed and tempo share one command in FastTracker 2.** `Fxx` sets the ticks per row below the tempo floor
-and the beats per minute at or above it, so `set_speed` and `set_tempo` return the same command with
-parameters drawn from disjoint ranges. Impulse Tracker separates them into `Axx` and `Txx`.
+**Speed and tempo share one command in the Amiga lineage.** `Fxx` sets the ticks per row below the tempo
+floor and the beats per minute at or above it, so `set_speed` and `set_tempo` return the same command with
+parameters drawn from disjoint ranges. Amiga ProTracker is where that arrangement began and FastTracker 2
+kept it whole; Scream Tracker 3 gave each clock a command of its own, `Axx` and `Txx`, which is what
+Impulse Tracker inherited.
 
-**FastTracker 2 reads its pattern break as decimal digits**, inherited from the ProTracker command it
-descends from. The catalogue converts, so a caller says the row it means:
+**Three of the four read a pattern break as decimal digits**, inherited from Amiga ProTracker, which
+printed the parameter rather than counting it. Impulse Tracker reads the row itself. The catalogue
+converts, so a caller says the row it means:
 
 ```python
 IT_EFFECTS.pattern_break(16).parameter == 16
@@ -61,16 +64,18 @@ on the pair.
 ## The full command set
 
 Beyond the catalogue, each format exposes its native commands as an `IntEnum` —
-`trackmod.trackers.it.effects.command.ITEffect` and its `XMEffect` counterpart, each with an `ITExtended` /
-`XMExtended` companion for the sub-commands one command selects with its high nibble. The format documents
-tabulate them. Anything outside the shared eight is written by naming the command directly:
+`trackmod.trackers.it.effects.command.ITEffect` and its `XMEffect`, `MODEffect` and `S3MEffect`
+counterparts, each with an `Extended` companion for the sub-commands one command selects with its high
+nibble. The format documents tabulate them. Anything outside the shared eight is written by naming the
+command directly:
 
 ```python
 Effect(command=ITEffect.TREMOLO, parameter=0x84)
 ```
 
-Both enumerations carry a `.letter` property giving the character the tracker prints, which is what a
-pattern display or a log line wants.
+Every one of them carries a `.letter` property giving the character the tracker prints, which is what a
+pattern display or a log line wants. Amiga ProTracker prints a hexadecimal digit where the others print a
+letter, because its command is one nibble.
 
 **The tempo an effect sets is not the tempo a header holds.** FastTracker 2's header tempo is sixteen bits
 and its `Fxx` parameter is eight, so a module can start at tempo 441 and still have no way to change to it

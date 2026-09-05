@@ -96,10 +96,15 @@ so it raises `ValueError` where it is met. FastTracker 2 is where much of this l
 fade in the note column (it stores a key off and nothing else), a sustain loop, a pitch envelope, an
 envelope sustaining over a span of points, and a keymap that transposes one key of a sample differently
 from another. Amiga ProTracker adds its own: a volume column, a note command of any kind, a stereo or
-sixteen-bit waveform, and a per-sample panning. The volume column is where the line falls for two of
-them: Impulse Tracker names nine of the twelve intents the columns state between them and FastTracker 2
-ten, so a pitch slide written as FastTracker 2 and a vibrato speed written as Impulse Tracker each raise
-(see [`volume.md`](volume.md)). Every `to_bytes` documents the two paths in its `Raises:` clause.
+sixteen-bit waveform, and a per-sample panning. Scream Tracker 3 stores a note cut and no other command,
+pans by channel rather than by sample, and meets two of its refusals while reading — a record holding an
+OPL patch, and a waveform stored in the ADPCM a later tracker wrote.
+
+The volume column is where the line falls for the three that carry one: Impulse Tracker names nine of the
+twelve intents the columns state between them, FastTracker 2 ten and Scream Tracker 3 one, so a pitch
+slide written as FastTracker 2, a vibrato speed written as Impulse Tracker and a slide of any kind written
+as Scream Tracker 3 each raise (see [`volume.md`](volume.md)). Every `to_bytes` documents the two paths in
+its `Raises:` clause.
 
 The distinction is worth keeping because the two call for different fixes. A `LimitError` says *use a
 smaller number*; a `ValueError` says *this idea has no home in this format, express it another way*.
@@ -109,44 +114,46 @@ smaller number*; a `ValueError` says *this idea has no home in this format, expr
 One column per format, and one row per capability. Three bounds separated by `/` are canonical, extended
 and structural; a single bound is a field with no headroom at any level.
 
-| Capability | Impulse Tracker | FastTracker 2 | Amiga ProTracker |
-|---|---|---|---|
-| `channels` | 1..64 / 1..127 / 1..127 | 1..32 / 1..127 / 1..65535 | 4..4 / 1..32 / 1..32 |
-| `patterns` | 0..200 / 0..240 / 0..254 | 0..256 | 0..128 / 0..256 / 0..256 |
-| `orders` | 0..256 / 0..65535 / 0..65535 | 0..256 | 0..128 |
-| `pattern_rows` | 32..200 / 1..1024 / 1..65535 | 1..256 / 1..1024 / 1..65535 | 64..64 |
-| `pattern_bytes` | 0..65535 | 0..65535 | — |
-| `instruments` | 0..99 / 0..255 / 0..255 | 0..128 / 0..255 / 0..255 | — |
-| `samples` | 0..99 / 0..255 / 0..255 | 0..2048 | 0..31 |
-| `samples_per_instrument` | 0..255 | 0..16 / 0..255 / 0..255 | — |
-| `sample_frames` | 0..4294967295 | 0..2147483647 | 0..131070 |
-| `sample_rate` | 1..9999999 | 10..25662141 | 7893..8795 |
-| `sample_volume` | 0..64 | 0..64 | 0..64 |
-| `sample_gain` | 0..64 | 64..64 | 64..64 |
-| `instrument_volume` | 0..128 | 128..128 | — |
-| `envelope_points` | 1..25 | 1..12 | — |
-| `envelope_value` | -128..127 | 0..64 | — |
-| `envelope_tick` | 0..65535 | 0..65535 | — |
-| `fadeout` | 0..128 / 0..65535 / 0..65535 | 0..4095 / 0..65535 / 0..65535 | — |
-| `note` | 0..119 | 0..95 | 48..83 / 21..119 / 21..119 |
-| `tempo` | 32..255 | 32..255 / 32..1000 / 1..65535 | 125..125 |
-| `speed` | 1..255 | 1..31 / 1..65535 / 1..65535 | 6..6 |
-| `volume` | 0..64 | 0..64 | — |
-| `volume_command` | 0..9 | 0..15 | — |
-| `volume_panning` | 0..64 | 0..15 | — |
-| `song_volume` | 0..128 | — | — |
-| `mix_volume` | 0..128 | — | — |
-| `panning` | 0..255 | 0..255 | 0..255 |
-| `message_bytes` | 0..8000 / 0..65535 / 0..65535 | — | — |
+| Capability | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 |
+|---|---|---|---|---|
+| `channels` | 1..64 / 1..127 / 1..127 | 1..32 / 1..127 / 1..65535 | 4..4 / 1..32 / 1..32 | 1..16 / 1..32 / 1..32 |
+| `patterns` | 0..200 / 0..240 / 0..254 | 0..256 | 0..128 / 0..256 / 0..256 | 0..100 / 0..254 / 0..254 |
+| `orders` | 0..256 / 0..65535 / 0..65535 | 0..256 | 0..128 | 0..255 / 0..65535 / 0..65535 |
+| `pattern_rows` | 32..200 / 1..1024 / 1..65535 | 1..256 / 1..1024 / 1..65535 | 64..64 | 64..64 |
+| `pattern_bytes` | 0..65535 | 0..65535 | — | 0..65535 |
+| `instruments` | 0..99 / 0..255 / 0..255 | 0..128 / 0..255 / 0..255 | — | — |
+| `samples` | 0..99 / 0..255 / 0..255 | 0..2048 | 0..31 | 0..99 / 0..255 / 0..255 |
+| `samples_per_instrument` | 0..255 | 0..16 / 0..255 / 0..255 | — | — |
+| `sample_frames` | 0..4294967295 | 0..2147483647 | 0..131070 | 0..64000 / 0..4294967295 / 0..4294967295 |
+| `sample_rate` | 1..9999999 | 10..25662141 | 7893..8795 | 1..65535 / 1..4294967295 / 1..4294967295 |
+| `sample_volume` | 0..64 | 0..64 | 0..64 | 0..64 |
+| `sample_gain` | 0..64 | 64..64 | 64..64 | 64..64 |
+| `instrument_volume` | 0..128 | 128..128 | — | — |
+| `envelope_points` | 1..25 | 1..12 | — | — |
+| `envelope_value` | -128..127 | 0..64 | — | — |
+| `envelope_tick` | 0..65535 | 0..65535 | — | — |
+| `fadeout` | 0..128 / 0..65535 / 0..65535 | 0..4095 / 0..65535 / 0..65535 | — | — |
+| `note` | 0..119 | 0..95 | 48..83 / 21..119 / 21..119 | 12..107 / 12..119 / 12..119 |
+| `tempo` | 32..255 | 32..255 / 32..1000 / 1..65535 | 125..125 | 32..255 |
+| `speed` | 1..255 | 1..31 / 1..65535 / 1..65535 | 6..6 | 1..255 |
+| `volume` | 0..64 | 0..64 | — | 0..64 |
+| `volume_command` | 0..9 | 0..15 | — | — |
+| `volume_panning` | 0..64 | 0..15 | — | 0..64 |
+| `song_volume` | 0..128 | — | — | 0..64 |
+| `mix_volume` | 0..128 | — | — | 0..127 |
+| `panning` | 0..255 | 0..255 | 0..255 | 0..255 |
+| `message_bytes` | 0..8000 / 0..65535 / 0..65535 | — | — | — |
 
 A dash means the format declares no capacity at all, and `limits.bound(...)` raises `KeyError` for it.
-FastTracker 2 has no song-wide volume, no mix volume and no song message; Amiga ProTracker has no
-instrument records, no envelopes and no volume column. A caller reaching for one is asking about a field
-that does not exist, which is a different mistake from asking for a value out of range.
+FastTracker 2 has no song-wide volume, no mix volume and no song message; Scream Tracker 3 keeps one
+table of samples, so it has neither instrument records nor envelopes; Amiga ProTracker keeps none of
+those and no volume column either. A caller reaching for one is asking about a field that does not
+exist, which is a different mistake from asking for a value out of range.
 
 A capacity pinned to a single value states that the format applies no such adjustment: `sample_gain` at
 64 says FastTracker 2 multiplies nothing, and Amiga ProTracker's `speed` and `tempo` at 6 and 125 say
-its header states no clock, so a song asking to start on another is told rather than losing it.
+its header states no clock, so a song asking to start on another is told rather than losing it. The two
+formats of that lineage pin `pattern_rows` at 64, which is the height every pattern they store has.
 
 ## Where each bound comes from
 
@@ -154,14 +161,15 @@ Each level is established a different way, and the difference is what makes the 
 apart.
 
 **Canonical** is the tracker's own editing ceiling — 200 patterns and 99 samples in Impulse Tracker, 32
-channels in FastTracker 2, four in Amiga ProTracker. **Structural** is read off the record layout and is
-provable: a sixteen-bit field holds 65535, a packed cell announcing its channel as `(channel + 1) | 0x80`
-leaves seven bits for the number, a twelve-bit period reaches down to one key and no further, and an
-order byte whose `0xFE` and `0xFF` are the separator and the end of song names `0..253`. **Extended** is
-measured, by asking the players descended from these trackers what they read back rather than what they
-merely accept.
+channels in FastTracker 2, sixteen in Scream Tracker 3, four in Amiga ProTracker. **Structural** is read
+off the record layout and is provable: a sixteen-bit field holds 65535, a packed cell announcing its
+channel as `(channel + 1) | 0x80` leaves seven bits for the number, a twelve-bit period reaches down to
+one key and no further, a channel settings table of 32 entries names 32 channels, and an order byte
+whose `0xFE` and `0xFF` are the separator and the end of song names `0..253`. **Extended** is measured,
+by asking the players descended from these trackers what they read back rather than what they merely
+accept.
 
-The cases where all three differ are the ones worth naming:
+The cases where the levels part company are the ones worth naming:
 
 | Bound | canonical | extended | structural |
 |---|---|---|---|
@@ -171,6 +179,10 @@ The cases where all three differ are the ones worth naming:
 | XM tempo | 255, one byte of it | 1000, past which the tempo is drawn back | 65535, the header's word |
 | IT patterns | 200, the editor's own | 240, past which the count is drawn back | 254, what an order byte names |
 | MOD note range | 48..83, the three tabulated octaves | 21..119, every period the field holds | the same |
+| S3M channels | 16, the slots the tracker mixes | 32, the settings table's entries | the same |
+| S3M sample length | 64000 bytes, what the tracker loads | 4294967295, the record's own field | the same |
+| S3M sample rate | 65535, the low word the tracker reads | 4294967295, the whole field | the same |
+| S3M note range | 12..107, the eight octaves it names | 12..119, every key two nibbles spell | the same |
 
 The Impulse Tracker tempo stays at **255 at every level**, and this is the one place the distinction
 earns its keep by refusing something. Its header tempo is a single byte at offset 51. A tempo of 441 does

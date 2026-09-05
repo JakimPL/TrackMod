@@ -8,6 +8,8 @@ of a song and binds it to each format, so a piece read from one can be written t
 |---|---|---|
 | Impulse Tracker | `.it` | `.iti` |
 | FastTracker 2 | `.xm` | `.xi` |
+| Amiga ProTracker | `.mod` | — |
+| Scream Tracker 3 | `.s3m` | — |
 
 Each format is also described in data: what it can hold, and how much room its fields leave beyond what
 the tracker it was written for ever read. A caller can therefore ask what will fit before writing it.
@@ -29,7 +31,7 @@ module.save(Path("song.it"))
 
 The same song goes to another format by naming that format's class, and a module read back with
 `ITModule.load` yields the same song a writer consumes — so a file in one format can be written to
-another, carrying whatever both formats hold.
+another, carrying whatever both ends hold.
 
 ## Installing it
 

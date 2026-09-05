@@ -1,10 +1,10 @@
 # The volume column
 
-Every cell of a pattern carries a volume column, and each format spends it on more than a level. A byte in
-one range sets how loud a note plays; a byte in another slides that level, bends the pitch, sets the
-panning or starts a vibrato. The ranges differ between the formats and so do the amounts they carry, but
-the intents are the same handful — so the vocabulary is shared, and each format states in data which of it
-its own column reaches.
+Every cell of the model carries a volume column, and each format that stores one spends it on more than a
+level. A byte in one range sets how loud a note plays; a byte in another slides that level, bends the
+pitch, sets the panning or starts a vibrato. The ranges differ between the formats and so do the amounts
+they carry, but the intents are the same handful — so the vocabulary is shared, and each format states in
+data which of it its own column reaches.
 
 This is the opposite arrangement from [`effects.md`](effects.md). An effect holds a command byte its own
 format numbers, so a song carries effects for one format at a time. A volume-column entry names an intent
@@ -44,25 +44,31 @@ Each format states its own column once, as data, and its parser, its packer and 
 that one statement. The byte runs live in the format documents, beside the cell that carries them; what
 follows is which intents each column names, and the amount it counts them in.
 
-| Intent | Impulse Tracker | FastTracker 2 |
-|---|---|---|
-| Fine volume up | `0..9` | `0..15` |
-| Fine volume down | `0..9` | `0..15` |
-| Volume slide up | `0..9` | `0..15` |
-| Volume slide down | `0..9` | `0..15` |
-| Pitch slide up | `0..9` | — |
-| Pitch slide down | `0..9` | — |
-| Portamento | `0..9` | `0..15` |
-| Vibrato depth | `0..9` | `0..15` |
-| Vibrato speed | — | `0..15` |
-| Panning | `0..64` | `0..15` |
-| Panning slide left | — | `0..15` |
-| Panning slide right | — | `0..15` |
+| Intent | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 |
+|---|---|---|---|---|
+| Fine volume up | `0..9` | `0..15` | — | — |
+| Fine volume down | `0..9` | `0..15` | — | — |
+| Volume slide up | `0..9` | `0..15` | — | — |
+| Volume slide down | `0..9` | `0..15` | — | — |
+| Pitch slide up | `0..9` | — | — | — |
+| Pitch slide down | `0..9` | — | — | — |
+| Portamento | `0..9` | `0..15` | — | — |
+| Vibrato depth | `0..9` | `0..15` | — | — |
+| Vibrato speed | — | `0..15` | — | — |
+| Panning | `0..64` | `0..15` | — | `0..64` |
+| Panning slide left | — | `0..15` | — | — |
+| Panning slide right | — | `0..15` | — | — |
 
-Seven of the twelve are shared. A song using only those carries its volume column into either format, at
-an amount both columns count — one counts a rate in ten steps and the other in sixteen, so nine is as far
-as a portable amount reaches. Panning is coarser still in one direction than the other, and
-[`formats/README.md`](formats/README.md) collects that with the other places the two disagree.
+Seven of the twelve are shared by the two columns that state an effect at all. A song using only those
+carries its volume column into either of those two, at an amount both columns count — one counts a rate in ten
+steps and the other in sixteen, so nine is as far as a portable amount reaches. Panning is coarser still
+in one direction than the other, and [`formats/README.md`](formats/README.md) collects that with the other
+places the formats disagree.
+
+Scream Tracker 3 spends its column on a level and a panning position, both counted to `0..64`, which is
+the full grid a level travels on. Amiga ProTracker's cells carry a note, a sample and an effect, so a
+level travels there as the `Cxx` command its lineage spells one with, and a cell arriving with a volume in
+it is refused by name.
 
 ## What a column refuses
 
@@ -84,9 +90,10 @@ ValueError: the volume column has no run for VIBRATO_SPEED
 
 ## A byte naming nothing
 
-Both columns leave gaps: Impulse Tracker between `125..127` and above `212`, FastTracker 2 between `0x01`
-and `0x0F`. A file carrying one of those states something this vocabulary has no term for, so the column
-reads as absent and the parse reports what it met, once for a whole pattern:
+Every column leaves gaps: Impulse Tracker between `125..127` and above `212`, FastTracker 2 between `0x01`
+and `0x0F`, Scream Tracker 3 between `65` and `127` and above `192`. A file carrying one of those states
+something this vocabulary has no term for, so the column reads as absent and the parse reports what it
+met, once for a whole pattern:
 
 ```
 UnnamedByteWarning: bytes this format leaves unnamed, read as absent: volume 213
@@ -94,7 +101,9 @@ UnnamedByteWarning: bytes this format leaves unnamed, read as absent: volume 213
 
 The note column reads the same way, for the same reason: Impulse Tracker numbers keys to 119 and keeps its
 commands at the top of the byte range, FastTracker 2 numbers eight octaves from one and keeps `97` for a
-key off, and the values between those name nothing either vocabulary holds.
+key off, Scream Tracker 3 spells a key as an octave over a semitone and leaves a semitone nibble past the
+twelfth naming nothing, and Amiga ProTracker holds a period that lands on no key it tabulates. The values
+between name nothing any of those vocabularies holds.
 
 `trackmod.binary.warnings.UnnamedByteWarning` is what a caller filters on to raise, silence or collect
 those. Gathering them and warning once is the choice `Checklist` already makes for violations: a file

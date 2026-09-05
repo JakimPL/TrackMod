@@ -64,7 +64,8 @@ at another key's pitch, since a table of samples holds no room for either — so
 song into one a sample-addressed format can write is a visible step with a visible failure.
 
 Each format states which tables it writes. Impulse Tracker takes either and states the choice in its
-header; FastTracker 2 takes `InstrumentVoices`, and a song carrying the other kind is refused by name.
+header; FastTracker 2 takes `InstrumentVoices`; Amiga ProTracker and Scream Tracker 3 take `SampleVoices`.
+A song carrying the other kind is refused by name.
 
 ## Pattern
 
@@ -104,10 +105,12 @@ because zero is what a stored cell writes to leave a channel on the voice it alr
 ## Notes
 
 `Note` is a key counted in semitones above C-0, in `0..119`. That is Impulse Tracker's numbering;
-FastTracker 2 stores the same key one higher. The tracker octave is one above the MIDI octave of the same
-pitch, so tracker C-5 is MIDI 72 and `Note.from_midi(m) == Note(m - 12)`.
+FastTracker 2 stores the same key one higher, Scream Tracker 3 as an octave over a semitone counted from
+the second, and Amiga ProTracker as the period the pitch sounds at. The tracker octave is one above the
+MIDI octave of the same pitch, so tracker C-5 is MIDI 72 and `Note.from_midi(m) == Note(m - 12)`.
 
-`NoteCommand` covers the note-column entries that act on a playing voice — `OFF`, `CUT`, `FADE`. Their values continue past the key range, so one integer plane holds either kind and
+`NoteCommand` covers the note-column entries that act on a playing voice — `OFF`, `CUT`, `FADE`. Their
+values continue past the key range, so one integer plane holds either kind and
 `NoteValue = Note | NoteCommand`. Which of the three a format spells is its own business, and
 [`formats/README.md`](formats/README.md) collects that.
 
@@ -133,7 +136,8 @@ into and what each of them refuses.
 | `panning` | A position on the shared `0..255` field, or `None` to leave it to the tracker |
 
 Recording the rate in hertz is what lets one song serve every format: one stores the frequency outright,
-another stores a transposition of the triggering key, and each writer derives its own encoding. A sample with no frames is a valid placeholder slot.
+another a transposition of the triggering key, a third the tuning row a sample plays on, and each writer
+derives its own encoding. A sample with no frames is a valid placeholder slot.
 
 `gain` is where a format's own reach becomes visible: FastTracker 2 pins `gain` to full and reports
 anything quieter, telling a caller that the scaling belongs in the waveform.
@@ -297,7 +301,7 @@ block length from the row it is fitting material to:
 
 Each format package re-exposes these three bound to its own speed and tempo ranges. The ranges are the
 whole difference: at 44100 Hz and speed 1 the shortest whole-frame row Impulse Tracker reaches is 441
-frames, while FastTracker 2's sixteen-bit tempo reaches 2.
+frames — the floor every one-byte tempo here shares — while FastTracker 2's sixteen-bit tempo reaches 2.
 
 The same clock read in seconds gives `tick_seconds(tempo)` — the unit envelope breakpoints and note fades
 are counted in — `row_seconds(speed, tempo)` for material laid out in time, and `elapsed_ticks(seconds,
