@@ -58,6 +58,12 @@ from trackmod.trackers.registry import (
     parse_voices,
     reads,
 )
+from trackmod.trackers.s3m.effects.catalog import S3M_EFFECTS
+from trackmod.trackers.s3m.limits import s3m_limits
+from trackmod.trackers.s3m.module import S3MModule
+from trackmod.trackers.s3m.patterns.sizing import packed_bytes as s3m_packed_bytes
+from trackmod.trackers.s3m.spec.sizes import PARAGRAPH_BYTES
+from trackmod.trackers.s3m.timing import row_frames as s3m_row_frames
 from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
 from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.limits import xm_limits
@@ -287,6 +293,14 @@ def parse_mod(data: bytes) -> TrackerModule:
     return MODModule.parse(data)
 
 
+def s3m_binding(song: Song, compliance: Compliance) -> TrackerModule:
+    return S3MModule.from_song(song, compliance=compliance)
+
+
+def parse_s3m(data: bytes) -> TrackerModule:
+    return S3MModule.parse(data)
+
+
 def it_song(envelope: Envelope, seed: int) -> Song:
     return portable_song(IT_EFFECTS, envelope, seed=seed)
 
@@ -298,6 +312,11 @@ def xm_song(envelope: Envelope, seed: int) -> Song:
 def mod_song(envelope: Envelope, seed: int) -> Song:
     del envelope
     return sampled_song(MOD_EFFECTS, seed=seed)
+
+
+def s3m_song(envelope: Envelope, seed: int) -> Song:
+    del envelope
+    return sampled_song(S3M_EFFECTS, seed=seed)
 
 
 def it_instrument(unit: InstrumentUnit, compliance: Compliance) -> InstrumentFile:
@@ -323,6 +342,10 @@ class Binding:
     ``song`` is the shared song in the shape that format addresses its voices in and the quantities it
     holds, because the formats disagree about what a cell may name: one numbers instruments, one numbers
     samples, and one is written either way.
+
+    ``paragraph`` is the boundary the format's blocks open on, which is how exactly a storage table can
+    predict what one more voice costs: a format laying its records out end to end predicts it to the
+    byte, and one placing every block on a paragraph predicts it to within the padding that shifts.
     """
 
     name: str
@@ -330,6 +353,7 @@ class Binding:
     bind: Callable[[Song, Compliance], TrackerModule]
     parse: Callable[[bytes], TrackerModule]
     song: Callable[[Envelope, int], Song]
+    paragraph: int = 1
 
 
 @dataclass(frozen=True)
@@ -348,8 +372,16 @@ class InstrumentBinding:
 IT_BINDING: Final = Binding(name="it", catalog=IT_EFFECTS, bind=it_binding, parse=parse_it, song=it_song)
 XM_BINDING: Final = Binding(name="xm", catalog=XM_EFFECTS, bind=xm_binding, parse=parse_xm, song=xm_song)
 MOD_BINDING: Final = Binding(name="mod", catalog=MOD_EFFECTS, bind=mod_binding, parse=parse_mod, song=mod_song)
+S3M_BINDING: Final = Binding(
+    name="s3m",
+    catalog=S3M_EFFECTS,
+    bind=s3m_binding,
+    parse=parse_s3m,
+    song=s3m_song,
+    paragraph=PARAGRAPH_BYTES,
+)
 
-BINDINGS: Final = (IT_BINDING, XM_BINDING, MOD_BINDING)
+BINDINGS: Final = (IT_BINDING, XM_BINDING, MOD_BINDING, S3M_BINDING)
 VOICED_BINDINGS: Final = (IT_BINDING, XM_BINDING)
 
 INSTRUMENT_BINDINGS: Final = (
@@ -491,7 +523,8 @@ def test_the_storage_table_predicts_what_one_more_voice_costs(binding: Binding, 
     growth = len(written(binding.bind(grown, Compliance.CANONICAL))) - len(
         written(binding.bind(portable, Compliance.CANONICAL))
     )
-    assert growth == storage.instrument_bytes(samples=1) + storage.sample_bytes(frames=extra.frames, depth=extra.depth)
+    predicted = storage.instrument_bytes(samples=1) + storage.sample_bytes(frames=extra.frames, depth=extra.depth)
+    assert abs(growth - predicted) < binding.paragraph
 
 
 def test_the_size_model_agrees_with_the_written_file(binding: Binding, portable: Song) -> None:
@@ -670,19 +703,21 @@ def test_both_formats_recover_the_same_waveforms_from_one_song(fade_envelope: En
 
 def test_silence_costs_each_format_something_different() -> None:
     # One format lists the channels that play, so silence is a terminator a row plus the one cell that
-    # holds the width; one stores a full grid of masks, so silence costs a byte per cell; and one stores
-    # every column of every cell whatever it holds, so silence costs exactly what music costs.
+    # holds the width; one stores a full grid of masks, so silence costs a byte per cell; one stores
+    # every column of every cell whatever it holds, so silence costs exactly what music costs; and one
+    # lists the channels that play and states its own width elsewhere, so silence costs a byte a row.
     rows, channels = PORTABLE_ROWS[0], PORTABLE_CHANNELS
     empty = Pattern.empty(rows=rows, channels=channels)
     assert it_packed_bytes(empty) == rows + WIDTH_MARKER_BYTES
     assert xm_packed_bytes(empty) == rows * channels
     assert mod_packed_bytes(empty) == rows * channels * MOD_CELL_BYTES
+    assert s3m_packed_bytes(empty) == rows
 
 
 def test_every_format_reads_the_same_clock() -> None:
     frames = {
         row_frames(PORTABLE_SPEED, PORTABLE_TEMPO, frame_rate=FRAME_RATE)
-        for row_frames in (it_row_frames, xm_row_frames, mod_row_frames)
+        for row_frames in (it_row_frames, xm_row_frames, mod_row_frames, s3m_row_frames)
     }
     assert len(frames) == 1
 
@@ -722,8 +757,23 @@ def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
     with pytest.raises(KeyError):
         fast_tracker.bound(Capability.SONG_VOLUME)
 
+    scream_tracker = s3m_limits(Compliance.EXTENDED)
+    assert set(Capability) - set(scream_tracker.capacities) == {
+        Capability.INSTRUMENTS,
+        Capability.SAMPLES_PER_INSTRUMENT,
+        Capability.INSTRUMENT_VOLUME,
+        Capability.ENVELOPE_POINTS,
+        Capability.ENVELOPE_VALUE,
+        Capability.ENVELOPE_TICK,
+        Capability.FADEOUT,
+        Capability.VOLUME_COMMAND,
+        Capability.MESSAGE_BYTES,
+    }
     with pytest.raises(KeyError):
         protracker.bound(Capability.ENVELOPE_POINTS)
+
+    with pytest.raises(KeyError):
+        scream_tracker.bound(Capability.FADEOUT)
 
 
 def test_only_one_format_stores_a_tempo_past_the_byte(instrumented: Song) -> None:
@@ -816,6 +866,7 @@ def test_a_sample_table_reaches_every_format() -> None:
     lifted = flat.model_copy(update={"voices": raised(SampleVoices(samples=samples))})
 
     assert MOD_BINDING.bind(flat, Compliance.CANONICAL).violations() == ()
+    assert S3M_BINDING.bind(flat, Compliance.CANONICAL).violations() == ()
     for binding in VOICED_BINDINGS:
         recovered = binding.parse(binding.bind(lifted, Compliance.CANONICAL).to_bytes()).song
         assert [sample.name for sample in recovered.voices.samples] == [sample.name for sample in samples]
