@@ -9,7 +9,7 @@ from trackmod.trackers.xm.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.xm.spec.defaults import DEFAULT_PANNING
 from trackmod.trackers.xm.spec.flags import LoopType, SampleFlag
 from trackmod.trackers.xm.spec.sizes import NAME_BYTES
-from trackmod.trackers.xm.spec.storage import PCM_ENCODING
+from trackmod.trackers.xm.spec.storage import PCM_ENCODING, PCM_SIGN
 from trackmod.trackers.xm.tuning import Tuning
 
 LOOP_TYPES: Final[dict[LoopMode, LoopType]] = {
@@ -19,8 +19,8 @@ LOOP_TYPES: Final[dict[LoopMode, LoopType]] = {
 
 
 def sample_bytes(sample: Sample) -> bytes:
-    """Serialise a sample's waveform as this format stores it: successive differences, not amplitudes."""
-    return encode_pcm(sample.pcm, depth=sample.depth, encoding=PCM_ENCODING)
+    """Serialise a sample's waveform as this format stores it: signed frames, stored as differences."""
+    return encode_pcm(sample.pcm, depth=sample.depth, encoding=PCM_ENCODING, sign=PCM_SIGN)
 
 
 def loop_type(sample: Sample) -> LoopType:

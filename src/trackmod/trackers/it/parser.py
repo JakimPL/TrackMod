@@ -35,7 +35,7 @@ from trackmod.trackers.it.spec.extensions import (
     PATTERN_NAMES_MAGIC,
 )
 from trackmod.trackers.it.spec.flags import HeaderFlag, SpecialFlag
-from trackmod.trackers.it.spec.identity import DOUBLED_COMPRESSION, MAGIC_MODULE
+from trackmod.trackers.it.spec.identity import MAGIC_MODULE
 from trackmod.trackers.it.spec.orders import ORDER_SEPARATOR, ORDER_TERMINATOR
 from trackmod.trackers.it.spec.ranges import DEFAULT_ROWS, EMPTY_PATTERN_OFFSET
 from trackmod.trackers.it.spec.sizes import (
@@ -232,12 +232,10 @@ class ModuleReader:
         )
 
     def _samples(self) -> tuple[Sample, ...]:
-        doubled = read_int(self._header, "compatible_with") >= DOUBLED_COMPRESSION
         return tuple(
             read_sample(
                 self._data,
                 offset=offset,
-                doubled=doubled,
                 subject=f"sample {index}",
                 repairs=self._repairs,
             )

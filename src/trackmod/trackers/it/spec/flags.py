@@ -41,6 +41,7 @@ class SampleConvert(IntFlag):
     """How the stored frames are to be read."""
 
     SIGNED = 0x01
+    DELTA = 0x04
 
 
 @unique

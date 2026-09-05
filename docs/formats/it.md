@@ -127,8 +127,8 @@ carries. Each block opens with the byte count that follows it and holds at most 
 eight-bit waveform or `0x4000` of a sixteen-bit one. Inside a block the values are bit fields of a width
 that changes as the waveform allows: it opens one bit wider than the depth, and three ranges of the
 field announce a new width instead of carrying a value. What the fields carry are the differences of a
-running sum, which restarts at each block; version 2.15 sums twice, and the header's compatible-with
-version is what says which. `trackmod.trackers.it.samples.compression` reads them, and the writer stores
+running sum, which restarts at each block; version 2.15 sums twice, and the sample header's convert
+byte is what says which. `trackmod.trackers.it.samples.compression` reads them, and the writer stores
 plain frames.
 
 
@@ -136,8 +136,14 @@ plain frames.
 sample sounds when key C-5 is pressed, which is exactly the shared model's `Sample.rate`, written
 straight out.
 
-Frames are stored **absolutely** — signed 8- or 16-bit amplitudes, no differencing. Both a loop and a
-sustain loop are supported, each optionally ping-pong, with the flags in the header's flag byte.
+**The convert byte says how the frames are read.** Its low bit distinguishes signed amplitudes, which
+Impulse Tracker itself writes, from unsigned ones, which sit a full scale higher and are common in files
+converted from Scream Tracker 3. Its third bit marks the frames as differences a player sums, and the
+same bit on a compressed sample marks the second sum above. A reader takes both from the record; the
+writer stores signed amplitudes, undifferenced.
+
+Both a loop and a sustain loop are supported, each optionally ping-pong, with the flags in the header's
+flag byte.
 
 The panning byte reserves its high bit as an enable switch and stores a position on `0..64`, so a
 sample's shared `0..255` panning is scaled on the way in and back out. `gain` maps onto the header's

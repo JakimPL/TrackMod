@@ -3,6 +3,9 @@ from typing import Final
 BITS_PER_BYTE: Final = 8
 NIBBLE_BITS: Final = 4
 
+DECIMAL_RADIX: Final = 10
+DECIMAL_BYTE_MAX: Final = DECIMAL_RADIX * DECIMAL_RADIX - 1
+
 NIBBLE_MAX: Final = 0x0F
 BYTE_MAX: Final = 0xFF
 WORD_MAX: Final = 0xFFFF

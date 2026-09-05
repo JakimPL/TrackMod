@@ -4,7 +4,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 from trackmod.binary.pcm.codec import decode_pcm
+from trackmod.binary.pcm.encoding import PcmEncoding
 from trackmod.binary.pcm.quantise import dequantise
+from trackmod.binary.pcm.sign import PcmSign
 from trackmod.binary.records.values import RecordValues, read_bytes, read_int
 from trackmod.binary.text import decode_name
 from trackmod.core.repairs.report import Repairs
@@ -16,10 +18,11 @@ from trackmod.core.samples.vibrato import Vibrato
 from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.it.panning import shared_panning
 from trackmod.trackers.it.samples.compression import compressed_bytes, decompress
-from trackmod.trackers.it.spec.flags import SampleFlag, SamplePanning
-from trackmod.trackers.it.spec.storage import PCM_ENCODING
+from trackmod.trackers.it.spec.flags import SampleConvert, SampleFlag, SamplePanning
 
 MONO_CHANNELS: Final = 1
+
+READ_CONVERT: Final = SampleConvert.SIGNED | SampleConvert.DELTA
 
 
 def stored_depth(values: RecordValues) -> BitDepth:
@@ -30,6 +33,41 @@ def stored_depth(values: RecordValues) -> BitDepth:
 def stored_channels(values: RecordValues) -> int:
     """How many channels a sample header's flags declare its frames are stored as."""
     return STEREO_CHANNELS if SampleFlag(read_int(values, "flags")) & SampleFlag.STEREO else MONO_CHANNELS
+
+
+def stored_convert(values: RecordValues, *, subject: str, repairs: Repairs) -> SampleConvert:
+    """How a sample header states its frames are to be read, as far as this reader names the bits.
+
+    The byte reserves further bits for storage this reader has no rendering for -- big-endian frames,
+    ADPCM, a synthesiser's own waveform. A header setting one of those is read the way this format's own
+    tracker wrote its samples, as signed amplitudes, and the byte is reported.
+    """
+    convert = SampleConvert(read_int(values, "convert"))
+    if int(convert) & ~int(READ_CONVERT):
+        repairs.made(f"a convert byte of {int(convert):#04x} reads as signed amplitudes", subject=subject)
+        return SampleConvert.SIGNED
+
+    return convert
+
+
+def stored_sign(convert: SampleConvert) -> PcmSign:
+    """Which half of the stored range a sample header states its frames sit in."""
+    return PcmSign.SIGNED if SampleConvert.SIGNED in convert else PcmSign.UNSIGNED
+
+
+def states_differences(convert: SampleConvert) -> bool:
+    """Whether a sample header's convert byte marks its frames as differences.
+
+    The one bit is read against how the frames are stored. Raw frames are the differences a player sums
+    into the waveform; a compressed waveform's blocks carry the differences of those, which is what
+    Impulse Tracker 2.15 wrote to fit a smooth waveform into narrower fields.
+    """
+    return SampleConvert.DELTA in convert
+
+
+def stored_encoding(convert: SampleConvert) -> PcmEncoding:
+    """Whether a sample header states its raw frames are amplitudes or the differences between them."""
+    return PcmEncoding.DELTA if states_differences(convert) else PcmEncoding.ABSOLUTE
 
 
 def is_compressed(values: RecordValues) -> bool:
@@ -92,18 +130,20 @@ def stored_pcm(
     data: bytes,
     *,
     depth: BitDepth,
-    doubled: bool,
     subject: str,
     repairs: Repairs,
 ) -> NDArray[np.float64]:
     """The waveform a sample header points at, however its frames and channels are stored."""
     length = read_int(values, "length")
+    convert = stored_convert(values, subject=subject, repairs=repairs)
+    doubled = states_differences(convert)
+    encoding, sign = stored_encoding(convert), stored_sign(convert)
     if stored_channels(values) == MONO_CHANNELS:
         if is_compressed(values):
             frames = decompress(data, frames=length, depth=depth, doubled=doubled, subject=subject, repairs=repairs)
             return dequantise(frames, depth)
 
-        return decode_pcm(data, depth=depth, encoding=PCM_ENCODING)
+        return decode_pcm(data, depth=depth, encoding=encoding, sign=sign)
 
     if is_compressed(values):
         left_bytes, _ = _compressed_extents(data, frames=length, depth=depth, channels=STEREO_CHANNELS)
@@ -114,12 +154,12 @@ def stored_pcm(
         return dequantise(np.stack([left, right], axis=1), depth)
 
     mono_bytes = length * depth.bytes_per_frame
-    left_pcm = decode_pcm(data[:mono_bytes], depth=depth, encoding=PCM_ENCODING)
-    right_pcm = decode_pcm(data[mono_bytes:], depth=depth, encoding=PCM_ENCODING)
+    left_pcm = decode_pcm(data[:mono_bytes], depth=depth, encoding=encoding, sign=sign)
+    right_pcm = decode_pcm(data[mono_bytes:], depth=depth, encoding=encoding, sign=sign)
     return np.stack([left_pcm, right_pcm], axis=1)
 
 
-def parse_sample(values: RecordValues, data: bytes, *, doubled: bool, subject: str, repairs: Repairs) -> Sample:
+def parse_sample(values: RecordValues, data: bytes, *, subject: str, repairs: Repairs) -> Sample:
     """Rebuild a sample from its header fields and the frames the header points at.
 
     A loop the header states past the frames that were stored, and a rate of zero, are drawn into
@@ -143,7 +183,7 @@ def parse_sample(values: RecordValues, data: bytes, *, doubled: bool, subject: s
         if SampleFlag.SUSTAIN_LOOP in flags
         else None
     )
-    pcm = stored_pcm(values, data, depth=depth, doubled=doubled, subject=subject, repairs=repairs)
+    pcm = stored_pcm(values, data, depth=depth, subject=subject, repairs=repairs)
     frames = int(pcm.shape[0])
     return Sample(
         name=decode_name(read_bytes(values, "name")),
@@ -165,7 +205,7 @@ def parse_sample(values: RecordValues, data: bytes, *, doubled: bool, subject: s
     )
 
 
-def read_sample(data: bytes, *, offset: int, doubled: bool, subject: str, repairs: Repairs) -> Sample:
+def read_sample(data: bytes, *, offset: int, subject: str, repairs: Repairs) -> Sample:
     """The sample whose header sits at ``offset``, with the frames the header points at.
 
     Both containers this format writes find a waveform the same way — through a pointer counted from the
@@ -174,4 +214,4 @@ def read_sample(data: bytes, *, offset: int, doubled: bool, subject: str, repair
     values = SAMPLE_HEADER.unpack(data[offset:])
     start = read_int(values, "sample_pointer")
     frames = data[start:] if is_compressed(values) else data[start : start + stored_frames(values)]
-    return parse_sample(values, frames, doubled=doubled, subject=subject, repairs=repairs)
+    return parse_sample(values, frames, subject=subject, repairs=repairs)

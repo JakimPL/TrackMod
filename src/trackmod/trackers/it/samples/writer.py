@@ -8,7 +8,7 @@ from trackmod.trackers.it.panning import stored_panning
 from trackmod.trackers.it.spec.flags import SampleConvert, SampleFlag, SamplePanning
 from trackmod.trackers.it.spec.identity import MAGIC_SAMPLE
 from trackmod.trackers.it.spec.sizes import FILENAME_BYTES, NAME_BYTES
-from trackmod.trackers.it.spec.storage import PCM_ENCODING
+from trackmod.trackers.it.spec.storage import PCM_ENCODING, PCM_SIGN
 
 
 def sample_bytes(sample: Sample) -> bytes:
@@ -19,10 +19,10 @@ def sample_bytes(sample: Sample) -> bytes:
     produce instead.
     """
     if sample.channels != STEREO_CHANNELS:
-        return encode_pcm(sample.pcm, depth=sample.depth, encoding=PCM_ENCODING)
+        return encode_pcm(sample.pcm, depth=sample.depth, encoding=PCM_ENCODING, sign=PCM_SIGN)
 
-    left = encode_pcm(sample.pcm[:, 0], depth=sample.depth, encoding=PCM_ENCODING)
-    right = encode_pcm(sample.pcm[:, 1], depth=sample.depth, encoding=PCM_ENCODING)
+    left = encode_pcm(sample.pcm[:, 0], depth=sample.depth, encoding=PCM_ENCODING, sign=PCM_SIGN)
+    right = encode_pcm(sample.pcm[:, 1], depth=sample.depth, encoding=PCM_ENCODING, sign=PCM_SIGN)
     return left + right
 
 

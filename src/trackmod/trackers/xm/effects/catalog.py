@@ -1,9 +1,9 @@
 from typing import Final
 
-from trackmod.binary.nibble import join_nibbles
+from trackmod.binary.nibble import decimal_byte, join_nibbles
 from trackmod.core.effects.effect import Effect
 from trackmod.limits.guard import require_range
-from trackmod.trackers.xm.effects.command import DIGITS, XMEffect, XMExtended
+from trackmod.trackers.xm.effects.command import XMEffect, XMExtended
 from trackmod.trackers.xm.spec.effects import (
     NIBBLE_PARAMETER,
     ORDER_PARAMETER,
@@ -30,14 +30,12 @@ def decimal_parameter(value: int) -> int:
     """The byte this format reads back as the decimal number ``value``.
 
     FastTracker 2 inherited a pattern break whose parameter is read a digit to a nibble, so a break to
-    row 16 is stored as ``0x16`` rather than ``0x10``.
+    row 16 is stored as ``0x16``.
 
     Raises:
-        ValueError: when ``value`` needs more than two decimal digits.
+        ValueError: when ``value`` names a row past the last one a break reaches.
     """
-    return join_nibbles(
-        *divmod(require_range(value, bound=ROW_PARAMETER, subject="row"), DIGITS),
-    )
+    return decimal_byte(require_range(value, bound=ROW_PARAMETER, subject="row"))
 
 
 class XMEffects:

@@ -1,4 +1,4 @@
-from trackmod.spec.width import BYTE_MAX, NIBBLE_BITS, NIBBLE_MAX
+from trackmod.spec.width import BYTE_MAX, DECIMAL_BYTE_MAX, DECIMAL_RADIX, NIBBLE_BITS, NIBBLE_MAX
 
 
 def split_nibbles(value: int) -> tuple[int, int]:
@@ -23,3 +23,18 @@ def join_nibbles(high: int, low: int) -> int:
         raise ValueError(f"nibbles {high}, {low} exceed four bits")
 
     return (high << NIBBLE_BITS) | low
+
+
+def decimal_byte(value: int) -> int:
+    """The byte a tracker reads back as the decimal number ``value``, a digit to each nibble.
+
+    Amiga ProTracker read one parameter as though its two hexadecimal digits were decimal ones, and the
+    trackers that followed it kept the reading, so 16 is stored as ``0x16``.
+
+    Raises:
+        ValueError: when ``value`` needs more than two decimal digits.
+    """
+    if not 0 <= value <= DECIMAL_BYTE_MAX:
+        raise ValueError(f"{value} needs more than two decimal digits")
+
+    return join_nibbles(*divmod(value, DECIMAL_RADIX))

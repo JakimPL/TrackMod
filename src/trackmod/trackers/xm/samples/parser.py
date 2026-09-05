@@ -14,7 +14,7 @@ from trackmod.spec.pitch import RATE_NOTE
 from trackmod.trackers.xm.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.xm.spec.flags import LOOP_TYPE_MASK, LoopType, SampleFlag
 from trackmod.trackers.xm.spec.sizes import SAMPLE_HEADER_BYTES
-from trackmod.trackers.xm.spec.storage import PCM_ENCODING
+from trackmod.trackers.xm.spec.storage import PCM_ENCODING, PCM_SIGN
 from trackmod.trackers.xm.tuning import Tuning, tuned_rate
 
 LOOP_MODES: Final[dict[int, LoopMode]] = {
@@ -63,7 +63,7 @@ def parse_sample(values: RecordValues, data: bytes, *, subject: str, repairs: Re
     depth = stored_depth(values)
     reference = Note(RATE_NOTE)
     tuning = stored_tuning(values)
-    pcm = decode_pcm(data, depth=depth, encoding=PCM_ENCODING)
+    pcm = decode_pcm(data, depth=depth, encoding=PCM_ENCODING, sign=PCM_SIGN)
     loop = read_loop(values, stride=depth.bytes_per_frame)
     return Sample(
         name=decode_name(read_bytes(values, "name")),

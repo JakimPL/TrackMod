@@ -1,6 +1,7 @@
 from typing import Final
 
 from trackmod.binary.pcm.encoding import PcmEncoding
+from trackmod.binary.pcm.sign import PcmSign
 from trackmod.module.storage import Storage
 from trackmod.trackers.xm.spec.sizes import (
     EMPTY_INSTRUMENT_HEADER_BYTES,
@@ -12,6 +13,7 @@ from trackmod.trackers.xm.spec.sizes import (
 )
 
 PCM_ENCODING: Final = PcmEncoding.DELTA
+PCM_SIGN: Final = PcmSign.SIGNED
 
 ORDER_BYTES: Final = 0
 

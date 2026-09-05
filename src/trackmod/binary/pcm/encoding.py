@@ -1,9 +1,4 @@
 from enum import StrEnum, unique
-from typing import Final
-
-from trackmod.core.samples.depth import BitDepth
-
-STORED_DTYPES: Final[dict[BitDepth, str]] = {BitDepth.EIGHT: "<i1", BitDepth.SIXTEEN: "<i2"}
 
 
 @unique
@@ -16,8 +11,3 @@ class PcmEncoding(StrEnum):
 
     ABSOLUTE = "absolute"
     DELTA = "delta"
-
-
-def dtype_for(depth: BitDepth) -> str:
-    """The little-endian signed numpy dtype one frame is stored in."""
-    return STORED_DTYPES[depth]

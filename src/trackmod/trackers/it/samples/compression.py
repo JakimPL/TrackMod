@@ -121,8 +121,7 @@ def decompress(
 
     Impulse Tracker stores a long waveform in blocks, and each block's fields are the differences of a
     running sum that restarts with it. Version 2.15 sums twice, which carries a smoother waveform in
-    narrower fields, and ``doubled`` is what the file's own compatibility version states about which sum
-    was written.
+    narrower fields, and ``doubled`` is what the sample's own header states about which sum was written.
 
     A block whose stream stops describing frames is filled out with silence, which is what a player
     sounds where the fields run out.
