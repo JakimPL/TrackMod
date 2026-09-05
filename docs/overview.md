@@ -94,6 +94,10 @@ Parsing yields the same `Song` model a writer consumes, so a module read from on
 another. What survives that trip is what both formats carry — see [`limits.md`](limits.md). A file stating
 a value the model holds no room for is read as it stands and reported, once, as a `RepairWarning`.
 
+A module also says how far it reaches past the tracker its format names: `recovered.reach` is the strictest
+of the three levels its values fit inside, and `recovered.exceeded()` is which ceilings it passed to get
+there.
+
 ## One instrument on its own
 
 Each format also stores a single voice as a file of its own — `.iti` and `.xi` — which is what a producer

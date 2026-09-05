@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Protocol
 
 from trackmod.core.instruments.unit import InstrumentUnit
+from trackmod.limits.compliance import Compliance
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
 from trackmod.module.size import SizeReport
@@ -29,6 +30,20 @@ class InstrumentFile(Protocol):
 
     def violations(self) -> tuple[Violation, ...]:
         """Every bound the unit breaks, empty when the file is writable."""
+
+    @property
+    def reach(self) -> Compliance:
+        """The strictest level the unit fits inside, which is what says who will read it back."""
+
+    def exceeded(self) -> tuple[Violation, ...]:
+        """Every bound the unit passes at the strictest level, whatever level it is held to."""
+
+    def require_reach(self, compliance: Compliance) -> None:
+        """Refuse a unit reaching past a level.
+
+        Raises:
+            LimitError: carrying every bound it passes at or beyond ``compliance``.
+        """
 
     def size(self) -> SizeReport:
         """How many bytes the file occupies, without serialising it."""

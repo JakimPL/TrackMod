@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from trackmod.core.songs.song import Song
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import require
+from trackmod.limits.reach import beyond, reached
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
 from trackmod.module.size import SizeReport
@@ -51,7 +52,7 @@ class ITModule(BaseModel):
         cls,
         data: bytes,
         *,
-        compliance: Compliance = Compliance.EXTENDED,
+        compliance: Compliance = Compliance.STRUCTURAL,
     ) -> ITModule:
         """Rebuild a module from the bytes of an Impulse Tracker file.
 
@@ -70,7 +71,7 @@ class ITModule(BaseModel):
         cls,
         path: Path,
         *,
-        compliance: Compliance = Compliance.EXTENDED,
+        compliance: Compliance = Compliance.STRUCTURAL,
     ) -> ITModule:
         """Read a module from an Impulse Tracker file."""
         return cls.parse(path.read_bytes(), compliance=compliance)
@@ -93,6 +94,29 @@ class ITModule(BaseModel):
     def violations(self) -> tuple[Violation, ...]:
         """Every bound the song breaks, empty when the module is writable."""
         return violations(self.song, self.settings, limits=self.limits)
+
+    def exceeded(self) -> tuple[Violation, ...]:
+        """Every bound the song passes at the strictest level, whatever level it is held to.
+
+        A file read back is held to the widest level, because a file that exists is evidence its values
+        were storable, so :meth:`violations` stays empty for one a later tracker wrote. This answers the
+        other question: which ceilings does it pass, and whose reading does passing them cost? Each
+        violation names the ceiling through its severity.
+        """
+        return violations(self.song, self.settings, limits=it_limits(Compliance.CANONICAL))
+
+    @property
+    def reach(self) -> Compliance:
+        """The strictest level the song fits inside, which is what says who will read it back."""
+        return reached(self.exceeded())
+
+    def require_reach(self, compliance: Compliance) -> None:
+        """Refuse a song reaching past a level.
+
+        Raises:
+            LimitError: carrying every bound it passes at or beyond ``compliance``.
+        """
+        require(beyond(self.exceeded(), compliance))
 
     def size(self) -> SizeReport:
         """How many bytes the module occupies, without serialising it."""

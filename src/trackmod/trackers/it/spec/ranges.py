@@ -1,7 +1,7 @@
 from typing import Final
 
 from trackmod.spec.levels import MAX_VOLUME
-from trackmod.spec.width import BYTE_MAX
+from trackmod.spec.width import BYTE_MAX, WORD_MAX
 from trackmod.trackers.it.spec.orders import ORDER_SEPARATOR
 
 PAN_CENTER: Final = 32
@@ -15,17 +15,28 @@ MAX_GLOBAL_VOLUME: Final = 128
 MAX_MIX_VOLUME: Final = 128
 
 MAX_PATTERNS: Final = 200
-EXTENDED_MAX_PATTERNS: Final = ORDER_SEPARATOR  # the order byte names 0..253, so 254 patterns are reachable
+EXTENDED_MAX_PATTERNS: Final = 240
+STRUCTURAL_MAX_PATTERNS: Final = ORDER_SEPARATOR  # the order byte names 0..253, so 254 patterns are reachable
+
 CANONICAL_MAX_ORDERS: Final = 256
+STRUCTURAL_MAX_ORDERS: Final = WORD_MAX
 
 CANONICAL_MIN_ROWS: Final = 32
 MAX_ROWS: Final = 200
+EXTENDED_MAX_ROWS: Final = 1024
+STRUCTURAL_MAX_ROWS: Final = WORD_MAX
 DEFAULT_ROWS: Final = 64
 
 EMPTY_PATTERN_OFFSET: Final = 0  # a pattern the header points at offset zero is stored nowhere and plays silence
 
 CANONICAL_MAX_CHANNELS: Final = 64
 EXTENDED_MAX_CHANNELS: Final = 127
+STRUCTURAL_MAX_CHANNELS: Final = 127
+
+CANONICAL_MAX_INSTRUMENTS: Final = 99
+STRUCTURAL_MAX_INSTRUMENTS: Final = BYTE_MAX
+CANONICAL_MAX_SAMPLES: Final = 99
+STRUCTURAL_MAX_SAMPLES: Final = BYTE_MAX
 
 MIN_SPEED: Final = 1
 MAX_SPEED: Final = BYTE_MAX
@@ -35,6 +46,8 @@ MAX_TEMPO: Final = BYTE_MAX
 MAX_C5_SPEED: Final = 9_999_999
 
 CANONICAL_MAX_FADEOUT: Final = 128
+STRUCTURAL_MAX_FADEOUT: Final = WORD_MAX
 FADE_COUNTER: Final = 1024
 
 CANONICAL_MAX_MESSAGE_BYTES: Final = 8_000
+STRUCTURAL_MAX_MESSAGE_BYTES: Final = WORD_MAX

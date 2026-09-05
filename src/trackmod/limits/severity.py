@@ -3,11 +3,13 @@ from enum import StrEnum, unique
 
 @unique
 class Severity(StrEnum):
-    """How badly a value breaks a format.
+    """Which of a format's three ceilings a value passed, which is what says who will read it back.
 
-    A structural value the record layout cannot hold is refused at every compliance level; a compliance
-    value the layout holds but the original tracker ignores is refused only under canonical compliance.
+    A ``COMPLIANCE`` value is one the tracker the format names would refuse while its descendants play
+    it. An ``EXTENDED`` value is one those descendants refuse too, though the bytes still hold it. A
+    ``STRUCTURAL`` value has no bytes to sit in at all.
     """
 
-    STRUCTURAL = "structural"
     COMPLIANCE = "compliance"
+    EXTENDED = "extended"
+    STRUCTURAL = "structural"

@@ -8,11 +8,12 @@ from trackmod.binary.records.values import (
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.kind import EnvelopeKind
 from trackmod.core.envelopes.point import EnvelopePoint
-from trackmod.core.envelopes.repair import repaired_points, repaired_span
+from trackmod.core.envelopes.repair import levelled_points, repaired_points, repaired_span
 from trackmod.core.envelopes.span import EnvelopeSpan
 from trackmod.core.repairs.report import Repairs
 from trackmod.trackers.xm.layout.envelope import envelope_field
 from trackmod.trackers.xm.spec.flags import EnvelopeFlag
+from trackmod.trackers.xm.spec.ranges import ENVELOPE_LEVELS
 from trackmod.trackers.xm.spec.sizes import ENVELOPE_POINTS
 
 EnvelopeValues = dict[str, FieldValue | ArrayValue]
@@ -66,8 +67,9 @@ def parse_envelope(
 ) -> Envelope | None:
     """Rebuild one envelope from its header fields, or ``None`` when it is switched off.
 
-    A loop the header states past the points it counts, or ending before it begins, and a sustain point
-    past the last one, are drawn back onto the points that are there and recorded in ``repairs``.
+    A level past what the record's own field holds, a loop the header states past the points it counts
+    or ending before it begins, and a sustain point past the last one, are drawn back onto what the
+    envelope holds and recorded in ``repairs``.
     """
     flags = EnvelopeFlag(read_int(values, envelope_field(kind, "flags")))
     count = read_int(values, envelope_field(kind, "count"))
@@ -82,9 +84,13 @@ def parse_envelope(
         else None
     )
     sustain = (held, held) if EnvelopeFlag.SUSTAIN in flags else None
-    points = repaired_points(
-        [EnvelopePoint(tick=tick, value=value) for tick, value in stated], subject=subject, repairs=repairs
+    levelled = levelled_points(
+        [EnvelopePoint(tick=tick, value=value) for tick, value in stated],
+        bound=ENVELOPE_LEVELS,
+        subject=subject,
+        repairs=repairs,
     )
+    points = repaired_points(levelled, subject=subject, repairs=repairs)
     held = len(points)
     return Envelope(
         points=points,

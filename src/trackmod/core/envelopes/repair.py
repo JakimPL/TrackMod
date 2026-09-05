@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from trackmod.core.envelopes.point import EnvelopePoint
 from trackmod.core.envelopes.span import EnvelopeSpan
 from trackmod.core.repairs.report import Repairs
+from trackmod.limits.bound import Bound
 
 
 def repaired_span(
@@ -55,3 +56,24 @@ def repaired_points(
         repairs.made(f"{moved} envelope points stated out of order held at the tick before them", subject=subject)
 
     return tuple(ordered)
+
+
+def levelled_points(
+    points: Sequence[EnvelopePoint],
+    *,
+    bound: Bound,
+    subject: str,
+    repairs: Repairs,
+) -> tuple[EnvelopePoint, ...]:
+    """Stored breakpoints drawn inside the levels a format's own field holds.
+
+    A tracker states each breakpoint's level in the width its record keeps and leaves the nodes past the
+    count it uses as it found them, so a file states levels in nodes no curve reaches. Each is drawn to
+    the nearest level the field holds, which keeps the curve the file meant.
+    """
+    drawn = tuple(EnvelopePoint(tick=point.tick, value=bound.clamp(point.value)) for point in points)
+    moved = sum(1 for before, after in zip(points, drawn) if before.value != after.value)
+    if moved:
+        repairs.made(f"{moved} envelope levels drawn inside {bound}", subject=subject)
+
+    return drawn

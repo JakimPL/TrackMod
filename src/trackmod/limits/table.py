@@ -6,6 +6,7 @@ from trackmod.limits.bound import Bound
 from trackmod.limits.capability import Capability
 from trackmod.limits.capacity import Capacity
 from trackmod.limits.compliance import Compliance
+from trackmod.limits.reach import depth
 from trackmod.limits.severity import Severity
 from trackmod.limits.violation import Violation
 from trackmod.schema.config import FROZEN
@@ -14,10 +15,13 @@ from trackmod.schema.config import FROZEN
 class Limits(BaseModel):
     """A format's capacity table read at one compliance level.
 
-    :meth:`bound` answers what a caller may use; :meth:`check` grades a value it already has. A value the
-    record layout cannot hold is always a structural violation; a value the layout holds but the original
-    tracker ignores is reported only under canonical compliance, which is what lets an extended module
-    carry a 16-bit tempo the format's own tracker would never read.
+    :meth:`bound` answers what a caller may use; :meth:`check` grades a value it already has. A value is
+    graded against the widest ceiling it passes, and reported when that ceiling is the one this table is
+    read at or a wider one — so a value the layout cannot hold is reported at every level, a value the
+    players descended from the tracker refuse is reported at the two tighter levels, and a value only the
+    tracker's own editor refuses is reported at the tightest. That single rule is the whole mechanism: a
+    module held to a wider level is not one that skips validation, it is one validated against a wider
+    bound.
     """
 
     model_config = FROZEN
@@ -40,26 +44,37 @@ class Limits(BaseModel):
             case Compliance.CANONICAL:
                 return capacity.canonical
             case Compliance.EXTENDED:
+                return capacity.extended
+            case Compliance.STRUCTURAL:
                 return capacity.structural
 
-    def check(self, capability: Capability, value: int, *, subject: str) -> Violation | None:
-        """Grade ``value`` against ``capability``, returning the violation it commits, if any."""
+    def tiers(self, capability: Capability) -> tuple[tuple[Compliance, Bound, Severity], ...]:
+        """The three ceilings a capability states, widest first, each with the severity of passing it."""
         capacity = self.capacity(capability)
-        if not capacity.structural.contains(value):
-            return Violation(
-                capability=capability,
-                value=value,
-                bound=capacity.structural,
-                severity=Severity.STRUCTURAL,
-                subject=subject,
-            )
+        return (
+            (Compliance.STRUCTURAL, capacity.structural, Severity.STRUCTURAL),
+            (Compliance.EXTENDED, capacity.extended, Severity.EXTENDED),
+            (Compliance.CANONICAL, capacity.canonical, Severity.COMPLIANCE),
+        )
 
-        if self.compliance is Compliance.CANONICAL and not capacity.canonical.contains(value):
+    def check(self, capability: Capability, value: int, *, subject: str) -> Violation | None:
+        """Grade ``value`` against ``capability``, returning the violation it commits, if any.
+
+        The widest ceiling the value passes is the one it is graded against, because a value outside a
+        wide bound is outside every tighter one and the widest says who will still read it back.
+        """
+        for level, bound, severity in self.tiers(capability):
+            if bound.contains(value):
+                continue
+
+            if depth(level) < depth(self.compliance):
+                return None
+
             return Violation(
                 capability=capability,
                 value=value,
-                bound=capacity.canonical,
-                severity=Severity.COMPLIANCE,
+                bound=bound,
+                severity=severity,
                 subject=subject,
             )
 

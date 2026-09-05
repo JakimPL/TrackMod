@@ -1,6 +1,8 @@
 from typing import Final
 
 from trackmod.core.samples.depth import BitDepth
+from trackmod.limits.bound import Bound
+from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.pitch import NOTES_PER_OCTAVE, RATE_NOTE, REFERENCE_RATE
 from trackmod.spec.width import BYTE_MAX, DOUBLE_WORD_MAX, NIBBLE_MAX, WORD_MAX
 from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
@@ -12,6 +14,8 @@ from trackmod.trackers.xm.spec.tuning import (
 
 PAN_CENTER: Final = 128
 
+ENVELOPE_LEVELS: Final = Bound(minimum=0, maximum=MAX_VOLUME)
+
 MAX_VOLUME_COMMAND: Final = NIBBLE_MAX
 MAX_VOLUME_PANNING: Final = NIBBLE_MAX
 
@@ -22,9 +26,12 @@ MAX_ORDERS: Final = 256
 
 MIN_ROWS: Final = 1
 MAX_ROWS: Final = 256
+EXTENDED_MAX_ROWS: Final = 1024
+STRUCTURAL_MAX_ROWS: Final = WORD_MAX
 
 CANONICAL_MAX_CHANNELS: Final = 32
-EXTENDED_MAX_CHANNELS: Final = 192
+EXTENDED_MAX_CHANNELS: Final = 127
+STRUCTURAL_MAX_CHANNELS: Final = WORD_MAX
 
 CANONICAL_MAX_INSTRUMENTS: Final = 128
 EXTENDED_MAX_INSTRUMENTS: Final = BYTE_MAX
@@ -40,6 +47,7 @@ MAX_SPEED: Final = WORD_MAX
 MIN_TEMPO: Final = 1
 CANONICAL_MIN_TEMPO: Final = 32
 CANONICAL_MAX_TEMPO: Final = BYTE_MAX
+EXTENDED_MAX_TEMPO: Final = 1000
 MAX_TEMPO: Final = WORD_MAX
 
 MAX_BREAK_ROW: Final = 99

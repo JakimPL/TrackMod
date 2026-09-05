@@ -1,9 +1,12 @@
 import pytest
 
 from tests.conftest import rescaled, revoiced
+from tests.trackers.xm.conftest import xm_pattern
+from trackmod.core.envelopes.kind import EnvelopeKind
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
+from trackmod.core.repairs.report import Repairs
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
@@ -15,13 +18,19 @@ from trackmod.limits.error import LimitError
 from trackmod.limits.severity import Severity
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.width import WORD_MAX
+from trackmod.trackers.xm.instruments.envelope import parse_envelope
+from trackmod.trackers.xm.layout.envelope import envelope_field
 from trackmod.trackers.xm.limits import xm_limits
 from trackmod.trackers.xm.module import XMModule
+from trackmod.trackers.xm.spec.flags import EnvelopeFlag
 from trackmod.trackers.xm.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
     CANONICAL_MAX_FADEOUT,
     CANONICAL_MAX_TEMPO,
+    ENVELOPE_LEVELS,
     EXTENDED_MAX_CHANNELS,
+    EXTENDED_MAX_ROWS,
+    EXTENDED_MAX_TEMPO,
     MAX_NOTE,
     MAX_VOLUME_COMMAND,
     MAX_VOLUME_PANNING,
@@ -30,9 +39,11 @@ from trackmod.trackers.xm.spec.ranges import (
 
 def test_the_tempo_word_is_where_this_format_has_its_headroom() -> None:
     # The header stores the tempo in sixteen bits while the tracker honours one byte of it, which is
-    # the whole reason a caller reaching for a shorter row chooses this format.
+    # the whole reason a caller reaching for a shorter row chooses this format. The players descended
+    # from it stop partway up that word, so all three ceilings differ here.
     assert xm_limits(Compliance.CANONICAL).bound(Capability.TEMPO).maximum == CANONICAL_MAX_TEMPO
-    assert xm_limits(Compliance.EXTENDED).bound(Capability.TEMPO).maximum == WORD_MAX
+    assert xm_limits(Compliance.EXTENDED).bound(Capability.TEMPO).maximum == EXTENDED_MAX_TEMPO
+    assert xm_limits(Compliance.STRUCTURAL).bound(Capability.TEMPO).maximum == WORD_MAX
 
 
 def test_the_channel_count_has_headroom_too() -> None:
@@ -80,12 +91,21 @@ def test_extra_channels_are_a_compliance_violation_the_extended_level_allows(xm_
     assert XMModule.from_song(wide, compliance=Compliance.EXTENDED).violations() == ()
 
 
-def test_writing_a_module_the_format_refuses_raises(xm_song: Song) -> None:
+def test_writing_a_module_wider_than_any_player_reads_raises(xm_song: Song) -> None:
     over = rescaled(xm_song, EXTENDED_MAX_CHANNELS + 1)
     with pytest.raises(LimitError) as error:
         XMModule.from_song(over, compliance=Compliance.EXTENDED).to_bytes()
 
-    assert error.value.violations[0].severity is Severity.STRUCTURAL
+    assert error.value.violations[0].severity is Severity.EXTENDED
+
+
+def test_a_width_the_header_word_still_holds_is_written_at_the_widest_level(xm_song: Song) -> None:
+    # The header counts channels in sixteen bits, so a width past what any player reads is still a
+    # width the bytes hold — which is what the widest level is for.
+    over = rescaled(xm_song, EXTENDED_MAX_CHANNELS + 1)
+    module = XMModule.from_song(over, compliance=Compliance.STRUCTURAL)
+    assert module.violations() == ()
+    assert module.reach is Compliance.STRUCTURAL
 
 
 def test_a_key_above_the_eight_octaves_this_format_numbers_is_reported(
@@ -177,3 +197,43 @@ def test_an_effect_this_column_has_no_run_for_raises_where_it_is_met(xm_song: So
     assert module.violations() == ()
     with pytest.raises(ValueError, match="no run for"):
         module.to_bytes()
+
+
+def test_a_pattern_taller_than_the_tracker_edits_is_read_and_written_back(xm_song: Song) -> None:
+    # The pattern header states its height in sixteen bits while FastTracker 2 edits 256 rows, and the
+    # players descended from it read four times that. A file holding one has to survive a round trip.
+    tall = xm_pattern(rows=EXTENDED_MAX_ROWS, channels=4, instruments=2, seed=5)
+    stretched = xm_song.model_copy(update={"patterns": (tall,), "order": OrderList(entries=(0,))})
+    module = XMModule.from_song(stretched, compliance=Compliance.EXTENDED)
+
+    assert module.violations() == ()
+    assert module.reach is Compliance.EXTENDED
+    assert XMModule.parse(module.to_bytes()).song.patterns[0].rows == EXTENDED_MAX_ROWS
+
+
+def test_a_tempo_past_what_the_players_read_is_reported_before_the_word_runs_out(xm_song: Song) -> None:
+    beyond = xm_song.model_copy(update={"playback": Playback(speed=6, tempo=EXTENDED_MAX_TEMPO + 1)})
+    (reported,) = XMModule.from_song(beyond, compliance=Compliance.EXTENDED).violations()
+    assert reported.capability is Capability.TEMPO
+    assert reported.severity is Severity.EXTENDED
+    assert XMModule.from_song(beyond, compliance=Compliance.STRUCTURAL).violations() == ()
+
+
+def test_a_stored_envelope_level_past_the_field_is_drawn_inside_it() -> None:
+    # Trackers leave the node table past the count they use as they found it, so files state levels in
+    # nodes no curve reaches. Reading one as it stands would make a file this library just read
+    # unwritable, which is what the repair path is for.
+    values = {
+        envelope_field(EnvelopeKind.VOLUME, "flags"): int(EnvelopeFlag.ENABLED),
+        envelope_field(EnvelopeKind.VOLUME, "count"): 2,
+        envelope_field(EnvelopeKind.VOLUME, "sustain"): 0,
+        envelope_field(EnvelopeKind.VOLUME, "loop_begin"): 0,
+        envelope_field(EnvelopeKind.VOLUME, "loop_end"): 0,
+        envelope_field(EnvelopeKind.VOLUME, "points"): ((0, 64), (32, 4112)),
+    }
+    repairs = Repairs()
+    envelope = parse_envelope(EnvelopeKind.VOLUME, values, subject="instrument 0", repairs=repairs)
+
+    assert envelope is not None
+    assert [point.value for point in envelope.points] == [MAX_VOLUME, MAX_VOLUME]
+    assert repairs.entries == (("instrument 0", f"1 envelope levels drawn inside {ENVELOPE_LEVELS}"),)

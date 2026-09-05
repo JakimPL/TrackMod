@@ -14,8 +14,8 @@ The header points at everything through offset tables, and that decision shapes 
 | Byte order | little-endian |
 | A cell's instrument column names | a sample or an instrument, as one header bit states |
 | Sections are found by | three tables of 32-bit offsets |
-| Channels | 1..64 canonical, 1..127 stored |
-| Pattern rows | 32..200 canonical, 1..200 stored |
+| Channels | 1..64 canonical, 1..127 extended and stored |
+| Pattern rows | 32..200 canonical, 1..1024 extended, 1..65535 stored |
 | Note range | 10 octaves, shared keys 0..119 |
 | Waveform storage | 8- or 16-bit, signed or unsigned, absolute or differences, optionally compressed |
 | One instrument on its own | `.iti` |

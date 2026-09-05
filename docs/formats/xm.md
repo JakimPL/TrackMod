@@ -15,8 +15,8 @@ A file is one concatenation read front to back, and that single decision shapes 
 | Byte order | little-endian |
 | A cell's instrument column names | an instrument |
 | Sections are found by | walking sizes, front to back |
-| Channels | 1..32 canonical, 1..192 stored |
-| Pattern rows | 1..256 |
+| Channels | 1..32 canonical, 1..127 extended, 1..65535 stored |
+| Pattern rows | 1..256 canonical, 1..1024 extended, 1..65535 stored |
 | Note range | 8 octaves, shared keys 0..95 |
 | Waveform storage | 8- or 16-bit signed, stored as differences |
 | One instrument on its own | `.xi` |

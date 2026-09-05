@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Protocol
 
 from trackmod.core.songs.song import Song
+from trackmod.limits.compliance import Compliance
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
 from trackmod.module.size import SizeReport
@@ -29,6 +30,20 @@ class TrackerModule(Protocol):
 
     def violations(self) -> tuple[Violation, ...]:
         """Every bound the song breaks, empty when the module is writable."""
+
+    @property
+    def reach(self) -> Compliance:
+        """The strictest level the song fits inside, which is what says who will read it back."""
+
+    def exceeded(self) -> tuple[Violation, ...]:
+        """Every bound the song passes at the strictest level, whatever level it is held to."""
+
+    def require_reach(self, compliance: Compliance) -> None:
+        """Refuse a song reaching past a level.
+
+        Raises:
+            LimitError: carrying every bound it passes at or beyond ``compliance``.
+        """
 
     def size(self) -> SizeReport:
         """How many bytes the module occupies, without serialising it."""

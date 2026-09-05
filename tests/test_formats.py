@@ -448,6 +448,42 @@ def spare_sample(song: Song) -> Sample:
     )
 
 
+def test_a_song_inside_its_tracker_reaches_no_further(binding: Binding, portable: Song) -> None:
+    module = binding.bind(portable, Compliance.CANONICAL)
+    assert module.reach is Compliance.CANONICAL
+    assert module.exceeded() == ()
+    module.require_reach(Compliance.CANONICAL)
+
+
+def test_a_song_past_its_tracker_reaches_the_level_above_it(binding: Binding, portable: Song) -> None:
+    # Widening to what the players descended from the tracker read is the one change every format has
+    # room for, so one body covers all of them: the module still writes, and says what it cost.
+    widest = binding.bind(portable, Compliance.EXTENDED).limits.bound(Capability.CHANNELS).maximum
+    wide = binding.bind(rescaled(portable, widest), Compliance.EXTENDED)
+
+    assert wide.violations() == ()
+    assert wide.reach is Compliance.EXTENDED
+    assert [violation.capability for violation in wide.exceeded()] == [Capability.CHANNELS]
+    assert wide.exceeded()[0].severity is Severity.COMPLIANCE
+
+    wide.require_reach(Compliance.EXTENDED)
+    with pytest.raises(LimitError, match="channels"):
+        wide.require_reach(Compliance.CANONICAL)
+
+
+def test_what_a_file_reaches_survives_being_written_and_read_back(binding: Binding, portable: Song) -> None:
+    widest = binding.bind(portable, Compliance.EXTENDED).limits.bound(Capability.CHANNELS).maximum
+    written = binding.bind(rescaled(portable, widest), Compliance.EXTENDED).to_bytes()
+    assert binding.parse(written).reach is Compliance.EXTENDED
+
+
+def test_a_file_is_read_at_the_level_that_says_its_values_were_storable(binding: Binding, portable: Song) -> None:
+    # A file that exists is evidence its values fit the record layout, so reading holds a module to the
+    # widest level and never complains; what it reaches past is asked for separately.
+    data = binding.bind(portable, Compliance.CANONICAL).to_bytes()
+    assert binding.parse(data).limits.compliance is Compliance.STRUCTURAL
+
+
 def test_the_storage_table_predicts_what_one_more_voice_costs(binding: Binding, portable: Song) -> None:
     extra = spare_sample(portable)
     grown = one_more_voice(portable, extra)

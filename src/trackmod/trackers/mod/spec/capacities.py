@@ -28,10 +28,12 @@ from trackmod.trackers.mod.spec.ranges import (
 CAPACITIES: Final = {
     Capability.CHANNELS: Capacity(
         canonical=Bound(minimum=CANONICAL_CHANNELS, maximum=CANONICAL_CHANNELS),
+        extended=Bound(minimum=EXTENDED_MIN_CHANNELS, maximum=EXTENDED_MAX_CHANNELS),
         structural=Bound(minimum=EXTENDED_MIN_CHANNELS, maximum=EXTENDED_MAX_CHANNELS),
     ),
     Capability.PATTERNS: Capacity(
         canonical=Bound(minimum=0, maximum=CANONICAL_MAX_PATTERNS),
+        extended=Bound(minimum=0, maximum=EXTENDED_MAX_PATTERNS),
         structural=Bound(minimum=0, maximum=EXTENDED_MAX_PATTERNS),
     ),
     Capability.ORDERS: Capacity.fixed(Bound(minimum=0, maximum=MAX_ORDERS)),
@@ -43,6 +45,7 @@ CAPACITIES: Final = {
     Capability.SAMPLE_GAIN: Capacity.fixed(Bound(minimum=MAX_VOLUME, maximum=MAX_VOLUME)),
     Capability.NOTE: Capacity(
         canonical=Bound(minimum=CANONICAL_MIN_NOTE, maximum=CANONICAL_MAX_NOTE),
+        extended=Bound(minimum=MIN_NOTE, maximum=MAX_NOTE),
         structural=Bound(minimum=MIN_NOTE, maximum=MAX_NOTE),
     ),
     Capability.TEMPO: Capacity.fixed(Bound(minimum=DEFAULT_TEMPO, maximum=DEFAULT_TEMPO)),
