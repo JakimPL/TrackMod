@@ -1,7 +1,7 @@
 [project]
 name = "trackmod"
 version = "0.2.0"
-description = "A Python library for various trackers (ImpulseTracker, FastTracker 2) module specifications and interfaces"
+description = "A Python library for tracker module specifications and interfaces (Impulse Tracker, FastTracker 2, Amiga ProTracker)"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Jakim" }]

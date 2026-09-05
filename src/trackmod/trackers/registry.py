@@ -6,6 +6,8 @@ from trackmod.trackers.it.instrument_file import ITInstrumentFile
 from trackmod.trackers.it.module import ITModule
 from trackmod.trackers.it.spec.identity import EXTENSION as IT_EXTENSION
 from trackmod.trackers.it.spec.identity import INSTRUMENT_EXTENSION as ITI_EXTENSION
+from trackmod.trackers.mod.module import MODModule
+from trackmod.trackers.mod.spec.identity import EXTENSION as MOD_EXTENSION
 from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.module import XMModule
 from trackmod.trackers.xm.spec.identity import EXTENSION as XM_EXTENSION
@@ -18,6 +20,10 @@ def _impulse_tracker_module(data: bytes) -> Voices:
 
 def _fast_tracker_module(data: bytes) -> Voices:
     return XMModule.parse(data).song.voices
+
+
+def _amiga_protracker_module(data: bytes) -> Voices:
+    return MODModule.parse(data).song.voices
 
 
 def _impulse_tracker_instrument(data: bytes) -> Voices:
@@ -33,11 +39,12 @@ def _fast_tracker_instrument(data: bytes) -> Voices:
 READERS: Final[Mapping[str, Callable[[bytes], Voices]]] = {
     IT_EXTENSION: _impulse_tracker_module,
     XM_EXTENSION: _fast_tracker_module,
+    MOD_EXTENSION: _amiga_protracker_module,
     ITI_EXTENSION: _impulse_tracker_instrument,
     XI_EXTENSION: _fast_tracker_instrument,
 }
 
-MODULE_EXTENSIONS: Final = frozenset({IT_EXTENSION, XM_EXTENSION})
+MODULE_EXTENSIONS: Final = frozenset({IT_EXTENSION, XM_EXTENSION, MOD_EXTENSION})
 INSTRUMENT_EXTENSIONS: Final = frozenset({ITI_EXTENSION, XI_EXTENSION})
 EXTENSIONS: Final = MODULE_EXTENSIONS | INSTRUMENT_EXTENSIONS
 

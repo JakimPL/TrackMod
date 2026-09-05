@@ -19,6 +19,7 @@ from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.column import Column
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
@@ -33,7 +34,7 @@ from trackmod.limits.severity import Severity
 from trackmod.module.instrument import InstrumentFile
 from trackmod.module.protocol import TrackerModule
 from trackmod.spec.levels import CENTRE_PANNING, MAX_VOLUME
-from trackmod.spec.pitch import RATE_NOTE
+from trackmod.spec.pitch import RATE_NOTE, REFERENCE_RATE
 from trackmod.spec.width import NIBBLE_MAX
 from trackmod.trackers.it.effects.catalog import IT_EFFECTS
 from trackmod.trackers.it.instrument_file import ITInstrumentFile
@@ -43,6 +44,14 @@ from trackmod.trackers.it.patterns.sizing import packed_bytes as it_packed_bytes
 from trackmod.trackers.it.patterns.width import WIDTH_MARKER_BYTES
 from trackmod.trackers.it.timing import exact_timings as it_exact_timings
 from trackmod.trackers.it.timing import row_frames as it_row_frames
+from trackmod.trackers.mod.effects.catalog import MOD_EFFECTS
+from trackmod.trackers.mod.limits import mod_limits
+from trackmod.trackers.mod.module import MODModule
+from trackmod.trackers.mod.patterns.sizing import packed_bytes as mod_packed_bytes
+from trackmod.trackers.mod.spec.cells import CELL_BYTES as MOD_CELL_BYTES
+from trackmod.trackers.mod.spec.periods import CANONICAL_MAX_NOTE, CANONICAL_MIN_NOTE
+from trackmod.trackers.mod.spec.ranges import PATTERN_ROWS as MOD_PATTERN_ROWS
+from trackmod.trackers.mod.timing import row_frames as mod_row_frames
 from trackmod.trackers.registry import (
     INSTRUMENT_EXTENSIONS,
     MODULE_EXTENSIONS,
@@ -60,7 +69,7 @@ from trackmod.trackers.xm.timing import row_frames as xm_row_frames
 from trackmod.trackers.xm.tuning import tuned_rate, tuning_for
 
 FRAME_RATE: Final = 44100
-UNWRITTEN_EXTENSION: Final = ".mod"
+UNWRITTEN_EXTENSION: Final = ".med"
 PORTABLE_SPEED: Final = 6
 PORTABLE_TEMPO: Final = 125
 PORTABLE_CHANNELS: Final = 4
@@ -71,7 +80,7 @@ GENERATED_SEEDS: Final = (1, 2, 3, 4)
 EXTRA_FRAMES: Final = 64
 
 HACKED_TEMPO: Final = 441
-HACKED_CHANNELS: Final = 100
+SAMPLED_FRAMES: Final = (32, 40, 24)
 
 MUSIC_COLUMNS: Final = (Column.NOTE, Column.INSTRUMENT, Column.VOLUME)
 
@@ -191,6 +200,69 @@ def portable_song(catalog: EffectCatalog, envelope: Envelope, *, seed: int) -> S
     )
 
 
+def sampled_pattern(catalog: EffectCatalog, *, seed: int) -> Pattern:
+    """A grid every format stores, whose keys stay inside the three octaves the narrowest of them tabulates.
+
+    The volume column is left out and so are the note commands: the format that names a sample from every
+    cell states a period there and nothing else, so a column or a command it has no field for would be
+    content rather than a quantity, and this grid is the one all of them carry.
+    """
+    rng = np.random.default_rng(seed)
+    builder = PatternBuilder(rows=MOD_PATTERN_ROWS, channels=PORTABLE_CHANNELS)
+    for channel in range(PORTABLE_CHANNELS):
+        builder.place(0, channel, Cell(note=Note(RATE_NOTE), instrument=channel % PORTABLE_INSTRUMENTS))
+
+    for row in range(1, MOD_PATTERN_ROWS):
+        for channel in range(PORTABLE_CHANNELS):
+            draw = rng.random()
+            if draw < 0.25:
+                continue
+
+            builder.place(
+                row,
+                channel,
+                Cell(
+                    note=Note(int(rng.integers(CANONICAL_MIN_NOTE, CANONICAL_MAX_NOTE + 1))),
+                    instrument=int(rng.integers(0, PORTABLE_INSTRUMENTS)) if draw < 0.8 else None,
+                    effect=catalog.note_delay(int(rng.integers(0, NIBBLE_MAX + 1))) if draw > 0.9 else None,
+                ),
+            )
+
+    return builder.build()
+
+
+def sampled_samples() -> tuple[Sample, ...]:
+    """Waveforms every format stores frame for frame, at the one rate all of their tunings state exactly."""
+    return tuple(
+        Sample(
+            name=name,
+            pcm=lattice(np.linspace(-1.0, 1.0, frames), BitDepth.EIGHT),
+            rate=REFERENCE_RATE,
+            depth=BitDepth.EIGHT,
+            volume=volume,
+        )
+        for name, frames, volume in zip(("lead", "bass", "pad"), SAMPLED_FRAMES, (MAX_VOLUME, 48, MAX_VOLUME))
+    )
+
+
+def sampled_song(catalog: EffectCatalog, *, seed: int) -> Song:
+    """A song whose cells name samples, in the quantities every format here writes at canonical compliance.
+
+    This is the narrower of the two shared songs. Where the instrument-addressed one lives in the
+    intersection of two formats, this one lives in the intersection of all of them: patterns at the one
+    height Amiga ProTracker holds, keys inside its three tabulated octaves, waveforms at eight bits and
+    an even number of frames, and the clock every module of that lineage starts on.
+    """
+    return Song(
+        name="sampled",
+        channels=PORTABLE_CHANNELS,
+        patterns=tuple(sampled_pattern(catalog, seed=seed + index) for index in range(len(PORTABLE_ROWS))),
+        order=OrderList(entries=(0, 1, 0)),
+        voices=SampleVoices(samples=sampled_samples()),
+        playback=Playback(speed=PORTABLE_SPEED, tempo=PORTABLE_TEMPO),
+    )
+
+
 def it_binding(song: Song, compliance: Compliance) -> TrackerModule:
     return ITModule.from_song(song, compliance=compliance)
 
@@ -205,6 +277,27 @@ def parse_it(data: bytes) -> TrackerModule:
 
 def parse_xm(data: bytes) -> TrackerModule:
     return XMModule.parse(data)
+
+
+def mod_binding(song: Song, compliance: Compliance) -> TrackerModule:
+    return MODModule.from_song(song, compliance=compliance)
+
+
+def parse_mod(data: bytes) -> TrackerModule:
+    return MODModule.parse(data)
+
+
+def it_song(envelope: Envelope, seed: int) -> Song:
+    return portable_song(IT_EFFECTS, envelope, seed=seed)
+
+
+def xm_song(envelope: Envelope, seed: int) -> Song:
+    return portable_song(XM_EFFECTS, envelope, seed=seed)
+
+
+def mod_song(envelope: Envelope, seed: int) -> Song:
+    del envelope
+    return sampled_song(MOD_EFFECTS, seed=seed)
 
 
 def it_instrument(unit: InstrumentUnit, compliance: Compliance) -> InstrumentFile:
@@ -225,50 +318,74 @@ def parse_xm_instrument(data: bytes) -> InstrumentFile:
 
 @dataclass(frozen=True)
 class Binding:
-    """One format's binding of the shared model, so a property is stated once and checked for both.
+    """One format's binding of the shared model as a whole module, so a property is stated once for all.
 
-    Each format binds the model in two containers — a whole module and one instrument on its own — and a
-    property that holds of both is stated once here.
+    ``song`` is the shared song in the shape that format addresses its voices in and the quantities it
+    holds, because the formats disagree about what a cell may name: one numbers instruments, one numbers
+    samples, and one is written either way.
     """
 
     name: str
     catalog: EffectCatalog
     bind: Callable[[Song, Compliance], TrackerModule]
     parse: Callable[[bytes], TrackerModule]
+    song: Callable[[Envelope, int], Song]
+
+
+@dataclass(frozen=True)
+class InstrumentBinding:
+    """One format's binding of a single instrument stored on its own, beside the module it also writes.
+
+    Only the formats that number instruments write one on its own, so this is the smaller set — a format
+    whose cells name samples has no instrument to store and no container to store it in.
+    """
+
+    module: Binding
     bind_unit: Callable[[InstrumentUnit, Compliance], InstrumentFile]
     parse_unit: Callable[[bytes], InstrumentFile]
 
 
-BINDINGS: Final = (
-    Binding(
-        name="it",
-        catalog=IT_EFFECTS,
-        bind=it_binding,
-        parse=parse_it,
-        bind_unit=it_instrument,
-        parse_unit=parse_it_instrument,
-    ),
-    Binding(
-        name="xm",
-        catalog=XM_EFFECTS,
-        bind=xm_binding,
-        parse=parse_xm,
-        bind_unit=xm_instrument,
-        parse_unit=parse_xm_instrument,
-    ),
+IT_BINDING: Final = Binding(name="it", catalog=IT_EFFECTS, bind=it_binding, parse=parse_it, song=it_song)
+XM_BINDING: Final = Binding(name="xm", catalog=XM_EFFECTS, bind=xm_binding, parse=parse_xm, song=xm_song)
+MOD_BINDING: Final = Binding(name="mod", catalog=MOD_EFFECTS, bind=mod_binding, parse=parse_mod, song=mod_song)
+
+BINDINGS: Final = (IT_BINDING, XM_BINDING, MOD_BINDING)
+VOICED_BINDINGS: Final = (IT_BINDING, XM_BINDING)
+
+INSTRUMENT_BINDINGS: Final = (
+    InstrumentBinding(module=IT_BINDING, bind_unit=it_instrument, parse_unit=parse_it_instrument),
+    InstrumentBinding(module=XM_BINDING, bind_unit=xm_instrument, parse_unit=parse_xm_instrument),
 )
 
 
 @pytest.fixture(params=BINDINGS, ids=[binding.name for binding in BINDINGS])
 def binding(request: pytest.FixtureRequest) -> Binding:
-    """Each format binding in turn, so one test body covers both."""
+    """Each format binding in turn, so one test body covers every format."""
+    return request.param
+
+
+@pytest.fixture(params=INSTRUMENT_BINDINGS, ids=[binding.module.name for binding in INSTRUMENT_BINDINGS])
+def instrument_binding(request: pytest.FixtureRequest) -> InstrumentBinding:
+    """Each binding that stores one instrument on its own, which is the formats that number instruments."""
     return request.param
 
 
 @pytest.fixture
 def portable(binding: Binding, fade_envelope: Envelope) -> Song:
-    """The shared song, spelled with the effects of the binding under test."""
-    return portable_song(binding.catalog, fade_envelope, seed=PORTABLE_SEED)
+    """The shared song, in the shape and the effects of the binding under test."""
+    return binding.song(fade_envelope, PORTABLE_SEED)
+
+
+@pytest.fixture
+def voiced(instrument_binding: InstrumentBinding, fade_envelope: Envelope) -> Song:
+    """The shared instrument-addressed song, for the formats that store one instrument on its own."""
+    return instrument_binding.module.song(fade_envelope, PORTABLE_SEED)
+
+
+@pytest.fixture
+def instrumented(fade_envelope: Envelope) -> Song:
+    """The shared instrument-addressed song, for what holds of the formats that number instruments."""
+    return portable_song(IT_EFFECTS, fade_envelope, seed=PORTABLE_SEED)
 
 
 def music(song: Song) -> list[list[NDArray[np.int16]]]:
@@ -296,17 +413,44 @@ def test_a_binding_answers_the_whole_module_surface(binding: Binding, portable: 
     assert module.storage.file <= module.size().headers
 
 
-def test_the_storage_table_predicts_what_one_more_voice_costs(binding: Binding, portable: Song) -> None:
-    extra = Sample(name="extra", pcm=lattice(np.linspace(-1.0, 1.0, EXTRA_FRAMES)), rate=portable_rate(FRAME_RATE))
-    voices = voices_of(portable)
-    grown = portable.model_copy(
-        update={
-            "voices": InstrumentVoices(
-                instruments=(*voices.instruments, Instrument(name="extra", keymap=keyed(len(voices.samples)))),
-                samples=(*voices.samples, extra),
+def one_more_voice(song: Song, sample: Sample) -> Song:
+    """The same song carrying one more voice, added the way the song's own table is addressed.
+
+    A table of samples grows by a sample; a table of instruments grows by an instrument beside the sample
+    its keys reach, since that is what one more voice costs a format whose cells name instruments.
+    """
+    voices = song.voices
+    match voices:
+        case SampleVoices():
+            return song.model_copy(update={"voices": SampleVoices(samples=(*voices.samples, sample))})
+        case InstrumentVoices():
+            return song.model_copy(
+                update={
+                    "voices": InstrumentVoices(
+                        instruments=(
+                            *voices.instruments,
+                            Instrument(name=sample.name, keymap=keyed(len(voices.samples))),
+                        ),
+                        samples=(*voices.samples, sample),
+                    )
+                }
             )
-        }
+
+
+def spare_sample(song: Song) -> Sample:
+    """One more waveform stored the way the song's own samples are, so a format writes it the same."""
+    stored = song.voices.samples[0]
+    return Sample(
+        name="extra",
+        pcm=lattice(np.linspace(-1.0, 1.0, EXTRA_FRAMES), stored.depth),
+        rate=stored.rate,
+        depth=stored.depth,
     )
+
+
+def test_the_storage_table_predicts_what_one_more_voice_costs(binding: Binding, portable: Song) -> None:
+    extra = spare_sample(portable)
+    grown = one_more_voice(portable, extra)
     storage = binding.bind(portable, Compliance.CANONICAL).storage
     growth = len(written(binding.bind(grown, Compliance.CANONICAL))) - len(
         written(binding.bind(portable, Compliance.CANONICAL))
@@ -335,7 +479,7 @@ def test_a_generated_song_survives_being_written_and_read_back(
     fade_envelope: Envelope,
     seed: int,
 ) -> None:
-    song = portable_song(binding.catalog, fade_envelope, seed=seed)
+    song = binding.song(fade_envelope, seed)
     module = binding.bind(song, Compliance.CANONICAL)
     data = module.to_bytes()
 
@@ -361,17 +505,17 @@ def sounded_waveforms(song: Song) -> list[dict[int, Sample]]:
 
 
 def test_an_instrument_carried_between_songs_sounds_the_same_in_either_format(
-    binding: Binding,
-    portable: Song,
+    instrument_binding: InstrumentBinding,
+    voiced: Song,
 ) -> None:
     # Reversing the order is what makes the renumbering matter: every keymap now indexes a table
     # position it was never built against, and a stale index would sound the wrong waveform.
-    voices = voices_of(portable)
+    voices = voices_of(voiced)
     units = [extract(voices, index) for index in reversed(range(len(voices.instruments)))]
-    reordered = portable.model_copy(update={"voices": combine(units)})
+    reordered = voiced.model_copy(update={"voices": combine(units)})
 
-    recovered = recovered_song(binding, reordered)
-    for expected, restored in zip(reversed(sounded_waveforms(portable)), sounded_waveforms(recovered)):
+    recovered = recovered_song(instrument_binding.module, reordered)
+    for expected, restored in zip(reversed(sounded_waveforms(voiced)), sounded_waveforms(recovered)):
         assert set(restored) == set(expected)
         for key, sample in expected.items():
             assert restored[key].name == sample.name
@@ -380,15 +524,16 @@ def test_an_instrument_carried_between_songs_sounds_the_same_in_either_format(
 
 def both_recoveries(envelope: Envelope) -> tuple[Song, Song]:
     """One song written to both formats and read back, as each format recovered it."""
-    from_it, from_xm = (
-        recovered_song(binding, portable_song(binding.catalog, envelope, seed=PORTABLE_SEED)) for binding in BINDINGS
-    )
+    from_it, from_xm = (recovered_song(binding, binding.song(envelope, PORTABLE_SEED)) for binding in VOICED_BINDINGS)
     return from_it, from_xm
 
 
-def test_a_binding_answers_the_whole_instrument_file_surface(binding: Binding, portable: Song) -> None:
-    unit = extract(voices_of(portable), 0)
-    written = binding.bind_unit(unit, Compliance.CANONICAL)
+def test_a_binding_answers_the_whole_instrument_file_surface(
+    instrument_binding: InstrumentBinding,
+    voiced: Song,
+) -> None:
+    unit = extract(voices_of(voiced), 0)
+    written = instrument_binding.bind_unit(unit, Compliance.CANONICAL)
     assert written.unit == unit
     assert written.limits.compliance is Compliance.CANONICAL
     assert written.extension.startswith(".")
@@ -397,24 +542,25 @@ def test_a_binding_answers_the_whole_instrument_file_surface(binding: Binding, p
 
 
 def test_an_instrument_stored_on_its_own_costs_less_than_the_module_around_it(
-    binding: Binding,
-    portable: Song,
+    instrument_binding: InstrumentBinding,
+    voiced: Song,
 ) -> None:
-    alone = binding.bind_unit(extract(voices_of(portable), 0), Compliance.CANONICAL)
-    whole = binding.bind(portable, Compliance.CANONICAL)
+    alone = instrument_binding.bind_unit(extract(voices_of(voiced), 0), Compliance.CANONICAL)
+    whole = instrument_binding.module.bind(voiced, Compliance.CANONICAL)
     assert alone.size().total < whole.size().total
 
 
 def test_a_unit_saves_under_the_extension_its_format_writes_instruments_with(
     tmp_path: Path,
-    binding: Binding,
-    portable: Song,
+    instrument_binding: InstrumentBinding,
+    voiced: Song,
 ) -> None:
-    written = binding.bind_unit(extract(voices_of(portable), 0), Compliance.CANONICAL)
+    written = instrument_binding.bind_unit(extract(voices_of(voiced), 0), Compliance.CANONICAL)
     path = tmp_path / f"voice{written.extension}"
     written.save(path)
     assert path.read_bytes() == written.to_bytes()
-    assert binding.parse_unit(path.read_bytes()).unit.instrument.name == voices_of(portable).instruments[0].name
+    parsed = instrument_binding.parse_unit(path.read_bytes())
+    assert parsed.unit.instrument.name == voices_of(voiced).instruments[0].name
 
 
 def test_the_registry_reads_a_module_by_the_extension_that_wrote_it(binding: Binding, portable: Song) -> None:
@@ -424,11 +570,11 @@ def test_the_registry_reads_a_module_by_the_extension_that_wrote_it(binding: Bin
 
 
 def test_the_registry_reads_a_standalone_instrument_as_the_one_voice_it_holds(
-    binding: Binding,
-    portable: Song,
+    instrument_binding: InstrumentBinding,
+    voiced: Song,
 ) -> None:
-    written = binding.bind_unit(extract(voices_of(portable), 0), Compliance.CANONICAL)
-    unit = binding.parse_unit(written.to_bytes()).unit
+    written = instrument_binding.bind_unit(extract(voices_of(voiced), 0), Compliance.CANONICAL)
+    unit = instrument_binding.parse_unit(written.to_bytes()).unit
     assert written.extension in INSTRUMENT_EXTENSIONS
     assert parse_voices(written.to_bytes(), extension=written.extension) == InstrumentVoices(
         instruments=(unit.instrument,),
@@ -455,7 +601,8 @@ def test_both_formats_recover_the_same_voice_from_one_instrument(fade_envelope: 
     # differing would be the container rather than the voice.
     unit = extract(voices_of(portable_song(IT_EFFECTS, fade_envelope, seed=PORTABLE_SEED)), 0)
     from_it, from_xm = (
-        binding.parse_unit(binding.bind_unit(unit, Compliance.CANONICAL).to_bytes()).unit for binding in BINDINGS
+        binding.parse_unit(binding.bind_unit(unit, Compliance.CANONICAL).to_bytes()).unit
+        for binding in INSTRUMENT_BINDINGS
     )
     assert from_it.instrument.keymap == from_xm.instrument.keymap
     assert from_it.instrument.name == from_xm.instrument.name
@@ -485,19 +632,23 @@ def test_both_formats_recover_the_same_waveforms_from_one_song(fade_envelope: En
         assert np.array_equal(restored.pcm, original.pcm)
 
 
-def test_silence_costs_a_row_in_one_format_and_a_cell_in_the_other() -> None:
+def test_silence_costs_each_format_something_different() -> None:
     # One format lists the channels that play, so silence is a terminator a row plus the one cell that
-    # holds the width; the other stores a full grid, so silence costs a cell wherever it sits.
+    # holds the width; one stores a full grid of masks, so silence costs a byte per cell; and one stores
+    # every column of every cell whatever it holds, so silence costs exactly what music costs.
     rows, channels = PORTABLE_ROWS[0], PORTABLE_CHANNELS
     empty = Pattern.empty(rows=rows, channels=channels)
     assert it_packed_bytes(empty) == rows + WIDTH_MARKER_BYTES
     assert xm_packed_bytes(empty) == rows * channels
+    assert mod_packed_bytes(empty) == rows * channels * MOD_CELL_BYTES
 
 
-def test_both_formats_read_the_same_clock() -> None:
-    assert it_row_frames(PORTABLE_SPEED, PORTABLE_TEMPO, frame_rate=FRAME_RATE) == xm_row_frames(
-        PORTABLE_SPEED, PORTABLE_TEMPO, frame_rate=FRAME_RATE
-    )
+def test_every_format_reads_the_same_clock() -> None:
+    frames = {
+        row_frames(PORTABLE_SPEED, PORTABLE_TEMPO, frame_rate=FRAME_RATE)
+        for row_frames in (it_row_frames, xm_row_frames, mod_row_frames)
+    }
+    assert len(frames) == 1
 
 
 def test_the_wider_tempo_field_reaches_shorter_rows() -> None:
@@ -509,8 +660,25 @@ def test_the_wider_tempo_field_reaches_shorter_rows() -> None:
 def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
     impulse = it_limits(Compliance.EXTENDED)
     fast_tracker = xm_limits(Compliance.EXTENDED)
+    protracker = mod_limits(Compliance.EXTENDED)
     assert set(impulse.capacities) == set(Capability)
     assert set(Capability) - set(fast_tracker.capacities) == {
+        Capability.SONG_VOLUME,
+        Capability.MIX_VOLUME,
+        Capability.MESSAGE_BYTES,
+    }
+    assert set(Capability) - set(protracker.capacities) == {
+        Capability.PATTERN_BYTES,
+        Capability.INSTRUMENTS,
+        Capability.SAMPLES_PER_INSTRUMENT,
+        Capability.INSTRUMENT_VOLUME,
+        Capability.ENVELOPE_POINTS,
+        Capability.ENVELOPE_VALUE,
+        Capability.ENVELOPE_TICK,
+        Capability.FADEOUT,
+        Capability.VOLUME,
+        Capability.VOLUME_COMMAND,
+        Capability.VOLUME_PANNING,
         Capability.SONG_VOLUME,
         Capability.MIX_VOLUME,
         Capability.MESSAGE_BYTES,
@@ -518,9 +686,12 @@ def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
     with pytest.raises(KeyError):
         fast_tracker.bound(Capability.SONG_VOLUME)
 
+    with pytest.raises(KeyError):
+        protracker.bound(Capability.ENVELOPE_POINTS)
 
-def test_only_one_format_stores_a_tempo_past_the_byte(portable: Song) -> None:
-    fast = portable.model_copy(update={"playback": Playback(speed=PORTABLE_SPEED, tempo=HACKED_TEMPO)})
+
+def test_only_one_format_stores_a_tempo_past_the_byte(instrumented: Song) -> None:
+    fast = instrumented.model_copy(update={"playback": Playback(speed=PORTABLE_SPEED, tempo=HACKED_TEMPO)})
 
     assert XMModule.from_song(fast, compliance=Compliance.EXTENDED).violations() == ()
     (relaxed,) = XMModule.from_song(fast, compliance=Compliance.CANONICAL).violations()
@@ -533,8 +704,8 @@ def test_only_one_format_stores_a_tempo_past_the_byte(portable: Song) -> None:
         assert refused.severity is Severity.STRUCTURAL
 
 
-def test_a_structural_violation_is_refused_at_every_compliance_level(portable: Song) -> None:
-    fast = portable.model_copy(update={"playback": Playback(speed=PORTABLE_SPEED, tempo=HACKED_TEMPO)})
+def test_a_structural_violation_is_refused_at_every_compliance_level(instrumented: Song) -> None:
+    fast = instrumented.model_copy(update={"playback": Playback(speed=PORTABLE_SPEED, tempo=HACKED_TEMPO)})
     for compliance in Compliance:
         with pytest.raises(LimitError) as raised:
             ITModule.from_song(fast, compliance=compliance).to_bytes()
@@ -542,8 +713,11 @@ def test_a_structural_violation_is_refused_at_every_compliance_level(portable: S
         assert raised.value.violations[0].severity is Severity.STRUCTURAL
 
 
-def test_both_formats_carry_more_channels_than_their_tracker_reads(binding: Binding, portable: Song) -> None:
-    wide = rescaled(portable, HACKED_CHANNELS)
+def test_every_format_carries_more_channels_than_its_tracker_reads(binding: Binding, portable: Song) -> None:
+    # Each format reaches a different width past what its own tracker read, so the width to widen to is
+    # the one the format itself declares: whatever its record layout holds, above what the tracker used.
+    widest = binding.bind(portable, Compliance.EXTENDED).limits.bound(Capability.CHANNELS).maximum
+    wide = rescaled(portable, widest)
     assert binding.bind(wide, Compliance.EXTENDED).violations() == ()
     (reported,) = [
         violation
@@ -559,45 +733,70 @@ def test_each_catalogue_spells_one_intent_in_its_own_bytes() -> None:
     assert impulse.parameter == fast_tracker.parameter == 140
 
 
-def test_one_format_reads_its_pattern_break_as_decimal_digits() -> None:
+def test_one_format_reads_its_pattern_break_as_a_plain_row_number() -> None:
+    # The decimal reading is Amiga ProTracker's, and everything descended from it kept the reading;
+    # Impulse Tracker is the one that broke with it and states the row itself.
     assert IT_EFFECTS.pattern_break(16).parameter == 16
     assert XM_EFFECTS.pattern_break(16).parameter == 0x16
+    assert MOD_EFFECTS.pattern_break(16).parameter == 0x16
 
 
-def test_the_tempo_a_header_holds_is_beyond_what_an_effect_sets(portable: Song) -> None:
-    fast = portable.model_copy(update={"playback": Playback(speed=PORTABLE_SPEED, tempo=HACKED_TEMPO)})
+def test_the_tempo_a_header_holds_is_beyond_what_an_effect_sets(instrumented: Song) -> None:
+    fast = instrumented.model_copy(update={"playback": Playback(speed=PORTABLE_SPEED, tempo=HACKED_TEMPO)})
     assert XMModule.from_song(fast, compliance=Compliance.EXTENDED).to_bytes()
     with pytest.raises(ValueError):
         XM_EFFECTS.set_tempo(HACKED_TEMPO)
 
 
-def test_only_one_format_lets_a_cell_name_a_sample(portable: Song) -> None:
+def test_each_format_states_which_kind_of_voice_its_cells_name(instrumented: Song) -> None:
     # Impulse Tracker plays both ways and states which in its header; FastTracker 2 numbers instruments
-    # and nothing else, so a sample-addressed song reaches it through a named conversion.
-    flat = portable.model_copy(update={"voices": flattened(voices_of(portable))})
+    # and Amiga ProTracker numbers samples, so each of those reaches the other kind through a named
+    # conversion rather than a writer's guess.
+    flat = instrumented.model_copy(update={"voices": flattened(voices_of(instrumented))})
     assert isinstance(flat.voices, SampleVoices)
     assert ITModule.from_song(flat, compliance=Compliance.CANONICAL).violations() == ()
+    assert ITModule.from_song(instrumented, compliance=Compliance.CANONICAL).violations() == ()
+
     with pytest.raises(ValueError, match="name instruments"):
         XMModule.from_song(flat, compliance=Compliance.CANONICAL)
 
+    with pytest.raises(ValueError, match="name samples"):
+        MODModule.from_song(instrumented, compliance=Compliance.CANONICAL)
 
-def test_raising_a_sample_table_writes_it_to_either_format(portable: Song) -> None:
-    flat = portable.model_copy(update={"voices": flattened(voices_of(portable))})
-    lifted = flat.model_copy(update={"voices": raised(flattened(voices_of(portable)))})
-    for binding in BINDINGS:
+
+def test_raising_a_sample_table_writes_it_to_a_format_that_numbers_instruments(instrumented: Song) -> None:
+    flat = flattened(voices_of(instrumented))
+    lifted = instrumented.model_copy(update={"voices": raised(flat)})
+    for binding in VOICED_BINDINGS:
         recovered = binding.parse(binding.bind(lifted, Compliance.CANONICAL).to_bytes()).song
-        assert [sample.name for sample in recovered.voices.samples] == [sample.name for sample in flat.voices.samples]
+        assert [sample.name for sample in recovered.voices.samples] == [sample.name for sample in flat.samples]
 
 
-def test_the_registry_reads_a_sample_addressed_module_as_a_sample_table(portable: Song) -> None:
-    flat = portable.model_copy(update={"voices": flattened(voices_of(portable))})
+def test_a_sample_table_reaches_every_format() -> None:
+    # The narrower shared song is the one Amiga ProTracker writes as it stands, and the two formats that
+    # number instruments take it through the conversion giving each sample the instrument sounding it.
+    flat = sampled_song(MOD_EFFECTS, seed=PORTABLE_SEED)
+    samples = flat.voices.samples
+    lifted = flat.model_copy(update={"voices": raised(SampleVoices(samples=samples))})
+
+    assert MOD_BINDING.bind(flat, Compliance.CANONICAL).violations() == ()
+    for binding in VOICED_BINDINGS:
+        recovered = binding.parse(binding.bind(lifted, Compliance.CANONICAL).to_bytes()).song
+        assert [sample.name for sample in recovered.voices.samples] == [sample.name for sample in samples]
+
+
+def test_the_registry_reads_a_sample_addressed_module_as_a_sample_table(instrumented: Song) -> None:
+    flat = instrumented.model_copy(update={"voices": flattened(voices_of(instrumented))})
     module = ITModule.from_song(flat, compliance=Compliance.CANONICAL)
     read = parse_voices(module.to_bytes(), extension=module.extension)
     assert isinstance(read, SampleVoices)
     assert read.slots == flat.voices.slots
 
 
-def test_a_song_read_as_units_states_one_per_instrument(binding: Binding, portable: Song) -> None:
-    module = binding.bind(portable, Compliance.CANONICAL)
-    recovered = voices_of(binding.parse(module.to_bytes()).song)
+def test_a_song_read_as_units_states_one_per_instrument(
+    instrument_binding: InstrumentBinding,
+    voiced: Song,
+) -> None:
+    module = instrument_binding.module.bind(voiced, Compliance.CANONICAL)
+    recovered = voices_of(instrument_binding.module.parse(module.to_bytes()).song)
     assert held(recovered) == tuple(extract(recovered, index) for index in range(recovered.slots))
