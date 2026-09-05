@@ -1,5 +1,6 @@
 import numpy as np
 
+from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.sample import Sample
 from trackmod.trackers.xm.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.xm.samples.parser import parse_sample
@@ -15,7 +16,7 @@ def test_relative_note_and_finetune_round_trip_through_the_header() -> None:
 
     header = sample_header(sample, tuning=tuning)
     values = SAMPLE_HEADER.unpack(header)
-    recovered = parse_sample(values, sample_bytes(sample))
+    recovered = parse_sample(values, sample_bytes(sample), subject="sample", repairs=Repairs())
 
     assert recovered.relative_note == tuning.relative_note
     assert recovered.finetune == tuning.finetune
@@ -27,7 +28,7 @@ def test_a_whole_semitone_tuning_carries_no_finetune_trim() -> None:
 
     header = sample_header(sample, tuning=tuning)
     values = SAMPLE_HEADER.unpack(header)
-    recovered = parse_sample(values, sample_bytes(sample))
+    recovered = parse_sample(values, sample_bytes(sample), subject="sample", repairs=Repairs())
 
     assert recovered.relative_note == -12
     assert recovered.finetune == 0

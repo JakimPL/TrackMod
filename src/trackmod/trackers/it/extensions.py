@@ -38,8 +38,10 @@ def stated_blocks(data: bytes) -> Iterator[tuple[bytes, bytes]]:
     The blocks run one after another, so walking them by their own lengths reaches every one — including
     a tag this library has no reading for, which is stepped over at the length it states.
 
-    Raises:
-        ValueError: when a block states more bytes than the region behind it holds.
+    Trackers also place content of their own in this region — plugin settings and the properties a later
+    writer keeps for itself — which is laid out as that writer pleases rather than as blocks. The walk
+    therefore runs while the bytes describe whole blocks and stops where they stop doing so, which is
+    what leaves the blocks a reader does recognise reachable in the files that carry them.
     """
     at = 0
     while at + BLOCK_HEADER_BYTES <= len(data):
@@ -47,7 +49,7 @@ def stated_blocks(data: bytes) -> Iterator[tuple[bytes, bytes]]:
         length = int.from_bytes(data[at + BLOCK_MAGIC_BYTES : at + BLOCK_HEADER_BYTES], "little")
         payload = data[at + BLOCK_HEADER_BYTES : at + BLOCK_HEADER_BYTES + length]
         if len(payload) < length:
-            raise ValueError(f"a {magic.decode(errors='replace')} block states {length} bytes over {len(payload)}")
+            return
 
         yield magic, payload
         at += BLOCK_HEADER_BYTES + length

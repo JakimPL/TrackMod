@@ -52,6 +52,23 @@ class Cursor:
 
         return self._data[self._position : self._position + count]
 
+    def take_at_most(self, count: int) -> bytes:
+        """Consume and return up to ``count`` bytes, stopping where the data ends.
+
+        A file may state a section longer than it goes on to hold, and a player sounds the part that is
+        there rather than refusing the file, so a reader following one needs to do the same.
+        """
+        return self.take(min(count, self.remaining))
+
+    def peek_padded(self, count: int) -> bytes:
+        """Return the next ``count`` bytes, padded with zeroes where the data ends.
+
+        This reads a fixed record out of a file that stops inside it: the fields the data reaches are
+        the ones it stated, and the rest read as the zeroes an empty record holds.
+        """
+        held = self.peek(min(count, self.remaining))
+        return held + bytes(count - len(held))
+
     def skip(self, count: int) -> None:
         """Consume ``count`` bytes without returning them.
 

@@ -7,6 +7,7 @@ from trackmod.core.envelopes.kind import EnvelopeKind
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.keymap import Keymap
 from trackmod.core.instruments.unit import InstrumentUnit
+from trackmod.core.repairs.report import Repairs
 from trackmod.spec.pitch import NOTE_COUNT
 from trackmod.trackers.xm.instruments.envelope import parse_envelope
 from trackmod.trackers.xm.instruments.keymap import parse_keymap
@@ -26,13 +27,20 @@ def instrument_keymap(values: RecordValues, *, offset: int, length: int) -> Keym
     return parse_keymap(read_bytes(values, "keymap"), offset=offset, length=length)
 
 
-def parse_instrument(values: RecordValues, *, offset: int, length: int) -> Instrument:
+def parse_instrument(
+    values: RecordValues,
+    *,
+    offset: int,
+    length: int,
+    subject: str,
+    repairs: Repairs,
+) -> Instrument:
     """Rebuild an instrument from its unpacked header fields and where its samples land in the module."""
     return Instrument(
         name=decode_name(read_bytes(values, "name")),
         keymap=instrument_keymap(values, offset=offset, length=length),
-        volume_envelope=parse_envelope(EnvelopeKind.VOLUME, values),
-        panning_envelope=parse_envelope(EnvelopeKind.PANNING, values),
+        volume_envelope=parse_envelope(EnvelopeKind.VOLUME, values, subject=subject, repairs=repairs),
+        panning_envelope=parse_envelope(EnvelopeKind.PANNING, values, subject=subject, repairs=repairs),
         fadeout=read_int(values, "fadeout"),
     )
 
@@ -60,7 +68,16 @@ def parse_instrument_file(data: bytes) -> InstrumentUnit:
         raise ValueError("data does not open with the FastTracker 2 instrument tag")
 
     count = read_int(values, "sample_count")
-    return InstrumentUnit(
-        instrument=parse_instrument(values, offset=FIRST_SAMPLE, length=count),
-        samples=read_samples(cursor, count=count),
+    repairs = Repairs()
+    unit = InstrumentUnit(
+        instrument=parse_instrument(
+            values,
+            offset=FIRST_SAMPLE,
+            length=count,
+            subject="instrument",
+            repairs=repairs,
+        ),
+        samples=read_samples(cursor, count=count, subject="instrument", repairs=repairs),
     )
+    repairs.warn()
+    return unit

@@ -1,11 +1,10 @@
 import pytest
 
 from trackmod.core.notes.pitch import Note
-from trackmod.spec.pitch import RATE_NOTE
+from trackmod.spec.pitch import RATE_NOTE, REFERENCE_RATE
 from trackmod.trackers.xm.spec.tuning import (
     FINETUNE_UNITS,
     REFERENCE_NOTE,
-    REFERENCE_RATE,
 )
 from trackmod.trackers.xm.tuning import (
     Tuning,

@@ -5,6 +5,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from trackmod.binary.bits import BitReader
+from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.spec.width import BITS_PER_BYTE
 
@@ -22,16 +23,12 @@ def _widened(stated: int, width: int) -> int:
     return stated if stated < width else stated + 1
 
 
-def _announced(width: int, bits: int) -> int:
-    """A width a block announces, held to what a frame of its depth reads.
+def _announced(width: int, bits: int) -> int | None:
+    """A width a block announces, or ``None`` when it names more bits than a frame of its depth reads.
 
-    Raises:
-        ValueError: when the announced width names more bits than a frame holds, or none at all.
+    A stream announcing such a width has stopped describing frames, so the block ends where it does.
     """
-    if not 1 <= width <= bits + 1:
-        raise ValueError(f"a compressed block announces width {width}, past the {bits} bits its frames hold")
-
-    return width
+    return width if 1 <= width <= bits + 1 else None
 
 
 def _signed(value: int, *, width: int, depth: BitDepth) -> int:
@@ -56,8 +53,8 @@ def _block_frames(reader: BitReader, count: int, *, depth: BitDepth) -> list[int
     field announce a new width instead of carrying a value -- one for the narrowest widths, one for the
     middle, and one for the widest -- so the width travels in the stream beside the values it reads.
 
-    Raises:
-        ValueError: when the stream announces a width past what the depth holds.
+    A width past what a frame of the depth reads ends the block, leaving the frames it would have
+    carried for the caller to fill out.
     """
     bits = int(depth)
     spread = _SPREAD[depth]
@@ -65,17 +62,23 @@ def _block_frames(reader: BitReader, count: int, *, depth: BitDepth) -> list[int
     frames: list[int] = []
     while len(frames) < count:
         value = reader.take(width)
+        stated: int | None = None
         if width < _NARROW_WIDTH:
             if value == 1 << (width - 1):
-                width = _announced(_widened(reader.take(_NARROW_BITS[depth]) + 1, width), bits)
-                continue
+                stated = _widened(reader.take(_NARROW_BITS[depth]) + 1, width)
         elif width < bits + 1:
             high = (((1 << bits) - 1) >> (bits + 1 - width)) + spread
             if high - 2 * spread < value <= high:
-                width = _announced(_widened(value - (high - 2 * spread), width), bits)
-                continue
+                stated = _widened(value - (high - 2 * spread), width)
         elif value & (1 << bits):
-            width = _announced((value + 1) & ((1 << BITS_PER_BYTE) - 1), bits)
+            stated = (value + 1) & ((1 << BITS_PER_BYTE) - 1)
+
+        if stated is not None:
+            announced = _announced(stated, bits)
+            if announced is None:
+                break
+
+            width = announced
             continue
 
         frames.append(_signed(value, width=width, depth=depth))
@@ -105,19 +108,35 @@ def compressed_bytes(data: bytes, *, frames: int, depth: BitDepth) -> int:
     return max((end for _, _, end in _blocks(data, frames=frames, depth=depth)), default=0)
 
 
-def decompress(data: bytes, *, frames: int, depth: BitDepth, doubled: bool) -> NDArray[np.int64]:
+def decompress(
+    data: bytes,
+    *,
+    frames: int,
+    depth: BitDepth,
+    doubled: bool,
+    subject: str,
+    repairs: Repairs,
+) -> NDArray[np.int64]:
     """The waveform a block-compressed sample holds, as the stored integers its frames sit on.
 
     Impulse Tracker stores a long waveform in blocks, and each block's fields are the differences of a
     running sum that restarts with it. Version 2.15 sums twice, which carries a smoother waveform in
     narrower fields, and ``doubled`` is what the file's own compatibility version states about which sum
     was written.
+
+    A block whose stream stops describing frames is filled out with silence, which is what a player
+    sounds where the fields run out.
     """
     dtype = _STORED_DTYPES[depth]
     blocks: list[NDArray[np.int64]] = []
     for payload, count, _ in _blocks(data, frames=frames, depth=depth):
         stated = np.asarray(_block_frames(BitReader(payload), count, depth=depth), dtype=dtype)
         summed = np.cumsum(stated, dtype=dtype)
-        blocks.append(np.asarray(np.cumsum(summed, dtype=dtype) if doubled else summed, dtype=np.int64))
+        block = np.asarray(np.cumsum(summed, dtype=dtype) if doubled else summed, dtype=np.int64)
+        if block.size < count:
+            repairs.made(f"{count - block.size} frames past a block's fields read as silence", subject=subject)
+            block = np.concatenate([block, np.zeros(count - block.size, dtype=np.int64)])
+
+        blocks.append(block)
 
     return np.concatenate(blocks) if blocks else np.zeros(0, dtype=np.int64)

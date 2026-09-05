@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from trackmod.core.notes.pitch import Note
 from trackmod.schema.config import FROZEN
-from trackmod.spec.pitch import NOTES_PER_OCTAVE, RATE_NOTE
+from trackmod.spec.pitch import NOTES_PER_OCTAVE, RATE_NOTE, REFERENCE_RATE
 from trackmod.trackers.xm.spec.tuning import (
     FINETUNE_UNITS,
     MAX_FINETUNE,
@@ -14,7 +14,6 @@ from trackmod.trackers.xm.spec.tuning import (
     MIN_FINETUNE,
     MIN_RELATIVE_NOTE,
     REFERENCE_NOTE,
-    REFERENCE_RATE,
 )
 
 

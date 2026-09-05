@@ -8,7 +8,9 @@ from trackmod.binary.records.values import (
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.kind import EnvelopeKind
 from trackmod.core.envelopes.point import EnvelopePoint
+from trackmod.core.envelopes.repair import repaired_points, repaired_span
 from trackmod.core.envelopes.span import EnvelopeSpan
+from trackmod.core.repairs.report import Repairs
 from trackmod.trackers.xm.layout.envelope import envelope_field
 from trackmod.trackers.xm.spec.flags import EnvelopeFlag
 from trackmod.trackers.xm.spec.sizes import ENVELOPE_POINTS
@@ -55,25 +57,37 @@ def envelope_values(kind: EnvelopeKind, envelope: Envelope | None) -> EnvelopeVa
     }
 
 
-def parse_envelope(kind: EnvelopeKind, values: RecordValues) -> Envelope | None:
-    """Rebuild one envelope from its header fields, or ``None`` when it is switched off."""
+def parse_envelope(
+    kind: EnvelopeKind,
+    values: RecordValues,
+    *,
+    subject: str,
+    repairs: Repairs,
+) -> Envelope | None:
+    """Rebuild one envelope from its header fields, or ``None`` when it is switched off.
+
+    A loop the header states past the points it counts, or ending before it begins, and a sustain point
+    past the last one, are drawn back onto the points that are there and recorded in ``repairs``.
+    """
     flags = EnvelopeFlag(read_int(values, envelope_field(kind, "flags")))
     count = read_int(values, envelope_field(kind, "count"))
     if EnvelopeFlag.ENABLED not in flags or count == 0:
         return None
 
-    points = read_rows(values, envelope_field(kind, "points"))[:count]
-    sustain = read_int(values, envelope_field(kind, "sustain"))
+    stated = read_rows(values, envelope_field(kind, "points"))[:count]
+    held = read_int(values, envelope_field(kind, "sustain"))
     loop = (
-        EnvelopeSpan(
-            begin=read_int(values, envelope_field(kind, "loop_begin")),
-            end=read_int(values, envelope_field(kind, "loop_end")),
-        )
+        (read_int(values, envelope_field(kind, "loop_begin")), read_int(values, envelope_field(kind, "loop_end")))
         if EnvelopeFlag.LOOP in flags
         else None
     )
+    sustain = (held, held) if EnvelopeFlag.SUSTAIN in flags else None
+    points = repaired_points(
+        [EnvelopePoint(tick=tick, value=value) for tick, value in stated], subject=subject, repairs=repairs
+    )
+    held = len(points)
     return Envelope(
-        points=tuple(EnvelopePoint(tick=tick, value=value) for tick, value in points),
-        loop=loop,
-        sustain=EnvelopeSpan(begin=sustain, end=sustain) if EnvelopeFlag.SUSTAIN in flags else None,
+        points=points,
+        loop=repaired_span(loop, points=held, name=f"{kind} loop", subject=subject, repairs=repairs),
+        sustain=repaired_span(sustain, points=held, name=f"{kind} sustain", subject=subject, repairs=repairs),
     )

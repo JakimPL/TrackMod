@@ -120,8 +120,9 @@ def decode_cell(cursor: Cursor, memory: ChannelMemory, unnamed: UnnamedBytes) ->
 def unpack_cells(stream: bytes, *, rows: int) -> Pattern:
     """Rebuild a pattern grid from a packed cell stream, sized to the widest channel it reaches.
 
-    Raises:
-        ValueError: when a channel reuses a mask it has never stated, which no writer produces.
+    A row naming a channel without a mask byte carries on with the mask that channel last stated, which
+    starts out naming no columns -- so such a cell reads as the silence already sitting there, and the
+    channel still counts towards the width.
     """
     cursor = Cursor(stream)
     unnamed = UnnamedBytes()
@@ -134,8 +135,6 @@ def unpack_cells(stream: bytes, *, rows: int) -> Pattern:
             memory = memories.setdefault(channel, ChannelMemory())
             if marker & CHANNEL_MARKER:
                 memory.mask = cursor.take(1)[0]
-            elif memory.mask == UNSET:
-                raise ValueError(f"channel {channel} reuses a mask it has not stated, at row {row}")
 
             placed.append((row, channel, decode_cell(cursor, memory, unnamed)))
             marker = cursor.take(1)[0]

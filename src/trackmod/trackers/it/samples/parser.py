@@ -7,8 +7,10 @@ from trackmod.binary.pcm.codec import decode_pcm
 from trackmod.binary.pcm.quantise import dequantise
 from trackmod.binary.records.values import RecordValues, read_bytes, read_int
 from trackmod.binary.text import decode_name
+from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
+from trackmod.core.samples.repair import repaired_loop, repaired_rate
 from trackmod.core.samples.sample import STEREO_CHANNELS, Sample
 from trackmod.core.samples.vibrato import Vibrato
 from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
@@ -85,20 +87,30 @@ def read_loop(values: RecordValues, *, begin: str, end: str, mode: LoopMode) -> 
     return Loop(begin=first, end=last, mode=mode)
 
 
-def stored_pcm(values: RecordValues, data: bytes, *, depth: BitDepth, doubled: bool) -> NDArray[np.float64]:
+def stored_pcm(
+    values: RecordValues,
+    data: bytes,
+    *,
+    depth: BitDepth,
+    doubled: bool,
+    subject: str,
+    repairs: Repairs,
+) -> NDArray[np.float64]:
     """The waveform a sample header points at, however its frames and channels are stored."""
     length = read_int(values, "length")
     if stored_channels(values) == MONO_CHANNELS:
         if is_compressed(values):
-            frames = decompress(data, frames=length, depth=depth, doubled=doubled)
+            frames = decompress(data, frames=length, depth=depth, doubled=doubled, subject=subject, repairs=repairs)
             return dequantise(frames, depth)
 
         return decode_pcm(data, depth=depth, encoding=PCM_ENCODING)
 
     if is_compressed(values):
         left_bytes, _ = _compressed_extents(data, frames=length, depth=depth, channels=STEREO_CHANNELS)
-        left = decompress(data, frames=length, depth=depth, doubled=doubled)
-        right = decompress(data[left_bytes:], frames=length, depth=depth, doubled=doubled)
+        left = decompress(data, frames=length, depth=depth, doubled=doubled, subject=subject, repairs=repairs)
+        right = decompress(
+            data[left_bytes:], frames=length, depth=depth, doubled=doubled, subject=subject, repairs=repairs
+        )
         return dequantise(np.stack([left, right], axis=1), depth)
 
     mono_bytes = length * depth.bytes_per_frame
@@ -107,8 +119,12 @@ def stored_pcm(values: RecordValues, data: bytes, *, depth: BitDepth, doubled: b
     return np.stack([left_pcm, right_pcm], axis=1)
 
 
-def parse_sample(values: RecordValues, data: bytes, *, doubled: bool) -> Sample:
-    """Rebuild a sample from its header fields and the frames the header points at."""
+def parse_sample(values: RecordValues, data: bytes, *, doubled: bool, subject: str, repairs: Repairs) -> Sample:
+    """Rebuild a sample from its header fields and the frames the header points at.
+
+    A loop the header states past the frames that were stored, and a rate of zero, are drawn into
+    range and recorded in ``repairs``.
+    """
     flags = SampleFlag(read_int(values, "flags"))
     depth = stored_depth(values)
     panning = read_int(values, "default_pan")
@@ -127,16 +143,18 @@ def parse_sample(values: RecordValues, data: bytes, *, doubled: bool) -> Sample:
         if SampleFlag.SUSTAIN_LOOP in flags
         else None
     )
+    pcm = stored_pcm(values, data, depth=depth, doubled=doubled, subject=subject, repairs=repairs)
+    frames = int(pcm.shape[0])
     return Sample(
         name=decode_name(read_bytes(values, "name")),
-        pcm=stored_pcm(values, data, depth=depth, doubled=doubled),
-        rate=read_int(values, "c5speed"),
+        pcm=pcm,
+        rate=repaired_rate(read_int(values, "c5speed"), subject=subject, repairs=repairs),
         depth=depth,
         volume=read_int(values, "default_volume"),
         gain=read_int(values, "global_volume"),
         panning=shared_panning(panning & ~SamplePanning.ENABLED) if panning & SamplePanning.ENABLED else None,
-        loop=loop,
-        sustain_loop=sustain,
+        loop=repaired_loop(loop, frames=frames, name="loop", subject=subject, repairs=repairs),
+        sustain_loop=repaired_loop(sustain, frames=frames, name="sustain loop", subject=subject, repairs=repairs),
         filename=decode_name(read_bytes(values, "filename")),
         vibrato=Vibrato(
             speed=read_int(values, "vibrato_speed"),
@@ -147,7 +165,7 @@ def parse_sample(values: RecordValues, data: bytes, *, doubled: bool) -> Sample:
     )
 
 
-def read_sample(data: bytes, *, offset: int, doubled: bool) -> Sample:
+def read_sample(data: bytes, *, offset: int, doubled: bool, subject: str, repairs: Repairs) -> Sample:
     """The sample whose header sits at ``offset``, with the frames the header points at.
 
     Both containers this format writes find a waveform the same way — through a pointer counted from the
@@ -155,7 +173,5 @@ def read_sample(data: bytes, *, offset: int, doubled: bool) -> Sample:
     """
     values = SAMPLE_HEADER.unpack(data[offset:])
     start = read_int(values, "sample_pointer")
-    if is_compressed(values):
-        return parse_sample(values, data[start:], doubled=doubled)
-
-    return parse_sample(values, data[start : start + stored_frames(values)], doubled=doubled)
+    frames = data[start:] if is_compressed(values) else data[start : start + stored_frames(values)]
+    return parse_sample(values, frames, doubled=doubled, subject=subject, repairs=repairs)

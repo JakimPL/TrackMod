@@ -20,6 +20,9 @@ CANONICAL_MAX_ORDERS: Final = 256
 
 CANONICAL_MIN_ROWS: Final = 32
 MAX_ROWS: Final = 200
+DEFAULT_ROWS: Final = 64
+
+EMPTY_PATTERN_OFFSET: Final = 0  # a pattern the header points at offset zero is stored nowhere and plays silence
 
 CANONICAL_MAX_CHANNELS: Final = 64
 EXTENDED_MAX_CHANNELS: Final = 127

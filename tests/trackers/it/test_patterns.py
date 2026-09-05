@@ -126,9 +126,14 @@ def test_a_column_left_out_of_a_cell_does_not_erase_what_the_channel_remembers()
     assert recovered.cell(2, 0) == Cell(note=Note(62), volume=32)
 
 
-def test_a_stream_reusing_a_mask_that_was_never_stated_is_rejected() -> None:
-    with pytest.raises(ValueError):
-        unpack_cells(bytes([0x01, 0x00]), rows=1)
+def test_a_channel_named_before_any_mask_reads_as_silence_and_still_states_the_width() -> None:
+    # ITTECH.TXT starts every channel remembering a mask over no columns, and files in the wild name a
+    # channel with no mask byte at all. Such a cell carries nothing and still widens the pattern, which
+    # is the same reading the width marker relies on.
+    recovered = unpack_cells(bytes([0x04, 0x00]), rows=1)
+    assert recovered.channels == 4
+    assert recovered.cell(0, 3) == Cell()
+    assert not recovered.occupied.any()
 
 
 def test_the_first_instrument_is_stored_above_the_byte_that_means_none() -> None:

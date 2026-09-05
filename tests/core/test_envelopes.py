@@ -7,9 +7,15 @@ from trackmod.core.envelopes.span import EnvelopeSpan
 POINTS = (EnvelopePoint(tick=0, value=64), EnvelopePoint(tick=10, value=0))
 
 
-def test_envelope_ticks_must_advance() -> None:
+def test_envelope_ticks_run_forwards() -> None:
     with pytest.raises(ValueError):
-        Envelope(points=(EnvelopePoint(tick=0, value=64), EnvelopePoint(tick=0, value=0)))
+        Envelope(points=(EnvelopePoint(tick=10, value=64), EnvelopePoint(tick=0, value=0)))
+
+
+def test_two_points_may_share_a_tick_to_stand_the_curve_up() -> None:
+    # Trackers write a vertical step as two nodes on one tick, and real modules carry them.
+    envelope = Envelope(points=(EnvelopePoint(tick=0, value=64), EnvelopePoint(tick=0, value=0)))
+    assert envelope.length == 2
 
 
 def test_an_envelope_span_past_its_points_is_rejected() -> None:

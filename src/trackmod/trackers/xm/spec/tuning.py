@@ -2,7 +2,6 @@ from typing import Final
 
 from trackmod.spec.width import SIGNED_BYTE_MAX, SIGNED_BYTE_MIN
 
-REFERENCE_RATE: Final = 8363
 REFERENCE_NOTE: Final = 48
 
 FINETUNE_UNITS: Final = 128

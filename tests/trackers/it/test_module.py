@@ -9,6 +9,7 @@ from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
 from trackmod.limits.compliance import Compliance
 from trackmod.spec.pitch import NOTE_COUNT
+from trackmod.trackers.it.layout.file import FILE_HEADER
 from trackmod.trackers.it.module import ITModule
 from trackmod.trackers.it.patterns.sizing import packed_bytes
 from trackmod.trackers.it.settings import ITSettings
@@ -17,6 +18,8 @@ from trackmod.trackers.it.spec.identity import (
     MAGIC_MODULE,
     MAGIC_SAMPLE,
 )
+from trackmod.trackers.it.spec.ranges import DEFAULT_ROWS
+from trackmod.trackers.it.spec.sizes import FILE_HEADER_BYTES, OFFSET_TABLE_ENTRY_BYTES
 from trackmod.trackers.it.spec.storage import IT_STORAGE
 from trackmod.trackers.it.version import Tracker, wrote
 
@@ -135,3 +138,21 @@ def test_a_module_keeps_the_version_of_whatever_wrote_it(song: Song) -> None:
 def test_a_song_built_from_nothing_states_the_version_this_format_writes(song: Song) -> None:
     recovered = ITModule.parse(ITModule.from_song(song, compliance=Compliance.EXTENDED).to_bytes())
     assert wrote(recovered.settings.created_with) is Tracker.IMPULSE_TRACKER
+
+
+def test_a_pattern_the_table_points_at_offset_zero_plays_as_empty_rows(song: Song) -> None:
+    # ITTECH.TXT stores no data for such a pattern, and files in the wild carry the entry. Reading it
+    # from the file's own opening bytes would parse the header as a cell stream.
+    data = bytearray(module(song).to_bytes())
+    values = FILE_HEADER.unpack(bytes(data))
+    patterns_at = (
+        FILE_HEADER_BYTES
+        + values["order_count"]
+        + OFFSET_TABLE_ENTRY_BYTES * (values["instrument_count"] + values["sample_count"])
+    )
+    data[patterns_at : patterns_at + OFFSET_TABLE_ENTRY_BYTES] = bytes(OFFSET_TABLE_ENTRY_BYTES)
+
+    recovered = ITModule.parse(bytes(data)).song
+    assert len(recovered.patterns) == len(song.patterns)
+    assert recovered.patterns[0].rows == DEFAULT_ROWS
+    assert not recovered.patterns[0].occupied.any()

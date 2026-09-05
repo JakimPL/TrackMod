@@ -7,7 +7,9 @@ from trackmod.core.instruments.behaviour import (
     NewNoteAction,
 )
 from trackmod.core.instruments.instrument import Instrument
+from trackmod.core.instruments.repair import stated_behaviour
 from trackmod.core.instruments.unit import InstrumentUnit
+from trackmod.core.repairs.report import Repairs
 from trackmod.trackers.it.instruments.envelope import parse_envelope
 from trackmod.trackers.it.instruments.keymap import parse_keymap
 from trackmod.trackers.it.layout.instrument import INSTRUMENT_HEADER
@@ -18,21 +20,42 @@ from trackmod.trackers.it.spec.identity import DOUBLED_COMPRESSION, MAGIC_INSTRU
 from trackmod.trackers.it.spec.sizes import INSTRUMENT_HEADER_BYTES, SAMPLE_HEADER_BYTES
 
 
-def parse_instrument(values: RecordValues) -> Instrument:
-    """Rebuild an instrument from its unpacked header fields."""
+def parse_instrument(values: RecordValues, *, subject: str, repairs: Repairs) -> Instrument:
+    """Rebuild an instrument from its unpacked header fields, drawing its envelope spans into range."""
     panning = read_int(values, "default_pan")
     return Instrument(
         name=decode_name(read_bytes(values, "name")),
-        keymap=parse_keymap(read_rows(values, "note_map")),
-        volume_envelope=parse_envelope(EnvelopeKind.VOLUME, values),
-        panning_envelope=parse_envelope(EnvelopeKind.PANNING, values),
-        pitch_envelope=parse_envelope(EnvelopeKind.PITCH, values),
+        keymap=parse_keymap(read_rows(values, "note_map"), subject=subject, repairs=repairs),
+        volume_envelope=parse_envelope(EnvelopeKind.VOLUME, values, subject=subject, repairs=repairs),
+        panning_envelope=parse_envelope(EnvelopeKind.PANNING, values, subject=subject, repairs=repairs),
+        pitch_envelope=parse_envelope(EnvelopeKind.PITCH, values, subject=subject, repairs=repairs),
         fadeout=read_int(values, "fadeout"),
         global_volume=read_int(values, "global_volume"),
         panning=None if panning & SamplePanning.ENABLED else shared_panning(panning),
-        new_note_action=NewNoteAction(read_int(values, "new_note_action")),
-        duplicate_check=DuplicateCheck(read_int(values, "duplicate_check")),
-        duplicate_action=DuplicateAction(read_int(values, "duplicate_action")),
+        new_note_action=stated_behaviour(
+            read_int(values, "new_note_action"),
+            among=NewNoteAction,
+            default=NewNoteAction.CUT,
+            name="new note action",
+            subject=subject,
+            repairs=repairs,
+        ),
+        duplicate_check=stated_behaviour(
+            read_int(values, "duplicate_check"),
+            among=DuplicateCheck,
+            default=DuplicateCheck.OFF,
+            name="duplicate check",
+            subject=subject,
+            repairs=repairs,
+        ),
+        duplicate_action=stated_behaviour(
+            read_int(values, "duplicate_action"),
+            among=DuplicateAction,
+            default=DuplicateAction.CUT,
+            name="duplicate action",
+            subject=subject,
+            repairs=repairs,
+        ),
     )
 
 
@@ -52,8 +75,20 @@ def parse_instrument_file(data: bytes) -> InstrumentUnit:
 
     count = read_int(values, "sample_count")
     doubled = read_int(values, "tracker_version") >= DOUBLED_COMPRESSION
+    repairs = Repairs()
     samples = tuple(
-        read_sample(data, offset=INSTRUMENT_HEADER_BYTES + SAMPLE_HEADER_BYTES * index, doubled=doubled)
+        read_sample(
+            data,
+            offset=INSTRUMENT_HEADER_BYTES + SAMPLE_HEADER_BYTES * index,
+            doubled=doubled,
+            subject=f"sample {index}",
+            repairs=repairs,
+        )
         for index in range(count)
     )
-    return InstrumentUnit(instrument=parse_instrument(values), samples=samples)
+    unit = InstrumentUnit(
+        instrument=parse_instrument(values, subject="instrument", repairs=repairs),
+        samples=samples,
+    )
+    repairs.warn()
+    return unit

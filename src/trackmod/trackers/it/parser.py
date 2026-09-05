@@ -4,11 +4,15 @@ from trackmod.binary.cursor import Cursor
 from trackmod.binary.records.values import read_bytes, read_int
 from trackmod.binary.text import decode_name, decode_text
 from trackmod.core.instruments.instrument import Instrument
+from trackmod.core.instruments.repair import routed_within
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
+from trackmod.core.songs.repair import repaired_order
 from trackmod.core.songs.song import Song
+from trackmod.spec.grid import MIN_CHANNELS
 from trackmod.trackers.it.extensions import Extensions, block_names
 from trackmod.trackers.it.instruments.parser import parse_instrument
 from trackmod.trackers.it.layout.file import FILE_HEADER
@@ -30,6 +34,7 @@ from trackmod.trackers.it.spec.extensions import (
 from trackmod.trackers.it.spec.flags import HeaderFlag, SpecialFlag
 from trackmod.trackers.it.spec.identity import DOUBLED_COMPRESSION, MAGIC_MODULE
 from trackmod.trackers.it.spec.orders import ORDER_SEPARATOR, ORDER_TERMINATOR
+from trackmod.trackers.it.spec.ranges import DEFAULT_ROWS, EMPTY_PATTERN_OFFSET
 from trackmod.trackers.it.spec.sizes import (
     INSTRUMENT_HEADER_BYTES,
     OFFSET_TABLE_ENTRY_BYTES,
@@ -43,6 +48,7 @@ class ModuleReader:
 
     def __init__(self, data: bytes) -> None:
         self._data = data
+        self._repairs = Repairs()
         cursor = Cursor(data)
         self._header = cursor.read(FILE_HEADER)
         if read_bytes(self._header, "magic") != MAGIC_MODULE:
@@ -55,21 +61,24 @@ class ModuleReader:
         self._tables_end = cursor.position
 
     def song(self) -> Song:
-        """The format-agnostic content the file carries."""
+        """The format-agnostic content the file carries, with whatever it stated out of range drawn in."""
         patterns = self._patterns()
         channels = max((pattern.channels for pattern in patterns), default=1)
-        return Song(
+        samples = self._samples()
+        song = Song(
             name=decode_name(read_bytes(self._header, "name")),
             channels=channels,
             patterns=tuple(pattern.widened(channels) for pattern in patterns),
-            order=self._order,
-            instruments=self._instruments(),
-            samples=self._samples(),
+            order=repaired_order(self._order, patterns=len(patterns), subject="song", repairs=self._repairs),
+            instruments=self._instruments(samples=len(samples)),
+            samples=samples,
             playback=Playback(
                 speed=read_int(self._header, "speed"),
                 tempo=read_int(self._header, "tempo"),
             ),
         )
+        self._repairs.warn()
+        return song
 
     def settings(self) -> ITSettings:
         """The song-wide values this format adds, as the header states them."""
@@ -87,9 +96,14 @@ class ModuleReader:
 
     @property
     def _body_start(self) -> int:
-        """Where the first record the header points at sits, which the blocks before it stop at."""
+        """Where the first record the header points at sits, which the blocks before it stop at.
+
+        A table entry of zero points at no record -- it is how this format states a pattern it stores
+        nowhere -- so the first record is the nearest entry that names one.
+        """
         pointed = (*self._instrument_offsets, *self._sample_offsets, *self._pattern_offsets)
-        return min(pointed, default=self._tables_end)
+        stored = tuple(offset for offset in pointed if offset != EMPTY_PATTERN_OFFSET)
+        return min(stored, default=self._tables_end)
 
     @property
     def _appended_start(self) -> int:
@@ -105,7 +119,7 @@ class ModuleReader:
             values = SAMPLE_HEADER.unpack(self._data[offset:])
             reaches += [offset + SAMPLE_HEADER_BYTES, stored_end(values, self._data)]
 
-        for offset in self._pattern_offsets:
+        for offset in self._stored_patterns:
             header = PATTERN_HEADER.unpack(self._data[offset:])
             reaches.append(offset + PATTERN_HEADER_BYTES + read_int(header, "packed_size"))
 
@@ -178,18 +192,52 @@ class ModuleReader:
         count = read_int(self._header, count_field)
         return struct.unpack(f"<{count}I", cursor.take(OFFSET_TABLE_ENTRY_BYTES * count))
 
-    def _instruments(self) -> tuple[Instrument, ...]:
+    def _instruments(self, *, samples: int) -> tuple[Instrument, ...]:
         return tuple(
-            parse_instrument(INSTRUMENT_HEADER.unpack(self._data[offset:])) for offset in self._instrument_offsets
+            routed_within(
+                parse_instrument(
+                    INSTRUMENT_HEADER.unpack(self._data[offset:]),
+                    subject=f"instrument {index}",
+                    repairs=self._repairs,
+                ),
+                samples=samples,
+                subject=f"instrument {index}",
+                repairs=self._repairs,
+            )
+            for index, offset in enumerate(self._instrument_offsets)
         )
 
     def _samples(self) -> tuple[Sample, ...]:
         doubled = read_int(self._header, "compatible_with") >= DOUBLED_COMPRESSION
-        return tuple(read_sample(self._data, offset=offset, doubled=doubled) for offset in self._sample_offsets)
+        return tuple(
+            read_sample(
+                self._data,
+                offset=offset,
+                doubled=doubled,
+                subject=f"sample {index}",
+                repairs=self._repairs,
+            )
+            for index, offset in enumerate(self._sample_offsets)
+        )
+
+    @property
+    def _stored_patterns(self) -> tuple[int, ...]:
+        """Where each pattern the file actually stores begins."""
+        return tuple(offset for offset in self._pattern_offsets if offset != EMPTY_PATTERN_OFFSET)
 
     def _patterns(self) -> tuple[Pattern, ...]:
+        """Every pattern the order list can name, in the order the table numbers them.
+
+        An entry of zero names a pattern the file stores nowhere, which a tracker plays as the default
+        number of empty rows -- so the slot is filled with those rather than read from the file's own
+        opening bytes.
+        """
         patterns = []
         for offset in self._pattern_offsets:
+            if offset == EMPTY_PATTERN_OFFSET:
+                patterns.append(Pattern.empty(rows=DEFAULT_ROWS, channels=MIN_CHANNELS))
+                continue
+
             cursor = Cursor(self._data)
             cursor.seek(offset)
             patterns.append(unpack_pattern(cursor))

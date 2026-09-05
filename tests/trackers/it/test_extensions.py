@@ -137,10 +137,16 @@ def test_a_block_this_library_has_no_reading_for_is_stepped_over() -> None:
     assert block_names(region, CHANNEL_NAMES_MAGIC, width=CHANNEL_NAME_BYTES) == CHANNELS
 
 
-def test_a_block_reaching_past_the_data_behind_it_is_refused() -> None:
+def test_a_block_reaching_past_the_data_behind_it_ends_the_walk() -> None:
+    # Trackers put content of their own in this region, laid out as they please rather than as blocks,
+    # so the walk stops where the blocks stop rather than refusing the whole file.
     truncated = named_block(CHANNEL_NAMES_MAGIC, CHANNELS, width=CHANNEL_NAME_BYTES)[:-10]
-    with pytest.raises(ValueError, match="states"):
-        block_names(truncated, CHANNEL_NAMES_MAGIC, width=CHANNEL_NAME_BYTES)
+    assert block_names(truncated, CHANNEL_NAMES_MAGIC, width=CHANNEL_NAME_BYTES) == ()
+
+
+def test_a_whole_block_is_still_read_when_what_follows_it_is_not_one() -> None:
+    region = named_block(CHANNEL_NAMES_MAGIC, CHANNELS, width=CHANNEL_NAME_BYTES) + b"FF" + bytes(30)
+    assert block_names(region, CHANNEL_NAMES_MAGIC, width=CHANNEL_NAME_BYTES) == CHANNELS
 
 
 def test_an_editing_history_asks_the_header_for_the_switch_that_finds_it() -> None:

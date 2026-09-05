@@ -9,9 +9,9 @@ from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.column import Column
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.repairs.report import Repairs
 from trackmod.core.volumes.command import VolumeValue
 from trackmod.spec.grid import EMPTY
-from trackmod.spec.levels import MAX_VOLUME
 from trackmod.trackers.xm.layout.pattern import PATTERN_HEADER
 from trackmod.trackers.xm.note import decode_note
 from trackmod.trackers.xm.spec.cells import (
@@ -37,13 +37,15 @@ def stated_columns(cursor: Cursor) -> list[int]:
     """The five column values one stored cell carries, absent where it states nothing.
 
     A first byte with the high bit clear is itself the note and the other four columns follow it whole;
-    otherwise the byte is a mask and only the columns it names are present.
+    otherwise the byte is a mask and only the columns it names are present. A column the stream ends
+    before is read as an absence, which is what a cell cut short by a truncated file holds.
     """
     first = cursor.take(1)[0]
     if not first & CellMask.PACKED:
-        return [first, *cursor.take(RAW_CELL_COLUMNS - 1)]
+        held = cursor.take_at_most(RAW_CELL_COLUMNS - 1)
+        return [first, *held, *([EMPTY] * (RAW_CELL_COLUMNS - 1 - len(held)))]
 
-    return [cursor.take(1)[0] if first & bit else EMPTY for bit in COLUMN_BITS]
+    return [cursor.take(1)[0] if first & bit and not cursor.at_end else EMPTY for bit in COLUMN_BITS]
 
 
 def stated_note(byte: int, unnamed: UnnamedBytes) -> NoteValue | None:
@@ -88,25 +90,34 @@ def decode_cell(cursor: Cursor, unnamed: UnnamedBytes) -> Cell:
     )
 
 
-def unpack_cells(stream: bytes, *, rows: int, channels: int) -> Pattern:
-    """Rebuild a pattern grid from a stored cell stream of a known size."""
+def unpack_cells(stream: bytes, *, rows: int, channels: int, subject: str, repairs: Repairs) -> Pattern:
+    """Rebuild a pattern grid from a stored cell stream of a known size.
+
+    A stream ending before the grid does leaves the rest of the grid silent, which is what a player
+    sounds where the cells run out.
+    """
     if not stream:
         return Pattern.empty(rows=rows, channels=channels)
 
     cursor = Cursor(stream)
     unnamed = UnnamedBytes()
     builder = PatternBuilder(rows=rows, channels=channels)
-    for row in range(rows):
-        for channel in range(channels):
-            builder.place(row, channel, decode_cell(cursor, unnamed))
+    cells = rows * channels
+    placed = 0
+    while placed < cells and not cursor.at_end:
+        builder.place(placed // channels, placed % channels, decode_cell(cursor, unnamed))
+        placed += 1
+
+    if placed < cells:
+        repairs.made(f"{cells - placed} cells past the end of the stream read as silence", subject=subject)
 
     unnamed.warn()
     return builder.build()
 
 
-def unpack_pattern(cursor: Cursor, *, channels: int) -> Pattern:
+def unpack_pattern(cursor: Cursor, *, channels: int, subject: str, repairs: Repairs) -> Pattern:
     """Read one pattern — its header and its cell stream — from the cursor's position."""
     header = cursor.read(PATTERN_HEADER)
     rows = read_int(header, "rows")
-    stream = cursor.take(read_int(header, "packed_size"))
-    return unpack_cells(stream, rows=rows, channels=channels)
+    stream = cursor.take_at_most(read_int(header, "packed_size"))
+    return unpack_cells(stream, rows=rows, channels=channels, subject=subject, repairs=repairs)

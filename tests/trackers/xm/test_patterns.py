@@ -11,6 +11,7 @@ from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.repairs.report import Repairs
 from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.spec.grid import EMPTY
 from trackmod.spec.pitch import NOTE_COUNT
@@ -38,6 +39,9 @@ GRIDS = (
 )
 
 
+SUBJECT = "pattern 0"
+
+
 @pytest.mark.parametrize("rows,channels,instruments,seed", GRIDS, ids=lambda value: str(value))
 def test_the_size_model_agrees_with_the_packer_byte_for_byte(
     rows: int, channels: int, instruments: int, seed: int
@@ -49,7 +53,9 @@ def test_the_size_model_agrees_with_the_packer_byte_for_byte(
 @pytest.mark.parametrize("rows,channels,instruments,seed", GRIDS, ids=lambda value: str(value))
 def test_a_packed_pattern_unpacks_to_the_same_grid(rows: int, channels: int, instruments: int, seed: int) -> None:
     pattern = xm_pattern(rows=rows, channels=channels, instruments=instruments, seed=seed)
-    assert unpack_cells(pack_cells(pattern), rows=rows, channels=channels) == pattern
+    assert (
+        unpack_cells(pack_cells(pattern), rows=rows, channels=channels, subject=SUBJECT, repairs=Repairs()) == pattern
+    )
 
 
 def test_a_silent_channel_still_costs_the_byte_that_holds_its_place() -> None:
@@ -91,7 +97,7 @@ def test_the_format_keeps_no_memory_so_a_repeated_cell_costs_the_same_every_row(
 def test_a_key_off_survives_a_round_trip() -> None:
     builder = PatternBuilder(rows=1, channels=1)
     builder.place(0, 0, Cell(note=NoteCommand.OFF))
-    recovered = unpack_cells(pack_cells(builder.build()), rows=1, channels=1)
+    recovered = unpack_cells(pack_cells(builder.build()), rows=1, channels=1, subject=SUBJECT, repairs=Repairs())
     assert recovered.cell(0, 0) == Cell(note=NoteCommand.OFF)
 
 
@@ -135,7 +141,7 @@ def volume_stream(byte: int) -> bytes:
 
 def unpack_cells_at(stream: bytes) -> Pattern:
     """The one-cell pattern a stream packs to."""
-    return unpack_cells(stream, rows=1, channels=1)
+    return unpack_cells(stream, rows=1, channels=1, subject=SUBJECT, repairs=Repairs())
 
 
 @pytest.mark.parametrize("span", VOLUME_COLUMN.spans, ids=lambda span: span.effect.name)
@@ -196,3 +202,17 @@ def test_a_note_byte_the_column_leaves_unnamed_reads_as_absent_and_is_reported()
 def test_the_key_off_this_column_keeps_still_reads() -> None:
     stream = bytes([CellMask.PACKED | CellMask.NOTE, KEY_OFF])
     assert unpack_cells_at(stream).cell(0, 0) == Cell(note=NoteCommand.OFF)
+
+
+def test_a_stream_ending_before_the_grid_does_leaves_the_rest_silent() -> None:
+    # Files in the wild carry a pattern whose stream runs out, and a player sounds what is there.
+    builder = PatternBuilder(rows=2, channels=2)
+    builder.place(0, 0, Cell(note=Note(60), instrument=0, volume=64))
+    stream = pack_cells(builder.build())
+    repairs = Repairs()
+    recovered = unpack_cells(stream[:1], rows=2, channels=2, subject=SUBJECT, repairs=repairs)
+
+    assert recovered.rows == 2
+    assert recovered.channels == 2
+    assert recovered.cell(1, 1) == Cell()
+    assert repairs.entries == ((SUBJECT, "3 cells past the end of the stream read as silence"),)

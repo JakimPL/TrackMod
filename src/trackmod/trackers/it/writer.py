@@ -11,7 +11,6 @@ from trackmod.trackers.it.samples.writer import sample_bytes, sample_header
 from trackmod.trackers.it.settings import ITSettings
 from trackmod.trackers.it.spec.identity import (
     COMPATIBLE_WITH,
-    CREATED_WITH,
     MAGIC_MODULE,
 )
 from trackmod.trackers.it.spec.orders import ORDER_TERMINATOR, ORDER_TERMINATOR_BYTES

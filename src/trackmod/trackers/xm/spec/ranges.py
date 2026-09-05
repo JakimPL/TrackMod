@@ -1,14 +1,13 @@
 from typing import Final
 
 from trackmod.core.samples.depth import BitDepth
-from trackmod.spec.pitch import NOTES_PER_OCTAVE, RATE_NOTE
+from trackmod.spec.pitch import NOTES_PER_OCTAVE, RATE_NOTE, REFERENCE_RATE
 from trackmod.spec.width import BYTE_MAX, DOUBLE_WORD_MAX, NIBBLE_MAX, WORD_MAX
 from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
 from trackmod.trackers.xm.spec.tuning import (
     MAX_RELATIVE_NOTE,
     MIN_RELATIVE_NOTE,
     REFERENCE_NOTE,
-    REFERENCE_RATE,
 )
 
 PAN_CENTER: Final = 128

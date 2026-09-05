@@ -3,6 +3,7 @@ import numpy as np
 from tests.trackers.it.conftest import stated
 from trackmod.binary.pcm.quantise import dequantise
 from trackmod.binary.records.values import RecordValues
+from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.sample import Sample
 from trackmod.core.samples.vibrato import Vibrato
@@ -18,6 +19,9 @@ from trackmod.trackers.it.samples.writer import sample_bytes, sample_header
 from trackmod.trackers.it.spec.flags import SampleFlag
 
 RATE = 44100
+
+
+SUBJECT = "sample 0"
 
 
 def _values(*, flags: SampleFlag, length: int, sample_pointer: int = 0) -> RecordValues:
@@ -43,7 +47,7 @@ def test_an_uncompressed_stereo_sample_round_trips_through_the_header_and_writer
 
     header = sample_header(sample, data_offset=0)
     values = SAMPLE_HEADER.unpack(header)
-    recovered = parse_sample(values, sample_bytes(sample), doubled=False)
+    recovered = parse_sample(values, sample_bytes(sample), doubled=False, subject="sample", repairs=Repairs())
 
     assert recovered.channels == 2
     assert recovered.frames == 16
@@ -56,7 +60,7 @@ def test_filename_and_vibrato_round_trip_through_the_header() -> None:
 
     header = sample_header(sample, data_offset=0)
     values = SAMPLE_HEADER.unpack(header)
-    recovered = parse_sample(values, sample_bytes(sample), doubled=False)
+    recovered = parse_sample(values, sample_bytes(sample), doubled=False, subject="sample", repairs=Repairs())
 
     assert recovered.filename == "DRUM.WAV"
     assert recovered.vibrato == vibrato
@@ -72,7 +76,7 @@ def test_a_compressed_stereo_sample_is_decoded_as_two_independent_streams() -> N
         length=len(left_differences),
     )
 
-    pcm = stored_pcm(values, data, depth=depth, doubled=False)
+    pcm = stored_pcm(values, data, depth=depth, doubled=False, subject=SUBJECT, repairs=Repairs())
 
     assert pcm.shape == (5, 2)
     assert np.allclose(pcm[:, 0], dequantise(np.cumsum(left_differences), depth))
@@ -93,7 +97,7 @@ def test_a_compressed_mono_sample_is_decoded() -> None:
     data = stated(differences, depth=depth)
     values = _values(flags=SampleFlag.DATA | SampleFlag.COMPRESSED, length=len(differences))
 
-    pcm = stored_pcm(values, data, depth=depth, doubled=False)
+    pcm = stored_pcm(values, data, depth=depth, doubled=False, subject=SUBJECT, repairs=Repairs())
 
     assert pcm.shape == (3,)
     assert np.allclose(pcm, dequantise(np.cumsum(differences), depth))

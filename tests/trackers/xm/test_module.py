@@ -10,6 +10,7 @@ from trackmod.core.envelopes.span import EnvelopeSpan
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.keymap import KeyAssignment, routed_keymap
 from trackmod.core.notes.pitch import Note
+from trackmod.core.repairs.report import RepairWarning
 from trackmod.core.samples.loop import Loop
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
@@ -19,6 +20,7 @@ from trackmod.trackers.xm.instruments.grouping import song_groups
 from trackmod.trackers.xm.module import XMModule
 from trackmod.trackers.xm.patterns.sizing import packed_bytes
 from trackmod.trackers.xm.settings import XMSettings
+from trackmod.trackers.xm.spec.defaults import DEFAULT_SPEED
 from trackmod.trackers.xm.spec.identity import MAGIC
 from trackmod.trackers.xm.spec.sizes import (
     EMPTY_INSTRUMENT_HEADER_BYTES,
@@ -26,6 +28,8 @@ from trackmod.trackers.xm.spec.sizes import (
 )
 from trackmod.trackers.xm.spec.storage import XM_STORAGE
 from trackmod.trackers.xm.tuning import tuning_for
+
+SPEED_OFFSET = 76
 
 EXTRA_FRAMES = 64
 
@@ -234,3 +238,15 @@ def replace_instruments(song: Song, instruments: tuple[Instrument, ...]) -> Song
         samples=song.samples,
         playback=song.playback,
     )
+
+
+def test_a_header_speed_of_zero_starts_the_song_at_this_format_s_own_speed(xm_song: Song) -> None:
+    # Real files carry a speed of zero, which leaves a song no clock to advance on.
+    data = bytearray(module(xm_song).to_bytes())
+    data[SPEED_OFFSET : SPEED_OFFSET + 2] = (0).to_bytes(2, "little")
+
+    with pytest.warns(RepairWarning, match="speed 0"):
+        recovered = XMModule.parse(bytes(data)).song
+
+    assert recovered.playback.speed == DEFAULT_SPEED
+    assert recovered.playback.tempo == xm_song.playback.tempo

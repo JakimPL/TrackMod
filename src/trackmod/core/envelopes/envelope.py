@@ -14,6 +14,9 @@ class Envelope(BaseModel):
 
     An instrument that carries no envelope of a kind leaves that property alone, so absence rather than
     an enable flag is what switches an envelope off.
+
+    Points are given in tick order. Two points sharing a tick stand the curve up vertically there, which
+    is how a tracker states an instant change of level.
     """
 
     model_config = FROZEN
@@ -25,8 +28,8 @@ class Envelope(BaseModel):
     @model_validator(mode="after")
     def _consistent(self) -> Envelope:
         ticks = [point.tick for point in self.points]
-        if any(later <= earlier for earlier, later in itertools.pairwise(ticks)):
-            raise ValueError(f"envelope ticks must increase, got {ticks}")
+        if any(later < earlier for earlier, later in itertools.pairwise(ticks)):
+            raise ValueError(f"envelope ticks run backwards: {ticks}")
 
         for name, span in (("loop", self.loop), ("sustain", self.sustain)):
             if span is not None and span.end >= self.length:

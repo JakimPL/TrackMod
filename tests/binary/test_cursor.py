@@ -51,3 +51,15 @@ def test_seeking_outside_the_data_raises() -> None:
 def test_a_negative_read_raises() -> None:
     with pytest.raises(ValueError):
         Cursor(DATA).take(-1)
+
+
+def test_a_section_longer_than_the_data_is_taken_as_far_as_it_goes() -> None:
+    cursor = Cursor(b"abc")
+    assert cursor.take_at_most(10) == b"abc"
+    assert cursor.at_end
+
+
+def test_a_record_the_data_stops_inside_reads_the_rest_as_zeroes() -> None:
+    cursor = Cursor(b"ab")
+    assert cursor.peek_padded(5) == b"ab\x00\x00\x00"
+    assert cursor.position == 0

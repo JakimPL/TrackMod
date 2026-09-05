@@ -8,7 +8,9 @@ from trackmod.binary.records.values import (
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.kind import EnvelopeKind
 from trackmod.core.envelopes.point import EnvelopePoint
+from trackmod.core.envelopes.repair import repaired_points, repaired_span
 from trackmod.core.envelopes.span import EnvelopeSpan
+from trackmod.core.repairs.report import Repairs
 from trackmod.trackers.it.layout.envelope import envelope_field
 from trackmod.trackers.it.spec.flags import EnvelopeFlag
 from trackmod.trackers.it.spec.sizes import ENVELOPE_NODES
@@ -50,29 +52,43 @@ def envelope_values(kind: EnvelopeKind, envelope: Envelope | None) -> EnvelopeVa
     }
 
 
-def parse_envelope(kind: EnvelopeKind, values: RecordValues) -> Envelope | None:
-    """Rebuild one envelope from its block of header fields, or ``None`` when the block is switched off."""
+def stored_span(kind: EnvelopeKind, values: RecordValues, *, name: str) -> tuple[int, int]:
+    """The pair of point indices one of an envelope block's two spans states."""
+    return (
+        read_int(values, envelope_field(kind, f"{name}_begin")),
+        read_int(values, envelope_field(kind, f"{name}_end")),
+    )
+
+
+def parse_envelope(
+    kind: EnvelopeKind,
+    values: RecordValues,
+    *,
+    subject: str,
+    repairs: Repairs,
+) -> Envelope | None:
+    """Rebuild one envelope from its block of header fields, or ``None`` when the block is switched off.
+
+    A span the block states past the nodes it counts, or ending before it begins, is drawn back onto the
+    nodes that are there and recorded in ``repairs``.
+    """
     flags = EnvelopeFlag(read_int(values, envelope_field(kind, "flags")))
     count = read_int(values, envelope_field(kind, "count"))
     if EnvelopeFlag.ENABLED not in flags or count == 0:
         return None
 
     nodes = read_rows(values, envelope_field(kind, "nodes"))[:count]
-    points = tuple(EnvelopePoint(tick=tick, value=value) for value, tick in nodes)
-    loop = (
-        EnvelopeSpan(
-            begin=read_int(values, envelope_field(kind, "loop_begin")),
-            end=read_int(values, envelope_field(kind, "loop_end")),
-        )
-        if EnvelopeFlag.LOOP in flags
-        else None
+    points = repaired_points(
+        [EnvelopePoint(tick=tick, value=value) for value, tick in nodes], subject=subject, repairs=repairs
     )
-    sustain = (
-        EnvelopeSpan(
-            begin=read_int(values, envelope_field(kind, "sustain_begin")),
-            end=read_int(values, envelope_field(kind, "sustain_end")),
-        )
-        if EnvelopeFlag.SUSTAIN in flags
-        else None
+    spans: dict[str, tuple[int, int] | None] = {
+        name: stored_span(kind, values, name=name) if flag in flags else None
+        for name, flag in (("loop", EnvelopeFlag.LOOP), ("sustain", EnvelopeFlag.SUSTAIN))
+    }
+    return Envelope(
+        points=points,
+        loop=repaired_span(spans["loop"], points=len(points), name=f"{kind} loop", subject=subject, repairs=repairs),
+        sustain=repaired_span(
+            spans["sustain"], points=len(points), name=f"{kind} sustain", subject=subject, repairs=repairs
+        ),
     )
-    return Envelope(points=points, loop=loop, sustain=sustain)
