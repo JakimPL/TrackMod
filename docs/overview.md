@@ -18,6 +18,7 @@ job: `trackmod` produces and consumes bytes.
 | [`volume.md`](volume.md) | The volume column: one vocabulary, and the runs each format divides its byte into |
 | [`formats/it.md`](formats/it.md) | What Impulse Tracker stores and how |
 | [`formats/xm.md`](formats/xm.md) | What FastTracker 2 stores and how |
+| [`conventions.md`](conventions.md) | How these documents and this library are written |
 
 ## Shape
 
@@ -174,9 +175,5 @@ def report(module: TrackerModule) -> str:
 
 ## Conventions
 
-- Every validated or serialised type is a **frozen** Pydantic model. Bounds live in `Field(...)`
-  constraints and cross-field rules in `model_validator(mode="after")`.
-- Constants live in `spec/` packages and nowhere else, so the constants read as the specification.
-- Protocols are preferred to base classes, and composition to inheritance.
-- The library carries no module docstrings and no code comments. Class and function docstrings state
-  intent; the domain and format narrative lives in these documents.
+How these documents and this library are written is stated once, in
+[`conventions.md`](conventions.md).
