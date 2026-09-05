@@ -3,6 +3,7 @@ import struct
 from trackmod.binary.layout import offsets
 from trackmod.binary.text import encode_name
 from trackmod.core.songs.song import Song
+from trackmod.trackers.it.addressing import stated_flags, stored_instruments
 from trackmod.trackers.it.instruments.writer import instrument_header
 from trackmod.trackers.it.layout.file import FILE_HEADER
 from trackmod.trackers.it.message import MessageBlock
@@ -29,7 +30,7 @@ def body_start(song: Song, settings: ITSettings) -> int:
     The blocks a later writer states -- an editing history, channel and pattern names -- sit between the
     offset tables and the records those tables point at, so what they occupy moves every offset along.
     """
-    entries = len(song.instruments) + len(song.samples) + len(song.patterns)
+    entries = len(stored_instruments(song.voices)) + len(song.voices.samples) + len(song.patterns)
     tables = FILE_HEADER_BYTES + song.order.length + ORDER_TERMINATOR_BYTES + OFFSET_TABLE_ENTRY_BYTES * entries
     return tables + settings.extensions.named_bytes
 
@@ -45,13 +46,14 @@ def lay_out(
     Where the sample frames land is resolved before the sample headers are built, because each header
     carries a pointer to frames that sit after every other section of the file.
     """
-    frames = [sample_bytes(sample) for sample in song.samples]
+    samples = song.voices.samples
+    frames = [sample_bytes(sample) for sample in samples]
     samples_at = start + sum(len(blob) for blob in instruments)
-    patterns_at = samples_at + SAMPLE_HEADER_BYTES * len(song.samples)
+    patterns_at = samples_at + SAMPLE_HEADER_BYTES * len(samples)
     data_at = patterns_at + sum(len(blob) for blob in patterns)
 
     data_offsets = offsets(frames, data_at)
-    headers = [sample_header(sample, data_offset=offset) for sample, offset in zip(song.samples, data_offsets)]
+    headers = [sample_header(sample, data_offset=offset) for sample, offset in zip(samples, data_offsets)]
     tables = offsets(instruments, start) + offsets(headers, samples_at) + offsets(patterns, patterns_at)
     return tables, b"".join(instruments + headers + patterns + frames)
 
@@ -76,11 +78,11 @@ def file_header(
             "highlight": 0,
             "order_count": song.order.length + ORDER_TERMINATOR_BYTES,
             "instrument_count": instrument_count,
-            "sample_count": len(song.samples),
+            "sample_count": len(song.voices.samples),
             "pattern_count": pattern_count,
             "created_with": settings.created_with,
             "compatible_with": COMPATIBLE_WITH,
-            "flags": int(settings.flags),
+            "flags": int(stated_flags(settings.flags, song.voices)),
             "special": int(message.special | settings.extensions.special),
             "global_volume": settings.global_volume,
             "mix_volume": settings.mix_volume,
@@ -103,7 +105,9 @@ def write_module(song: Song, settings: ITSettings) -> bytes:
     settled before the block that follows them all is placed. Whatever a writer appended past this
     format's own records closes the file, since nothing points at it.
     """
-    instruments = [instrument_header(instrument, samples=len(instrument.samples)) for instrument in song.instruments]
+    instruments = [
+        instrument_header(instrument, samples=len(instrument.samples)) for instrument in stored_instruments(song.voices)
+    ]
     patterns = [pack_pattern(pattern) for pattern in song.patterns]
     start = body_start(song, settings)
     tables, body = lay_out(song, instruments, patterns, start)

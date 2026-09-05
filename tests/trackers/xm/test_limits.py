@@ -1,12 +1,13 @@
 import pytest
 
-from tests.conftest import rescaled
+from tests.conftest import rescaled, revoiced
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
+from trackmod.core.voices.voices import InstrumentVoices
 from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
@@ -45,9 +46,12 @@ def test_the_fadeout_the_tracker_honours_stops_short_of_what_its_field_holds() -
     assert xm_limits(Compliance.EXTENDED).bound(Capability.FADEOUT).maximum == WORD_MAX
 
 
-def test_a_fadeout_past_the_tracker_is_a_compliance_violation_the_extended_level_allows(xm_song: Song) -> None:
-    faster = xm_song.instruments[0].model_copy(update={"fadeout": 2 * CANONICAL_MAX_FADEOUT})
-    quick = xm_song.model_copy(update={"instruments": (faster, *xm_song.instruments[1:])})
+def test_a_fadeout_past_the_tracker_is_a_compliance_violation_the_extended_level_allows(
+    xm_song: Song,
+    xm_voices: InstrumentVoices,
+) -> None:
+    faster = xm_voices.instruments[0].model_copy(update={"fadeout": 2 * CANONICAL_MAX_FADEOUT})
+    quick = revoiced(xm_song, instruments=(faster, *xm_voices.instruments[1:]))
     canonical = XMModule.from_song(quick, compliance=Compliance.CANONICAL).violations()
     assert [violation.capability for violation in canonical] == [Capability.FADEOUT]
     assert canonical[0].severity is Severity.COMPLIANCE
@@ -62,15 +66,7 @@ def test_this_format_declares_no_song_wide_volume_at_all() -> None:
 
 
 def test_a_hacked_tempo_is_a_compliance_violation_the_extended_level_allows(xm_song: Song) -> None:
-    fast = Song(
-        name=xm_song.name,
-        channels=xm_song.channels,
-        patterns=xm_song.patterns,
-        order=xm_song.order,
-        instruments=xm_song.instruments,
-        samples=xm_song.samples,
-        playback=Playback(speed=1, tempo=441),
-    )
+    fast = xm_song.model_copy(update={"playback": Playback(speed=1, tempo=441)})
     canonical = XMModule.from_song(fast, compliance=Compliance.CANONICAL).violations()
     assert [violation.capability for violation in canonical] == [Capability.TEMPO]
     assert canonical[0].severity is Severity.COMPLIANCE
@@ -92,7 +88,10 @@ def test_writing_a_module_the_format_refuses_raises(xm_song: Song) -> None:
     assert error.value.violations[0].severity is Severity.STRUCTURAL
 
 
-def test_a_key_above_the_eight_octaves_this_format_numbers_is_reported(xm_song: Song) -> None:
+def test_a_key_above_the_eight_octaves_this_format_numbers_is_reported(
+    xm_song: Song,
+    xm_voices: InstrumentVoices,
+) -> None:
     builder = PatternBuilder(rows=8, channels=1)
     builder.place(0, 0, Cell(note=Note(MAX_NOTE), instrument=0))
     builder.place(1, 0, Cell(note=Note(MAX_NOTE + 1), instrument=0))
@@ -101,8 +100,7 @@ def test_a_key_above_the_eight_octaves_this_format_numbers_is_reported(xm_song: 
         channels=1,
         patterns=(builder.build(),),
         order=OrderList(entries=(0,)),
-        instruments=xm_song.instruments[:1],
-        samples=xm_song.samples,
+        voices=InstrumentVoices(instruments=xm_voices.instruments[:1], samples=xm_voices.samples),
         playback=xm_song.playback,
     )
     reported = [
@@ -111,19 +109,14 @@ def test_a_key_above_the_eight_octaves_this_format_numbers_is_reported(xm_song: 
     assert reported == [Capability.NOTE]
 
 
-def test_a_sample_asking_for_gain_this_format_cannot_apply_is_reported(xm_song: Song) -> None:
+def test_a_sample_asking_for_gain_this_format_cannot_apply_is_reported(
+    xm_song: Song,
+    xm_voices: InstrumentVoices,
+) -> None:
     # There is no per-sample multiplier here, so anything below full gain has to be baked into the
     # waveform instead — which the report is what tells a caller.
-    quiet = xm_song.samples[0].model_copy(update={"gain": MAX_VOLUME // 2})
-    song = Song(
-        name=xm_song.name,
-        channels=xm_song.channels,
-        patterns=xm_song.patterns,
-        order=xm_song.order,
-        instruments=xm_song.instruments,
-        samples=(quiet, *xm_song.samples[1:]),
-        playback=xm_song.playback,
-    )
+    quiet = xm_voices.samples[0].model_copy(update={"gain": MAX_VOLUME // 2})
+    song = revoiced(xm_song, samples=(quiet, *xm_voices.samples[1:]))
     reported = [
         violation.capability for violation in XMModule.from_song(song, compliance=Compliance.EXTENDED).violations()
     ]

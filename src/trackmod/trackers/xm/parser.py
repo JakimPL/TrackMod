@@ -3,12 +3,14 @@ from trackmod.binary.records.values import read_bytes, read_int
 from trackmod.binary.text import decode_name
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.patterns.repair import voiced_patterns
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.repair import repaired_order
 from trackmod.core.songs.song import Song
+from trackmod.core.voices.voices import InstrumentVoices
 from trackmod.trackers.xm.instruments.parser import parse_instrument, parse_stub
 from trackmod.trackers.xm.layout.file import FILE_HEADER
 from trackmod.trackers.xm.layout.instrument import EMPTY_INSTRUMENT_HEADER, INSTRUMENT_HEADER
@@ -46,13 +48,13 @@ class ModuleReader:
 
     def song(self) -> Song:
         """The format-agnostic content the file carries, with whatever it stated out of range drawn in."""
+        voices = InstrumentVoices(instruments=self._instruments, samples=tuple(self._samples))
         song = Song(
             name=decode_name(read_bytes(self._header, "name")),
             channels=self._channels,
-            patterns=self._patterns,
+            patterns=voiced_patterns(self._patterns, slots=voices.slots, repairs=self._repairs),
             order=repaired_order(self._order, patterns=len(self._patterns), subject="song", repairs=self._repairs),
-            instruments=self._instruments,
-            samples=tuple(self._samples),
+            voices=voices,
             playback=self._playback(),
         )
         self._repairs.warn()

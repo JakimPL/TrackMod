@@ -164,7 +164,7 @@ from trackmod.core.instruments.transfer import extract
 from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.limits.compliance import Compliance
 
-unit = extract(song, 0)
+unit = extract(song.voices, 0)
 XMInstrumentFile.from_unit(unit, compliance=Compliance.CANONICAL).save(Path("piano.xi"))
 ```
 

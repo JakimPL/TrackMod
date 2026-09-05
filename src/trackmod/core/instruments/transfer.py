@@ -3,10 +3,10 @@ from collections.abc import Sequence
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.samples.sample import Sample
-from trackmod.core.songs.song import Song
+from trackmod.core.voices.voices import InstrumentVoices
 
 
-def extract(song: Song, index: int) -> InstrumentUnit:
+def extract(voices: InstrumentVoices, index: int) -> InstrumentUnit:
     """The instrument at ``index`` with the samples its keymap reaches, numbered from zero.
 
     The samples follow the order the keys first name them, which is the order
@@ -14,33 +14,33 @@ def extract(song: Song, index: int) -> InstrumentUnit:
     waveforms out the way the instrument reads them and carries nothing the keymap leaves untouched.
 
     Raises:
-        IndexError: when the song holds no instrument at that position.
+        IndexError: when the table holds no instrument at that position.
     """
-    instrument = song.instruments[index]
+    instrument = voices.instruments[index]
     reached = instrument.samples
     positions = {sample: position for position, sample in enumerate(reached)}
     return InstrumentUnit(
         instrument=instrument.rerouted(positions),
-        samples=tuple(song.samples[sample] for sample in reached),
+        samples=tuple(voices.samples[sample] for sample in reached),
     )
 
 
-def held(song: Song) -> tuple[InstrumentUnit, ...]:
-    """Every instrument a song holds, each with the samples its own keymap reaches.
+def held(voices: InstrumentVoices) -> tuple[InstrumentUnit, ...]:
+    """Every instrument a table holds, each with the samples its own keymap reaches.
 
     A song numbers its instruments in one table and its samples in another; this states the same content
     as portable units, which is what a caller reading a file for the voices inside it asks for.
     """
-    return tuple(extract(song, index) for index in range(len(song.instruments)))
+    return tuple(extract(voices, index) for index in range(len(voices.instruments)))
 
 
-def combine(units: Sequence[InstrumentUnit]) -> tuple[tuple[Instrument, ...], tuple[Sample, ...]]:
-    """One flat sample table for several units, each keymap restated against it.
+def combine(units: Sequence[InstrumentUnit]) -> InstrumentVoices:
+    """One voice table for several units, each keymap restated against the samples behind them all.
 
-    This is the pair a :class:`~trackmod.core.songs.song.Song` takes: the instruments in the order given
-    and, behind them, the samples they reach in that same order, so each unit's waveforms sit in one run
-    of the table. Every unit keeps its own copy of a waveform another one also holds, which leaves each
-    instrument sounding exactly what it was extracted with.
+    The instruments come back in the order given and, behind them, the samples they reach in that same
+    order, so each unit's waveforms sit in one run of the table. Every unit keeps its own copy of a
+    waveform another one also holds, which leaves each instrument sounding exactly what it was extracted
+    with.
     """
     instruments: list[Instrument] = []
     samples: list[Sample] = []
@@ -51,4 +51,4 @@ def combine(units: Sequence[InstrumentUnit]) -> tuple[tuple[Instrument, ...], tu
         )
         samples.extend(unit.samples)
 
-    return tuple(instruments), tuple(samples)
+    return InstrumentVoices(instruments=tuple(instruments), samples=tuple(samples))

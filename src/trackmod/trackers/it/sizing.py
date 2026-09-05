@@ -1,6 +1,7 @@
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.songs.song import Song
 from trackmod.module.size import SizeReport
+from trackmod.trackers.it.addressing import stored_instruments
 from trackmod.trackers.it.message import message_data
 from trackmod.trackers.it.patterns.sizing import packed_bytes
 from trackmod.trackers.it.settings import ITSettings
@@ -21,10 +22,10 @@ def module_bytes(song: Song, settings: ITSettings) -> SizeReport:
     per_pattern = [packed_bytes(pattern) for pattern in song.patterns]
     return SizeReport(
         patterns=sum(per_pattern),
-        pcm=sum(sample.stored_bytes for sample in song.samples),
+        pcm=sum(sample.stored_bytes for sample in song.voices.samples),
         headers=IT_STORAGE.overhead(
-            instruments=tuple(len(instrument.samples) for instrument in song.instruments),
-            samples=len(song.samples),
+            instruments=tuple(len(instrument.samples) for instrument in stored_instruments(song.voices)),
+            samples=len(song.voices.samples),
             patterns=len(song.patterns),
             orders=song.order.length,
         )

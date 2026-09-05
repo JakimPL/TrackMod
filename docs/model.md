@@ -56,7 +56,7 @@ and `.it` names its widest channel in the cell stream, so `channels` reads back 
 Cell(note=Note(60), instrument=0, volume=64, effect=Effect(command=1, parameter=6))
 ```
 
-Each of the four is independently `None`. `instrument` is a **zero-based** index into `song.instruments`;
+Each of the four is independently `None`. `instrument` is a **zero-based** index into `song.voices`;
 both formats number their instrument column from one and their writers add the offset, because zero is
 what a stored cell writes to leave a channel on the instrument it already carries.
 
@@ -188,12 +188,12 @@ keys reach, numbered from zero — and `trackmod.core.instruments.transfer` move
 songs:
 
 ```python
-unit = extract(song, 0)                        # the instrument and the waveforms it sounds
-voices = held(song)                            # the same, for every instrument the song numbers
-instruments, samples = combine([unit, other])  # one flat table, each keymap restated against it
+unit = extract(song.voices, 0)     # the instrument and the waveforms it sounds
+units = held(song.voices)          # the same, for every instrument the table numbers
+voices = combine([unit, other])    # one table, each keymap restated against the samples behind it
 ```
 
-`combine` returns exactly the `instruments=` / `samples=` pair `Song` takes. The renumbering itself is
+`combine` returns exactly the `voices=` table `Song` takes. The renumbering itself is
 `Instrument.rerouted(positions)`, which moves the routing and leaves every envelope, level and
 behaviour as stated — so an instrument lifted out of one module and written into another sounds what it
 sounded before.
@@ -217,8 +217,8 @@ A caller holding bytes and the extension they were written under reaches the sam
 format, through `trackmod.trackers.registry`:
 
 ```python
-voices = parse_units(data, extension=".iti")   # one voice, from a standalone instrument
-voices = parse_units(data, extension=".it")    # every voice a module numbers
+voices = parse_voices(data, extension=".iti")   # one voice, from a standalone instrument
+voices = parse_voices(data, extension=".it")    # every voice a module numbers
 ```
 
 Four extensions are read — `.it` and `.xm` for modules, `.iti` and `.xi` for one instrument — in either

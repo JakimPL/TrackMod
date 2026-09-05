@@ -6,13 +6,16 @@ from trackmod.binary.text import decode_name, decode_text
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.repair import routed_within
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.patterns.repair import voiced_patterns
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.repair import repaired_order
 from trackmod.core.songs.song import Song
+from trackmod.core.voices.voices import InstrumentVoices, SampleVoices, Voices
 from trackmod.spec.grid import MIN_CHANNELS
+from trackmod.trackers.it.addressing import names_instruments
 from trackmod.trackers.it.extensions import Extensions, block_names
 from trackmod.trackers.it.instruments.parser import parse_instrument
 from trackmod.trackers.it.layout.file import FILE_HEADER
@@ -64,14 +67,13 @@ class ModuleReader:
         """The format-agnostic content the file carries, with whatever it stated out of range drawn in."""
         patterns = self._patterns()
         channels = max((pattern.channels for pattern in patterns), default=1)
-        samples = self._samples()
+        voices = self._voices()
         song = Song(
             name=decode_name(read_bytes(self._header, "name")),
             channels=channels,
-            patterns=tuple(pattern.widened(channels) for pattern in patterns),
+            patterns=self._voiced(patterns, channels=channels, slots=voices.slots),
             order=repaired_order(self._order, patterns=len(patterns), subject="song", repairs=self._repairs),
-            instruments=self._instruments(samples=len(samples)),
-            samples=samples,
+            voices=voices,
             playback=Playback(
                 speed=read_int(self._header, "speed"),
                 tempo=read_int(self._header, "tempo"),
@@ -93,6 +95,28 @@ class ModuleReader:
             extensions=self._extensions(),
             created_with=read_int(self._header, "created_with"),
         )
+
+    def _voiced(self, patterns: tuple[Pattern, ...], *, channels: int, slots: int) -> tuple[Pattern, ...]:
+        """Every pattern at the song's width, naming only the voices the file goes on to hold."""
+        widened = [pattern.widened(channels) for pattern in patterns]
+        return voiced_patterns(widened, slots=slots, repairs=self._repairs)
+
+    def _voices(self) -> Voices:
+        """The table this file's cells name positions in, as its own header says which kind it holds.
+
+        A file switching instruments off plays its cells straight through the sample table, so that is
+        what it comes back as. The instrument definitions such a file may still keep are what a tracker
+        holds ready for the switch going back on, and a song playing samples sounds them nowhere.
+        """
+        samples = self._samples()
+        if names_instruments(HeaderFlag(read_int(self._header, "flags"))):
+            return InstrumentVoices(instruments=self._instruments(samples=len(samples)), samples=samples)
+
+        held = len(self._instrument_offsets)
+        if held:
+            self._repairs.made(f"{held} instruments left aside by a song whose cells name samples", subject="song")
+
+        return SampleVoices(samples=samples)
 
     @property
     def _body_start(self) -> int:

@@ -3,6 +3,7 @@ import struct
 import numpy as np
 import pytest
 
+from tests.conftest import voices_of
 from trackmod.binary.text import encode_name
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
@@ -162,8 +163,8 @@ def test_a_module_carries_every_block_it_arrived_with(song: Song) -> None:
     assert recovered.settings.extensions == settings.extensions
     # The blocks move every offset the header states, so the records behind them must still be found.
     assert recovered.song.patterns == song.patterns
-    assert recovered.song.instruments == song.instruments
-    assert [sample.name for sample in recovered.song.samples] == [sample.name for sample in song.samples]
+    assert voices_of(recovered.song).instruments == voices_of(song).instruments
+    assert [sample.name for sample in recovered.song.voices.samples] == [sample.name for sample in song.voices.samples]
 
 
 def test_the_blocks_move_every_record_the_header_points_at(song: Song) -> None:

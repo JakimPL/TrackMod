@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from tests.conftest import keyed, lattice
+from tests.conftest import keyed, lattice, revoiced
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.point import EnvelopePoint
 from trackmod.core.envelopes.span import EnvelopeSpan
@@ -14,6 +14,7 @@ from trackmod.core.repairs.report import RepairWarning
 from trackmod.core.samples.loop import Loop
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
+from trackmod.core.voices.voices import InstrumentVoices
 from trackmod.limits.compliance import Compliance
 from trackmod.spec.pitch import RATE_NOTE
 from trackmod.trackers.xm.instruments.grouping import song_groups
@@ -59,8 +60,7 @@ def test_a_written_module_parses_back_to_the_same_song(xm_song: Song) -> None:
     assert recovered.playback == xm_song.playback
     assert recovered.order == xm_song.order
     assert recovered.patterns == xm_song.patterns
-    assert recovered.instruments == xm_song.instruments
-    assert recovered.samples == xm_song.samples
+    assert recovered.voices == xm_song.voices
 
 
 def test_writing_a_parsed_module_reproduces_its_bytes(xm_song: Song) -> None:
@@ -68,9 +68,9 @@ def test_writing_a_parsed_module_reproduces_its_bytes(xm_song: Song) -> None:
     assert XMModule.parse(data).to_bytes() == data
 
 
-def test_sample_waveforms_survive_the_delta_encoding(xm_song: Song) -> None:
+def test_sample_waveforms_survive_the_delta_encoding(xm_song: Song, xm_voices: InstrumentVoices) -> None:
     recovered = XMModule.parse(module(xm_song).to_bytes()).song
-    for original, restored in zip(xm_song.samples, recovered.samples):
+    for original, restored in zip(xm_voices.samples, recovered.voices.samples):
         assert np.allclose(restored.pcm, original.pcm, atol=1.5 / original.depth.scale)
 
 
@@ -91,33 +91,29 @@ def test_parsing_something_that_is_not_a_module_raises() -> None:
         XMModule.parse(b"not a module" + bytes(512))
 
 
-def test_an_instrument_owning_nothing_is_written_in_the_short_form(xm_song: Song) -> None:
-    placeholder = Instrument(name="silent", keymap=(None,) * len(xm_song.instruments[0].keymap))
-    song = Song(
-        name=xm_song.name,
-        channels=xm_song.channels,
-        patterns=xm_song.patterns,
-        order=xm_song.order,
-        instruments=(placeholder, *xm_song.instruments),
-        samples=xm_song.samples,
-        playback=xm_song.playback,
-    )
+def test_an_instrument_owning_nothing_is_written_in_the_short_form(
+    xm_song: Song,
+    xm_voices: InstrumentVoices,
+) -> None:
+    placeholder = Instrument(name="silent", keymap=(None,) * len(xm_voices.instruments[0].keymap))
+    song = revoiced(xm_song, instruments=(placeholder, *xm_voices.instruments))
     written = module(song).to_bytes()
+    recovered = XMModule.parse(written).song.voices
     assert len(written) == len(module(xm_song).to_bytes()) + EMPTY_INSTRUMENT_HEADER_BYTES
     assert EMPTY_INSTRUMENT_HEADER_BYTES < INSTRUMENT_HEADER_BYTES
-    assert XMModule.parse(written).song.instruments[0].samples == ()
+    assert isinstance(recovered, InstrumentVoices)
+    assert recovered.instruments[0].samples == ()
 
 
-def test_one_more_instrument_and_its_sample_grow_the_file_by_what_the_table_charges(xm_song: Song) -> None:
+def test_one_more_instrument_and_its_sample_grow_the_file_by_what_the_table_charges(
+    xm_song: Song,
+    xm_voices: InstrumentVoices,
+) -> None:
     extra = Sample(name="extra", pcm=lattice(np.linspace(-1.0, 1.0, EXTRA_FRAMES)), rate=44092)
-    grown = Song(
-        name=xm_song.name,
-        channels=xm_song.channels,
-        patterns=xm_song.patterns,
-        order=xm_song.order,
-        instruments=(*xm_song.instruments, Instrument(name="extra", keymap=keyed(len(xm_song.samples)))),
-        samples=(*xm_song.samples, extra),
-        playback=xm_song.playback,
+    grown = revoiced(
+        xm_song,
+        instruments=(*xm_voices.instruments, Instrument(name="extra", keymap=keyed(len(xm_voices.samples)))),
+        samples=(*xm_voices.samples, extra),
     )
     growth = len(module(grown).to_bytes()) - len(module(xm_song).to_bytes())
     assert growth == XM_STORAGE.instrument_bytes(samples=1) + XM_STORAGE.sample_bytes(
@@ -125,62 +121,61 @@ def test_one_more_instrument_and_its_sample_grow_the_file_by_what_the_table_char
     )
 
 
-def test_a_sample_no_key_reaches_costs_this_format_nothing(xm_song: Song) -> None:
+def test_a_sample_no_key_reaches_costs_this_format_nothing(xm_song: Song, xm_voices: InstrumentVoices) -> None:
     extra = Sample(name="unreached", pcm=lattice(np.linspace(-1.0, 1.0, EXTRA_FRAMES)), rate=44092)
-    grown = xm_song.model_copy(update={"samples": (*xm_song.samples, extra)})
+    grown = revoiced(xm_song, samples=(*xm_voices.samples, extra))
     assert len(module(grown).to_bytes()) == len(module(xm_song).to_bytes())
 
 
-def test_an_instrument_shares_no_sample_table_so_a_shared_sample_is_written_twice(xm_song: Song) -> None:
-    sample = xm_song.samples[0]
-    song = Song(
-        name="shared",
-        channels=xm_song.channels,
-        patterns=xm_song.patterns,
-        order=xm_song.order,
-        instruments=(Instrument(name="a", keymap=keyed(0)), Instrument(name="b", keymap=keyed(0))),
-        samples=(sample,),
-        playback=xm_song.playback,
-    )
-    assert [group.length for group in song_groups(song)] == [1, 1]
-    assert module(song).size().pcm == 2 * sample.stored_bytes
+def test_a_shared_sample_is_written_once_per_instrument_that_reaches_it(
+    xm_song: Song,
+    xm_voices: InstrumentVoices,
+) -> None:
+    sample = xm_voices.samples[0]
+    sharing = tuple(Instrument(name=name, keymap=keyed(0)) for name in ("a", "b", "c"))
+    song = revoiced(xm_song, instruments=sharing, samples=(sample,))
+    assert [group.length for group in song_groups(song)] == [1, 1, 1]
+    assert module(song).size().pcm == len(sharing) * sample.stored_bytes
 
 
-def test_a_sustain_loop_this_format_cannot_store_is_refused(xm_song: Song) -> None:
-    looped = xm_song.samples[0].model_copy(update={"sustain_loop": Loop(begin=0, end=8)})
-    song = replace_samples(xm_song, (looped, *xm_song.samples[1:]))
+def test_a_sustain_loop_this_format_cannot_store_is_refused(xm_song: Song, xm_voices: InstrumentVoices) -> None:
+    looped = xm_voices.samples[0].model_copy(update={"sustain_loop": Loop(begin=0, end=8)})
+    song = revoiced(xm_song, samples=(looped, *xm_voices.samples[1:]))
     with pytest.raises(ValueError, match="sustain loop"):
         module(song).to_bytes()
 
 
-def test_a_stereo_sample_this_format_cannot_store_is_refused(xm_song: Song) -> None:
+def test_a_stereo_sample_this_format_cannot_store_is_refused(xm_song: Song, xm_voices: InstrumentVoices) -> None:
     stereo = Sample(name="stereo", pcm=np.zeros((8, 2)), rate=44100)
-    song = replace_samples(xm_song, (stereo, *xm_song.samples[1:]))
+    song = revoiced(xm_song, samples=(stereo, *xm_voices.samples[1:]))
     with pytest.raises(ValueError, match="stereo"):
         module(song).to_bytes()
 
 
-def test_a_pitch_envelope_this_format_cannot_store_is_refused(xm_song: Song) -> None:
-    shaped = xm_song.instruments[0].model_copy(
+def test_a_pitch_envelope_this_format_cannot_store_is_refused(xm_song: Song, xm_voices: InstrumentVoices) -> None:
+    shaped = xm_voices.instruments[0].model_copy(
         update={"pitch_envelope": Envelope(points=(EnvelopePoint(tick=0, value=0),))}
     )
-    song = replace_instruments(xm_song, (shaped, *xm_song.instruments[1:]))
+    song = revoiced(xm_song, instruments=(shaped, *xm_voices.instruments[1:]))
     with pytest.raises(ValueError, match="pitch envelope"):
         module(song).to_bytes()
 
 
-def test_an_envelope_sustaining_over_a_span_is_refused(xm_song: Song) -> None:
+def test_an_envelope_sustaining_over_a_span_is_refused(xm_song: Song, xm_voices: InstrumentVoices) -> None:
     over = Envelope(
         points=(EnvelopePoint(tick=0, value=64), EnvelopePoint(tick=8, value=32), EnvelopePoint(tick=16, value=0)),
         sustain=EnvelopeSpan(begin=0, end=1),
     )
-    shaped = xm_song.instruments[0].model_copy(update={"volume_envelope": over})
-    song = replace_instruments(xm_song, (shaped, *xm_song.instruments[1:]))
+    shaped = xm_voices.instruments[0].model_copy(update={"volume_envelope": over})
+    song = revoiced(xm_song, instruments=(shaped, *xm_voices.instruments[1:]))
     with pytest.raises(ValueError, match="one point"):
         module(song).to_bytes()
 
 
-def test_a_keymap_transposing_one_key_differently_from_another_is_refused(xm_song: Song) -> None:
+def test_a_keymap_transposing_one_key_differently_from_another_is_refused(
+    xm_song: Song,
+    xm_voices: InstrumentVoices,
+) -> None:
     uneven = Instrument(
         name="uneven",
         keymap=routed_keymap(
@@ -190,12 +185,15 @@ def test_a_keymap_transposing_one_key_differently_from_another_is_refused(xm_son
             }
         ),
     )
-    song = replace_instruments(xm_song, (uneven,))
+    song = revoiced(xm_song, instruments=(uneven, *xm_voices.instruments[1:]))
     with pytest.raises(ValueError, match="transposes"):
         module(song).to_bytes()
 
 
-def test_a_keymap_transposing_every_key_the_same_way_is_stored_once(xm_song: Song) -> None:
+def test_a_keymap_transposing_every_key_the_same_way_is_stored_once(
+    xm_song: Song,
+    xm_voices: InstrumentVoices,
+) -> None:
     shifted = Instrument(
         name="shifted",
         keymap=routed_keymap(
@@ -205,39 +203,15 @@ def test_a_keymap_transposing_every_key_the_same_way_is_stored_once(xm_song: Son
             }
         ),
     )
-    song = replace_instruments(xm_song, (shifted,))
+    song = revoiced(xm_song, instruments=(shifted, *xm_voices.instruments[1:]))
     group = song_groups(song)[0]
     assert group.length == 1
-    assert group.tunings[0].relative_note == 12 + tuning_of(xm_song, sample=0)
+    assert group.tunings[0].relative_note == 12 + tuning_of(xm_voices.samples[0].rate)
 
 
-def tuning_of(song: Song, *, sample: int) -> int:
+def tuning_of(rate: int) -> int:
     reference = Note(RATE_NOTE)
-    return tuning_for(song.samples[sample].rate, key=reference, sounded=reference).relative_note
-
-
-def replace_samples(song: Song, samples: tuple[Sample, ...]) -> Song:
-    return Song(
-        name=song.name,
-        channels=song.channels,
-        patterns=song.patterns,
-        order=song.order,
-        instruments=song.instruments,
-        samples=samples,
-        playback=song.playback,
-    )
-
-
-def replace_instruments(song: Song, instruments: tuple[Instrument, ...]) -> Song:
-    return Song(
-        name=song.name,
-        channels=song.channels,
-        patterns=song.patterns,
-        order=song.order,
-        instruments=instruments,
-        samples=song.samples,
-        playback=song.playback,
-    )
+    return tuning_for(rate, key=reference, sounded=reference).relative_note
 
 
 def test_a_header_speed_of_zero_starts_the_song_at_this_format_s_own_speed(xm_song: Song) -> None:

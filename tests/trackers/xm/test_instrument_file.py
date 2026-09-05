@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from tests.conftest import keyed
+from tests.conftest import keyed, voices_of
 from trackmod.binary.records.field import Field
 from trackmod.binary.records.record import Record
 from trackmod.core.envelopes.envelope import Envelope
@@ -44,7 +44,7 @@ def instrument_file(unit: InstrumentUnit, *, compliance: Compliance = Compliance
 
 def piano(xm_song: Song) -> InstrumentUnit:
     """The song's enveloped instrument, which is the unit these tests carry."""
-    return extract(xm_song, PIANO)
+    return extract(voices_of(xm_song), PIANO)
 
 
 def described(record: Record, name: str) -> int:
@@ -117,7 +117,7 @@ def test_an_instrument_owning_nothing_is_the_header_alone() -> None:
 
 
 def test_one_more_sample_grows_the_file_by_its_header_and_its_frames(xm_song: Song) -> None:
-    one, two = extract(xm_song, 1), piano(xm_song)
+    one, two = extract(voices_of(xm_song), 1), piano(xm_song)
     growth = len(instrument_file(two).to_bytes()) - len(instrument_file(one).to_bytes())
     assert growth == SAMPLE_HEADER_BYTES * (len(two.samples) - len(one.samples)) + (
         sum(sample.stored_bytes for sample in two.samples) - sum(sample.stored_bytes for sample in one.samples)
@@ -165,7 +165,7 @@ def test_parsing_something_that_is_not_an_instrument_raises() -> None:
 def test_every_key_the_instrument_routes_sounds_what_it_sounded(xm_song: Song) -> None:
     unit = InstrumentUnit(
         instrument=Instrument(name="split", keymap=keyed(sample=0)),
-        samples=(xm_song.samples[0],),
+        samples=(voices_of(xm_song).samples[0],),
     )
     recovered = XMInstrumentFile.parse(instrument_file(unit).to_bytes()).unit
     for key in range(len(unit.instrument.keymap)):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from trackmod.core.songs.song import Song
 from trackmod.limits.compliance import Compliance
@@ -12,6 +12,7 @@ from trackmod.limits.violation import Violation
 from trackmod.module.size import SizeReport
 from trackmod.module.storage import Storage
 from trackmod.schema.config import FROZEN
+from trackmod.trackers.xm.addressing import routed
 from trackmod.trackers.xm.checks import violations
 from trackmod.trackers.xm.limits import xm_limits
 from trackmod.trackers.xm.parser import ModuleReader
@@ -25,9 +26,14 @@ from trackmod.trackers.xm.writer import write_module
 class XMModule(BaseModel):
     """A FastTracker 2 module: a song, the settings this format adds, and how strictly it is held.
 
-    The format stores no shared sample table — each instrument owns copies of the samples its keys
-    reach — so a song whose instruments share samples grows when written, and reading one back gives an
-    instrument per group rather than the arrangement it was built from.
+    Every cell of this format names an instrument, so the song it is bound to holds
+    :class:`~trackmod.core.voices.voices.InstrumentVoices`. The format stores no shared sample table —
+    each instrument owns copies of the samples its keys reach — so a song whose instruments share
+    samples grows when written, and reading one back gives an instrument per group rather than the
+    arrangement it was built from.
+
+    Raises:
+        ValueError: when the song's cells name samples, which this format keeps no records for.
     """
 
     model_config = FROZEN
@@ -35,6 +41,11 @@ class XMModule(BaseModel):
     song: Song
     compliance: Compliance
     settings: XMSettings = XMSettings()
+
+    @model_validator(mode="after")
+    def _cells_name_instruments(self) -> XMModule:
+        routed(self.song)
+        return self
 
     @classmethod
     def from_song(

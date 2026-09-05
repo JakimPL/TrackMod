@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from tests.conftest import voices_of
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.keymap import routed_keymap
 from trackmod.core.instruments.transfer import extract
@@ -35,7 +36,7 @@ def instrument_file(unit: InstrumentUnit, *, compliance: Compliance = Compliance
 
 def router(song: Song) -> InstrumentUnit:
     """The song's two-sample instrument, which is the unit these tests carry."""
-    return extract(song, ROUTER)
+    return extract(voices_of(song), ROUTER)
 
 
 def test_the_file_opens_with_the_instrument_tag(song: Song) -> None:

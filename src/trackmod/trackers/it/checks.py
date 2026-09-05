@@ -10,6 +10,7 @@ from trackmod.limits.capability import Capability
 from trackmod.limits.checklist import Checklist
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
+from trackmod.trackers.it.addressing import stored_instruments
 from trackmod.trackers.it.message import message_data
 from trackmod.trackers.it.patterns.sizing import packed_bytes
 from trackmod.trackers.it.settings import ITSettings
@@ -31,8 +32,8 @@ def check_song(checklist: Checklist, song: Song) -> None:
     checklist.check(Capability.CHANNELS, song.channels, subject="song")
     checklist.check(Capability.PATTERNS, len(song.patterns), subject="song")
     checklist.check(Capability.ORDERS, song.order.length, subject="song")
-    checklist.check(Capability.INSTRUMENTS, len(song.instruments), subject="song")
-    checklist.check(Capability.SAMPLES, len(song.samples), subject="song")
+    checklist.check(Capability.INSTRUMENTS, len(stored_instruments(song.voices)), subject="song")
+    checklist.check(Capability.SAMPLES, len(song.voices.samples), subject="song")
     checklist.check(Capability.SPEED, song.playback.speed, subject="song")
     checklist.check(Capability.TEMPO, song.playback.tempo, subject="song")
 
@@ -78,8 +79,8 @@ def violations(song: Song, settings: ITSettings, *, limits: Limits) -> tuple[Vio
     checklist = Checklist(limits)
     check_song(checklist, song)
     check_patterns(checklist, song)
-    check_samples(checklist, song.samples)
-    check_instruments(checklist, song.instruments)
+    check_samples(checklist, song.voices.samples)
+    check_instruments(checklist, stored_instruments(song.voices))
     check_settings(checklist, settings)
     return checklist.violations
 

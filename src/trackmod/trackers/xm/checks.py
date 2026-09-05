@@ -15,6 +15,7 @@ from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
 from trackmod.spec.grid import EMPTY
 from trackmod.spec.pitch import NOTE_COUNT
+from trackmod.trackers.xm.addressing import routed
 from trackmod.trackers.xm.patterns.sizing import packed_bytes
 
 
@@ -48,18 +49,19 @@ def check_keys(checklist: Checklist, pattern: Pattern, *, subject: str) -> None:
 
 def check_song(checklist: Checklist, song: Song) -> None:
     """Grade the counts and the starting clock a song declares."""
+    instruments = routed(song).instruments
     checklist.check(Capability.CHANNELS, song.channels, subject="song")
     checklist.check(Capability.PATTERNS, len(song.patterns), subject="song")
     checklist.check(Capability.ORDERS, song.order.length, subject="song")
-    checklist.check(Capability.INSTRUMENTS, len(song.instruments), subject="song")
-    checklist.check(Capability.SAMPLES, stored_samples(song), subject="song")
+    checklist.check(Capability.INSTRUMENTS, len(instruments), subject="song")
+    checklist.check(Capability.SAMPLES, stored_samples(instruments), subject="song")
     checklist.check(Capability.SPEED, song.playback.speed, subject="song")
     checklist.check(Capability.TEMPO, song.playback.tempo, subject="song")
 
 
-def stored_samples(song: Song) -> int:
+def stored_samples(instruments: Sequence[Instrument]) -> int:
     """How many sample slots the file holds, which counts a shared sample once per instrument."""
-    return sum(len(instrument.samples) for instrument in song.instruments)
+    return sum(len(instrument.samples) for instrument in instruments)
 
 
 def check_patterns(checklist: Checklist, song: Song) -> None:
@@ -103,11 +105,12 @@ def violations(song: Song, *, limits: Limits) -> tuple[Violation, ...]:
     This format adds no song-wide levels of its own, so its settings carry nothing to bound and the
     whole report comes from the song.
     """
+    voices = routed(song)
     checklist = Checklist(limits)
     check_song(checklist, song)
     check_patterns(checklist, song)
-    check_samples(checklist, song.samples)
-    check_instruments(checklist, song.instruments)
+    check_samples(checklist, voices.samples)
+    check_instruments(checklist, voices.instruments)
     return checklist.violations
 
 

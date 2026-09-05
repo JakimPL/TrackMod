@@ -10,11 +10,16 @@ from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.keymap import KeyAssignment, pitched_keymap, routed_keymap
 from trackmod.core.instruments.repair import routed_within, stated_behaviour
 from trackmod.core.notes.pitch import Note
+from trackmod.core.patterns.builder import PatternBuilder
+from trackmod.core.patterns.cell import Cell
+from trackmod.core.patterns.grid import Pattern
+from trackmod.core.patterns.repair import voiced_patterns, voiced_within
 from trackmod.core.repairs.report import Repairs, RepairWarning
 from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.repair import repaired_loop, repaired_rate
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.repair import repaired_order
+from trackmod.spec.grid import EMPTY
 from trackmod.spec.pitch import REFERENCE_RATE
 
 SUBJECT = "sample 3"
@@ -169,3 +174,32 @@ def test_a_behaviour_byte_the_format_numbers_is_read_as_that_behaviour() -> None
     )
     assert action is DuplicateAction.FADE
     assert repairs.entries == ()
+
+
+def voicing(*named: int) -> Pattern:
+    """A one-channel grid whose rows name the voices given, one per row."""
+    builder = PatternBuilder(rows=len(named), channels=1)
+    for row, voice in enumerate(named):
+        builder.place(row, 0, Cell(note=Note(60), instrument=voice))
+
+    return builder.build()
+
+
+def test_a_cell_naming_a_voice_the_song_leaves_out_carries_its_channel_on() -> None:
+    repairs = Repairs()
+    drawn = voiced_within(voicing(0, 7, 2), slots=3, subject="pattern 0", repairs=repairs)
+    assert list(drawn.instrument[:, 0]) == [0, EMPTY, 2]
+    assert repairs.entries == (("pattern 0", "1 cells naming a voice past the 3 held carry their channel on"),)
+
+
+def test_a_pattern_naming_only_the_voices_held_is_left_as_it_is() -> None:
+    repairs = Repairs()
+    pattern = voicing(0, 1, 2)
+    assert voiced_within(pattern, slots=3, subject="pattern 0", repairs=repairs) is pattern
+    assert repairs.entries == ()
+
+
+def test_every_pattern_is_reported_under_its_own_position() -> None:
+    repairs = Repairs()
+    voiced_patterns([voicing(0), voicing(4)], slots=1, repairs=repairs)
+    assert repairs.entries == (("pattern 1", "1 cells naming a voice past the 1 held carry their channel on"),)

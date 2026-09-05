@@ -202,7 +202,7 @@ from trackmod.core.instruments.transfer import extract
 from trackmod.trackers.it.instrument_file import ITInstrumentFile
 from trackmod.limits.compliance import Compliance
 
-unit = extract(song, 0)
+unit = extract(song.voices, 0)
 ITInstrumentFile.from_unit(unit, compliance=Compliance.CANONICAL).save(Path("piano.iti"))
 ```
 

@@ -122,13 +122,14 @@ format. A consumer holding the bytes and the extension they were written under r
 way, through `trackmod.trackers.registry`:
 
 ```python
-from trackmod.trackers.registry import EXTENSIONS, parse_units
+from trackmod.trackers.registry import EXTENSIONS, parse_voices
 
-voices = parse_units(path.read_bytes(), extension=path.suffix)
+voices = parse_voices(path.read_bytes(), extension=path.suffix)
 ```
 
-The result is a tuple of `InstrumentUnit` either way — as many as a module numbers, one from a standalone
-instrument — so the choice of container stops mattering at the point the bytes are read. The extension is
+The result is the voice table the format that wrote the bytes addresses — samples a cell names directly,
+or instruments that route keys onto samples — so the choice of container stops mattering at the point the
+bytes are read. The extension is
 matched in either capitalisation, and one that no format here writes is refused by name. `EXTENSIONS`,
 `MODULE_EXTENSIONS` and `INSTRUMENT_EXTENSIONS` state the four, so the suffix table lives here rather
 than in each consumer.

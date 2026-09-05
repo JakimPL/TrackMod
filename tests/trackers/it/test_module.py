@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from tests.conftest import make_sample
+from tests.conftest import make_sample, revoiced, voices_of
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
@@ -50,14 +50,14 @@ def test_the_size_report_names_the_largest_pattern(song: Song) -> None:
 
 def test_one_more_sample_grows_the_file_by_what_the_table_charges(song: Song) -> None:
     extra = make_sample("extra", frames=EXTRA_FRAMES, seed=99)
-    grown = song.model_copy(update={"samples": (*song.samples, extra)})
+    grown = revoiced(song, samples=(*voices_of(song).samples, extra))
     growth = len(module(grown).to_bytes()) - len(module(song).to_bytes())
     assert growth == IT_STORAGE.sample_bytes(frames=extra.frames, depth=extra.depth)
 
 
 def test_one_more_instrument_grows_the_file_by_what_the_table_charges(song: Song) -> None:
     placeholder = Instrument(name="silent", keymap=(None,) * NOTE_COUNT)
-    grown = song.model_copy(update={"instruments": (*song.instruments, placeholder)})
+    grown = revoiced(song, instruments=(*voices_of(song).instruments, placeholder))
     growth = len(module(grown).to_bytes()) - len(module(song).to_bytes())
     assert growth == IT_STORAGE.instrument_bytes(samples=0)
 
@@ -68,7 +68,7 @@ def test_a_written_module_parses_back_to_the_same_song(song: Song) -> None:
     assert recovered.channels == song.channels
     assert recovered.playback == song.playback
     assert recovered.order.entries == song.order.entries
-    assert recovered.instruments == song.instruments
+    assert voices_of(recovered).instruments == voices_of(song).instruments
     assert recovered.patterns == song.patterns
 
 
@@ -89,7 +89,7 @@ def test_a_song_wider_than_the_notes_it_plays_parses_back_at_its_own_width(song:
 
 def test_sample_headers_and_waveforms_survive_a_round_trip(song: Song) -> None:
     recovered = ITModule.parse(module(song).to_bytes()).song
-    for original, restored in zip(song.samples, recovered.samples):
+    for original, restored in zip(voices_of(song).samples, recovered.voices.samples):
         assert restored.name == original.name
         assert restored.rate == original.rate
         assert restored.depth == original.depth
@@ -101,9 +101,9 @@ def test_a_stereo_sample_round_trips_through_the_whole_module(song: Song) -> Non
     left = np.linspace(-1.0, 1.0, 16)
     right = np.linspace(1.0, -1.0, 16)
     stereo = Sample(name="stereo", pcm=np.stack([left, right], axis=1), rate=44100)
-    widened = song.model_copy(update={"samples": (*song.samples, stereo)})
+    widened = revoiced(song, samples=(*voices_of(song).samples, stereo))
 
-    recovered = ITModule.parse(module(widened).to_bytes()).song.samples[-1]
+    recovered = ITModule.parse(module(widened).to_bytes()).song.voices.samples[-1]
 
     assert recovered.channels == 2
     assert recovered.frames == 16

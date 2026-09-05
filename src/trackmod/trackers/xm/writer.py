@@ -2,6 +2,7 @@ from trackmod.binary.text import encode_name
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.song import Song
 from trackmod.spec.width import BYTE_MAX
+from trackmod.trackers.xm.addressing import routed
 from trackmod.trackers.xm.instruments.grouping import song_groups
 from trackmod.trackers.xm.instruments.writer import instrument_block
 from trackmod.trackers.xm.layout.file import FILE_HEADER
@@ -36,7 +37,7 @@ def file_header(song: Song, settings: XMSettings) -> bytes:
             "restart_position": song.order.restart,
             "channels": song.channels,
             "pattern_count": len(song.patterns),
-            "instrument_count": len(song.instruments),
+            "instrument_count": len(routed(song).instruments),
             "flags": int(settings.flags),
             "speed": song.playback.speed,
             "tempo": song.playback.tempo,
@@ -55,7 +56,7 @@ def write_module(song: Song, settings: XMSettings) -> bytes:
     for pattern in song.patterns:
         out += pack_pattern(pattern)
 
-    for instrument, group in zip(song.instruments, song_groups(song)):
+    for instrument, group in zip(routed(song).instruments, song_groups(song)):
         out += instrument_block(instrument, group)
 
     return bytes(out)

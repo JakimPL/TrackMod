@@ -1,6 +1,6 @@
 import pytest
 
-from tests.conftest import GridShape, random_pattern, rescaled
+from tests.conftest import GridShape, random_pattern, rescaled, revoiced, voices_of
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
@@ -47,8 +47,9 @@ def test_the_fadeout_the_tracker_honours_stops_short_of_what_its_field_holds() -
 
 
 def test_a_fadeout_past_the_tracker_is_a_compliance_violation_the_extended_level_allows(song: Song) -> None:
-    faster = song.instruments[0].model_copy(update={"fadeout": 2 * CANONICAL_MAX_FADEOUT})
-    quick = song.model_copy(update={"instruments": (faster, *song.instruments[1:])})
+    voices = voices_of(song)
+    faster = voices.instruments[0].model_copy(update={"fadeout": 2 * CANONICAL_MAX_FADEOUT})
+    quick = revoiced(song, instruments=(faster, *voices.instruments[1:]))
     canonical = ITModule.from_song(quick, compliance=Compliance.CANONICAL).violations()
     assert [violation.capability for violation in canonical] == [Capability.FADEOUT]
     assert canonical[0].severity is Severity.COMPLIANCE
@@ -72,14 +73,11 @@ def test_writing_a_module_the_format_refuses_raises(song: Song) -> None:
 
 
 def test_a_short_pattern_is_a_compliance_violation_the_extended_level_allows(song: Song) -> None:
-    short = Song(
-        name=song.name,
-        channels=song.channels,
-        patterns=(random_pattern(GridShape(rows=8, channels=song.channels, instruments=2, seed=5)),),
-        order=OrderList(entries=(0,)),
-        instruments=song.instruments,
-        samples=song.samples,
-        playback=song.playback,
+    short = song.model_copy(
+        update={
+            "patterns": (random_pattern(GridShape(rows=8, channels=song.channels, instruments=2, seed=5)),),
+            "order": OrderList(entries=(0,)),
+        }
     )
     canonical = ITModule.from_song(short, compliance=Compliance.CANONICAL).violations()
     assert [violation.capability for violation in canonical] == [Capability.PATTERN_ROWS]
@@ -87,16 +85,8 @@ def test_a_short_pattern_is_a_compliance_violation_the_extended_level_allows(son
 
 
 def test_a_pattern_over_the_size_field_is_reported(song: Song) -> None:
-    crowded = random_pattern(GridShape(rows=MAX_ROWS, channels=127, instruments=8, seed=99))
-    wide = Song(
-        name=song.name,
-        channels=127,
-        patterns=(crowded,),
-        order=OrderList(entries=(0,)),
-        instruments=song.instruments,
-        samples=song.samples,
-        playback=song.playback,
-    )
+    crowded = random_pattern(GridShape(rows=MAX_ROWS, channels=127, instruments=2, seed=99))
+    wide = song.model_copy(update={"channels": 127, "patterns": (crowded,), "order": OrderList(entries=(0,))})
     reported = [
         violation.capability for violation in ITModule.from_song(wide, compliance=Compliance.EXTENDED).violations()
     ]

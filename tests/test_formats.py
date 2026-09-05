@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
-from tests.conftest import FADEOUT, keyed, lattice, rescaled
+from tests.conftest import FADEOUT, keyed, lattice, rescaled, voices_of
 from trackmod.core.effects.catalog import EffectCatalog
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.instruments.instrument import Instrument
@@ -23,6 +23,8 @@ from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
+from trackmod.core.voices.convert import flattened, raised
+from trackmod.core.voices.voices import InstrumentVoices, SampleVoices
 from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
@@ -44,7 +46,7 @@ from trackmod.trackers.it.timing import row_frames as it_row_frames
 from trackmod.trackers.registry import (
     INSTRUMENT_EXTENSIONS,
     MODULE_EXTENSIONS,
-    parse_units,
+    parse_voices,
     reads,
 )
 from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
@@ -184,8 +186,7 @@ def portable_song(catalog: EffectCatalog, envelope: Envelope, *, seed: int) -> S
         channels=PORTABLE_CHANNELS,
         patterns=tuple(portable_pattern(catalog, rows=rows, seed=seed + rows) for rows in PORTABLE_ROWS),
         order=OrderList(entries=(0, 1, 0)),
-        instruments=instruments,
-        samples=samples,
+        voices=InstrumentVoices(instruments=instruments, samples=samples),
         playback=Playback(speed=PORTABLE_SPEED, tempo=PORTABLE_TEMPO),
     )
 
@@ -297,10 +298,13 @@ def test_a_binding_answers_the_whole_module_surface(binding: Binding, portable: 
 
 def test_the_storage_table_predicts_what_one_more_voice_costs(binding: Binding, portable: Song) -> None:
     extra = Sample(name="extra", pcm=lattice(np.linspace(-1.0, 1.0, EXTRA_FRAMES)), rate=portable_rate(FRAME_RATE))
+    voices = voices_of(portable)
     grown = portable.model_copy(
         update={
-            "instruments": (*portable.instruments, Instrument(name="extra", keymap=keyed(len(portable.samples)))),
-            "samples": (*portable.samples, extra),
+            "voices": InstrumentVoices(
+                instruments=(*voices.instruments, Instrument(name="extra", keymap=keyed(len(voices.samples)))),
+                samples=(*voices.samples, extra),
+            )
         }
     )
     storage = binding.bind(portable, Compliance.CANONICAL).storage
@@ -345,13 +349,14 @@ def test_a_generated_song_survives_being_written_and_read_back(
 
 def sounded_waveforms(song: Song) -> list[dict[int, Sample]]:
     """What each instrument's keys actually sound, read through the table its keymap indexes into."""
+    voices = voices_of(song)
     return [
         {
-            key: song.samples[assignment.sample]
+            key: voices.samples[assignment.sample]
             for key, assignment in enumerate(instrument.keymap)
             if assignment is not None
         }
-        for instrument in song.instruments
+        for instrument in voices.instruments
     ]
 
 
@@ -361,9 +366,9 @@ def test_an_instrument_carried_between_songs_sounds_the_same_in_either_format(
 ) -> None:
     # Reversing the order is what makes the renumbering matter: every keymap now indexes a table
     # position it was never built against, and a stale index would sound the wrong waveform.
-    units = [extract(portable, index) for index in reversed(range(len(portable.instruments)))]
-    instruments, samples = combine(units)
-    reordered = portable.model_copy(update={"instruments": instruments, "samples": samples})
+    voices = voices_of(portable)
+    units = [extract(voices, index) for index in reversed(range(len(voices.instruments)))]
+    reordered = portable.model_copy(update={"voices": combine(units)})
 
     recovered = recovered_song(binding, reordered)
     for expected, restored in zip(reversed(sounded_waveforms(portable)), sounded_waveforms(recovered)):
@@ -382,7 +387,7 @@ def both_recoveries(envelope: Envelope) -> tuple[Song, Song]:
 
 
 def test_a_binding_answers_the_whole_instrument_file_surface(binding: Binding, portable: Song) -> None:
-    unit = extract(portable, 0)
+    unit = extract(voices_of(portable), 0)
     written = binding.bind_unit(unit, Compliance.CANONICAL)
     assert written.unit == unit
     assert written.limits.compliance is Compliance.CANONICAL
@@ -395,7 +400,7 @@ def test_an_instrument_stored_on_its_own_costs_less_than_the_module_around_it(
     binding: Binding,
     portable: Song,
 ) -> None:
-    alone = binding.bind_unit(extract(portable, 0), Compliance.CANONICAL)
+    alone = binding.bind_unit(extract(voices_of(portable), 0), Compliance.CANONICAL)
     whole = binding.bind(portable, Compliance.CANONICAL)
     assert alone.size().total < whole.size().total
 
@@ -405,34 +410,36 @@ def test_a_unit_saves_under_the_extension_its_format_writes_instruments_with(
     binding: Binding,
     portable: Song,
 ) -> None:
-    written = binding.bind_unit(extract(portable, 0), Compliance.CANONICAL)
+    written = binding.bind_unit(extract(voices_of(portable), 0), Compliance.CANONICAL)
     path = tmp_path / f"voice{written.extension}"
     written.save(path)
     assert path.read_bytes() == written.to_bytes()
-    assert binding.parse_unit(path.read_bytes()).unit.instrument.name == portable.instruments[0].name
+    assert binding.parse_unit(path.read_bytes()).unit.instrument.name == voices_of(portable).instruments[0].name
 
 
 def test_the_registry_reads_a_module_by_the_extension_that_wrote_it(binding: Binding, portable: Song) -> None:
     module = binding.bind(portable, Compliance.CANONICAL)
     assert module.extension in MODULE_EXTENSIONS
-    assert parse_units(module.to_bytes(), extension=module.extension) == held(binding.parse(module.to_bytes()).song)
+    assert parse_voices(module.to_bytes(), extension=module.extension) == binding.parse(module.to_bytes()).song.voices
 
 
 def test_the_registry_reads_a_standalone_instrument_as_the_one_voice_it_holds(
     binding: Binding,
     portable: Song,
 ) -> None:
-    written = binding.bind_unit(extract(portable, 0), Compliance.CANONICAL)
+    written = binding.bind_unit(extract(voices_of(portable), 0), Compliance.CANONICAL)
+    unit = binding.parse_unit(written.to_bytes()).unit
     assert written.extension in INSTRUMENT_EXTENSIONS
-    assert parse_units(written.to_bytes(), extension=written.extension) == (
-        binding.parse_unit(written.to_bytes()).unit,
+    assert parse_voices(written.to_bytes(), extension=written.extension) == InstrumentVoices(
+        instruments=(unit.instrument,),
+        samples=unit.samples,
     )
 
 
 def test_the_registry_names_an_extension_however_it_is_spelled(binding: Binding, portable: Song) -> None:
     module = binding.bind(portable, Compliance.CANONICAL)
     assert reads(module.extension.upper())
-    assert parse_units(module.to_bytes(), extension=module.extension.upper()) == parse_units(
+    assert parse_voices(module.to_bytes(), extension=module.extension.upper()) == parse_voices(
         module.to_bytes(), extension=module.extension
     )
 
@@ -440,13 +447,13 @@ def test_the_registry_names_an_extension_however_it_is_spelled(binding: Binding,
 def test_the_registry_refuses_an_extension_no_format_here_writes() -> None:
     assert not reads(UNWRITTEN_EXTENSION)
     with pytest.raises(ValueError, match=UNWRITTEN_EXTENSION):
-        parse_units(b"", extension=UNWRITTEN_EXTENSION)
+        parse_voices(b"", extension=UNWRITTEN_EXTENSION)
 
 
 def test_both_formats_recover_the_same_voice_from_one_instrument(fade_envelope: Envelope) -> None:
     # Every quantity the unit carries lives in the intersection of the two formats, so what comes back
     # differing would be the container rather than the voice.
-    unit = extract(portable_song(IT_EFFECTS, fade_envelope, seed=PORTABLE_SEED), 0)
+    unit = extract(voices_of(portable_song(IT_EFFECTS, fade_envelope, seed=PORTABLE_SEED)), 0)
     from_it, from_xm = (
         binding.parse_unit(binding.bind_unit(unit, Compliance.CANONICAL).to_bytes()).unit for binding in BINDINGS
     )
@@ -472,7 +479,7 @@ def test_both_formats_recover_the_same_music_from_one_song(fade_envelope: Envelo
 
 def test_both_formats_recover_the_same_waveforms_from_one_song(fade_envelope: Envelope) -> None:
     from_it, from_xm = both_recoveries(fade_envelope)
-    for original, restored in zip(from_it.samples, from_xm.samples):
+    for original, restored in zip(from_it.voices.samples, from_xm.voices.samples):
         assert restored.name == original.name
         assert restored.rate == original.rate
         assert np.array_equal(restored.pcm, original.pcm)
@@ -562,3 +569,35 @@ def test_the_tempo_a_header_holds_is_beyond_what_an_effect_sets(portable: Song) 
     assert XMModule.from_song(fast, compliance=Compliance.EXTENDED).to_bytes()
     with pytest.raises(ValueError):
         XM_EFFECTS.set_tempo(HACKED_TEMPO)
+
+
+def test_only_one_format_lets_a_cell_name_a_sample(portable: Song) -> None:
+    # Impulse Tracker plays both ways and states which in its header; FastTracker 2 numbers instruments
+    # and nothing else, so a sample-addressed song reaches it through a named conversion.
+    flat = portable.model_copy(update={"voices": flattened(voices_of(portable))})
+    assert isinstance(flat.voices, SampleVoices)
+    assert ITModule.from_song(flat, compliance=Compliance.CANONICAL).violations() == ()
+    with pytest.raises(ValueError, match="name instruments"):
+        XMModule.from_song(flat, compliance=Compliance.CANONICAL)
+
+
+def test_raising_a_sample_table_writes_it_to_either_format(portable: Song) -> None:
+    flat = portable.model_copy(update={"voices": flattened(voices_of(portable))})
+    lifted = flat.model_copy(update={"voices": raised(flattened(voices_of(portable)))})
+    for binding in BINDINGS:
+        recovered = binding.parse(binding.bind(lifted, Compliance.CANONICAL).to_bytes()).song
+        assert [sample.name for sample in recovered.voices.samples] == [sample.name for sample in flat.voices.samples]
+
+
+def test_the_registry_reads_a_sample_addressed_module_as_a_sample_table(portable: Song) -> None:
+    flat = portable.model_copy(update={"voices": flattened(voices_of(portable))})
+    module = ITModule.from_song(flat, compliance=Compliance.CANONICAL)
+    read = parse_voices(module.to_bytes(), extension=module.extension)
+    assert isinstance(read, SampleVoices)
+    assert read.slots == flat.voices.slots
+
+
+def test_a_song_read_as_units_states_one_per_instrument(binding: Binding, portable: Song) -> None:
+    module = binding.bind(portable, Compliance.CANONICAL)
+    recovered = voices_of(binding.parse(module.to_bytes()).song)
+    assert held(recovered) == tuple(extract(recovered, index) for index in range(recovered.slots))

@@ -27,6 +27,7 @@ from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
+from trackmod.core.voices.voices import InstrumentVoices
 from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.spec.pitch import NOTE_COUNT
 from trackmod.trackers.it.spec.ranges import CANONICAL_MAX_FADEOUT
@@ -111,14 +112,36 @@ def random_pattern(shape: GridShape) -> Pattern:
 
 def rescaled(song: Song, channels: int) -> Song:
     """The same song widened to a new channel count, which is how the channel limits are exercised."""
-    return Song(
-        name=song.name,
-        channels=channels,
-        patterns=tuple(pattern.widened(channels) for pattern in song.patterns),
-        order=song.order,
-        instruments=song.instruments,
-        samples=song.samples,
-        playback=song.playback,
+    return song.model_copy(
+        update={
+            "channels": channels,
+            "patterns": tuple(pattern.widened(channels) for pattern in song.patterns),
+        }
+    )
+
+
+def voices_of(song: Song) -> InstrumentVoices:
+    """The instrument table a song holds, which every song these tests build is written around."""
+    voices = song.voices
+    assert isinstance(voices, InstrumentVoices)
+    return voices
+
+
+def revoiced(
+    song: Song,
+    *,
+    instruments: tuple[Instrument, ...] | None = None,
+    samples: tuple[Sample, ...] | None = None,
+) -> Song:
+    """The same song with one side of its voice table swapped out, which is how a test varies a voice."""
+    voices = voices_of(song)
+    return song.model_copy(
+        update={
+            "voices": InstrumentVoices(
+                instruments=voices.instruments if instruments is None else instruments,
+                samples=voices.samples if samples is None else samples,
+            )
+        }
     )
 
 
@@ -138,11 +161,8 @@ def fade_envelope() -> Envelope:
 
 
 @pytest.fixture
-def song(fade_envelope: Envelope) -> Song:
-    """A small song exercising every part of the model both formats have to carry.
-
-    Both patterns clear the canonical row floor, so the song is writable at either compliance level.
-    """
+def voices(fade_envelope: Envelope) -> InstrumentVoices:
+    """Two instruments over three samples: one pitched across the keyboard, one routing two keys."""
     samples = (
         make_sample("lead", seed=1),
         make_sample("bass", depth=BitDepth.EIGHT, seed=2),
@@ -165,16 +185,24 @@ def song(fade_envelope: Envelope) -> Song:
             ),
         ),
     )
+    return InstrumentVoices(instruments=instruments, samples=samples)
+
+
+@pytest.fixture
+def song(voices: InstrumentVoices) -> Song:
+    """A small song exercising every part of the model both formats have to carry.
+
+    Both patterns clear the canonical row floor, so the song is writable at either compliance level.
+    """
     patterns = (
-        random_pattern(GridShape(rows=32, channels=4, instruments=len(instruments), seed=7)),
-        random_pattern(GridShape(rows=48, channels=4, instruments=len(instruments), seed=8)),
+        random_pattern(GridShape(rows=32, channels=4, instruments=voices.slots, seed=7)),
+        random_pattern(GridShape(rows=48, channels=4, instruments=voices.slots, seed=8)),
     )
     return Song(
         name="trackmod",
         channels=4,
         patterns=patterns,
         order=OrderList(entries=(0, 1, 0)),
-        instruments=instruments,
-        samples=samples,
+        voices=voices,
         playback=Playback(speed=6, tempo=125),
     )

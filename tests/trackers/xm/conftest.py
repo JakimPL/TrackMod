@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from tests.conftest import keyed, lattice
+from tests.conftest import keyed, lattice, voices_of
 from trackmod.core.effects.effect import Effect
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.instruments.instrument import Instrument
@@ -16,6 +16,7 @@ from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
+from trackmod.core.voices.voices import InstrumentVoices
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.pitch import RATE_NOTE
 from trackmod.spec.width import BYTE_MAX
@@ -112,7 +113,12 @@ def xm_song(fade_envelope: Envelope) -> Song:
             xm_pattern(rows=16, channels=4, instruments=len(instruments), seed=12),
         ),
         order=OrderList(entries=(0, 1, 0), restart=1),
-        instruments=instruments,
-        samples=samples,
+        voices=InstrumentVoices(instruments=instruments, samples=samples),
         playback=Playback(speed=6, tempo=125),
     )
+
+
+@pytest.fixture
+def xm_voices(xm_song: Song) -> InstrumentVoices:
+    """The instrument table the song above holds, which every record this format writes comes from."""
+    return voices_of(xm_song)

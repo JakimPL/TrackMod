@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import numpy as np
 from pydantic import BaseModel, model_validator
 
-from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.patterns.grid import Pattern
-from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
+from trackmod.core.voices.voices import Voices
 from trackmod.schema.config import FROZEN
 from trackmod.schema.scalars import Channels
 
@@ -14,10 +14,13 @@ from trackmod.schema.scalars import Channels
 class Song(BaseModel):
     """A complete piece of tracker music, held in the terms every tracker format shares.
 
-    Patterns, instruments and samples are flat lists that the columns and keymaps index into, so a song
-    is self-contained: an instrument names a sample by its position here, and an order names a pattern
-    the same way. Every pattern is the same width, which is the contract formats that store one channel
-    count for the whole module need.
+    Patterns are a flat list the order names positions in, and ``voices`` is the table the instrument
+    column names positions in — either the samples a cell plays directly or the instruments that route
+    keys onto samples, which is the choice each tracker makes and each format states. A song is
+    self-contained: every reference it holds points inside itself.
+
+    Every pattern is the same width, which is the contract formats that store one channel count for the
+    whole module need.
     """
 
     model_config = FROZEN
@@ -26,8 +29,7 @@ class Song(BaseModel):
     channels: Channels
     patterns: tuple[Pattern, ...]
     order: OrderList
-    instruments: tuple[Instrument, ...]
-    samples: tuple[Sample, ...]
+    voices: Voices
     playback: Playback
 
     @model_validator(mode="after")
@@ -38,14 +40,13 @@ class Song(BaseModel):
                     f"pattern {index} is {pattern.channels} channels wide, but the song declares {self.channels}"
                 )
 
+            named = int(np.max(pattern.instrument))
+            if named >= self.voices.slots:
+                raise ValueError(f"pattern {index} names voice {named} of {self.voices.slots}")
+
         for position, entry in enumerate(self.order.entries):
             if entry >= len(self.patterns):
                 raise ValueError(f"order position {position} names pattern {entry} of {len(self.patterns)}")
-
-        for index, instrument in enumerate(self.instruments):
-            for sample in instrument.samples:
-                if sample >= len(self.samples):
-                    raise ValueError(f"instrument {index} names sample {sample} of {len(self.samples)}")
 
         return self
 

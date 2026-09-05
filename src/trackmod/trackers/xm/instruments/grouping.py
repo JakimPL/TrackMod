@@ -4,6 +4,7 @@ from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.notes.pitch import Note
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
+from trackmod.trackers.xm.addressing import routed
 from trackmod.trackers.xm.instruments.group import SampleGroup
 from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
 from trackmod.trackers.xm.tuning import Tuning, tuning_for
@@ -66,5 +67,10 @@ def group_samples(instrument: Instrument, samples: Sequence[Sample]) -> SampleGr
 
 
 def song_groups(song: Song) -> tuple[SampleGroup, ...]:
-    """Every instrument's samples, in the order the file lays them out."""
-    return tuple(group_samples(instrument, song.samples) for instrument in song.instruments)
+    """Every instrument's samples, in the order the file lays them out.
+
+    Raises:
+        ValueError: when the song's cells name samples, which this format keeps no records for.
+    """
+    voices = routed(song)
+    return tuple(group_samples(instrument, voices.samples) for instrument in voices.instruments)
