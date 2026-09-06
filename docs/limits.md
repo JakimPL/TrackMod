@@ -12,14 +12,17 @@ all three, so a caller can choose a ceiling deliberately and a reader can say wh
 ```python
 class Capability(StrEnum): CHANNELS, PATTERNS, ORDERS, PATTERN_ROWS, PATTERN_BYTES, INSTRUMENTS, ...
 class Compliance(StrEnum): CANONICAL, EXTENDED, STRUCTURAL
-class Severity(StrEnum):   COMPLIANCE, EXTENDED, STRUCTURAL
 
 class Bound(BaseModel):      minimum: int; maximum: int
 class Capacity(BaseModel):   canonical: Bound; extended: Bound; structural: Bound
+class Tier(BaseModel):       level: Compliance; bound: Bound
 class Limits(BaseModel):     compliance: Compliance; capacities: Mapping[Capability, Capacity]
-class Violation(BaseModel):  capability; value; bound; severity; subject
+class Violation(BaseModel):  capability; value; bound; level; subject
 class LimitError(ValueError): violations: tuple[Violation, ...]
 ```
+
+One enum names the three levels, and a violation states which of them it broke, so the level a caller
+writes to and the level a value passed are the same three words throughout.
 
 `Capability` is the shared vocabulary: one name per quantity, stated the same way by every format, so a
 caller asking "how many channels may I use?" phrases the question once.
@@ -38,7 +41,7 @@ all three coincide.
 
 A value is graded against the **widest ceiling it passes**, because passing a wide bound means passing
 every tighter one, and the widest is what says who will still read the file back. That ceiling becomes
-the violation's severity: `COMPLIANCE` for a value only the format's own tracker refuses, `EXTENDED` for
+the violation's `level`: `CANONICAL` for a value only the format's own tracker refuses, `EXTENDED` for
 one the players descended from it refuse too, and `STRUCTURAL` for one the bytes cannot hold at all.
 
 A violation is reported when its ceiling is the level the module is held to, or a wider one. So a
@@ -48,7 +51,7 @@ skips validation — it is one validated against a wider bound.
 | Value | at `CANONICAL` | at `EXTENDED` | at `STRUCTURAL` |
 |---|---|---|---|
 | Inside every bound | — | — | — |
-| Past the tracker's own | `COMPLIANCE` | — | — |
+| Past the tracker's own | `CANONICAL` | — | — |
 | Past what the players read | `EXTENDED` | `EXTENDED` | — |
 | Past what the layout holds | `STRUCTURAL` | `STRUCTURAL` | `STRUCTURAL` |
 
@@ -61,7 +64,7 @@ tuple.
 ```python
 module = XMModule.from_song(song, compliance=Compliance.CANONICAL)
 for violation in module.violations():
-    print(violation)     # song: tempo is 441, outside 32..255 (compliance)
+    print(violation)     # song: tempo is 441, outside 32..255 (canonical)
 ```
 
 ## What a file reaches past
@@ -73,15 +76,17 @@ already exists, which ceilings did it need? Every module and instrument file ans
 module = ITModule.load(Path("song.it"))
 
 module.reach                 # Compliance.EXTENDED
-module.exceeded()            # song: channels is 96, outside 1..64 (compliance)
+module.exceeded()            # song: channels is 96, outside 1..64 (canonical)
 module.require_reach(Compliance.CANONICAL)      # raises LimitError
 ```
 
 `reach` is the strictest level the song fits inside: `CANONICAL` for a module that opens in the tracker
 its format names, `EXTENDED` for one that needs a player descended from it, and `STRUCTURAL` for one
 whose values are stored but read faithfully by nothing — what a tracker scene would call a hacked
-module. `exceeded()` is the detail behind it, graded at the strictest level whatever level the module is
-held to, and `require_reach` refuses a module that goes further than a caller will accept.
+module. A song carrying a value no record layout holds fits none of the three, and `reach` is `None`
+there, which is the answer that separates it from a song the widest level does hold. `exceeded()` is the
+detail behind it, graded at the strictest level whatever level the module is held to, and `require_reach`
+refuses a module that goes further than a caller will accept.
 
 Reading holds a module to `STRUCTURAL`, because a file that exists is evidence its values were storable,
 so `violations()` stays empty for one a later tracker wrote and the reaching is asked for separately.
@@ -121,11 +126,13 @@ and structural; a single bound is a field with no headroom at any level.
 | `orders` | 0..256 / 0..65535 / 0..65535 | 0..256 / 0..256 / 0..65535 | 0..128 | 0..255 / 0..65535 / 0..65535 |
 | `pattern_rows` | 32..200 / 1..1024 / 1..65535 | 1..256 / 1..1024 / 1..65535 | 64..64 | 64..64 |
 | `pattern_bytes` | 0..65535 | 0..65535 | — | 0..65535 |
+| `block_offset` | — | — | — | 0..1048560 |
 | `instruments` | 0..99 / 0..255 / 0..255 | 0..128 / 0..255 / 0..255 | — | — |
 | `samples` | 0..99 / 0..255 / 0..255 | 0..2048 / 0..65025 / 0..65025 | 0..31 | 0..99 / 0..255 / 0..255 |
 | `samples_per_instrument` | 0..255 | 0..16 / 0..255 / 0..255 | — | — |
 | `sample_frames` | 0..4294967295 | 0..4294967295 | 0..131070 | 0..64000 / 0..4294967295 / 0..4294967295 |
 | `sample_bytes` | — | 0..4294967295 | 0..131070 | 0..64000 / 0..17179869180 / 0..17179869180 |
+| `sample_offset` | — | — | — | 0..268435440 |
 | `sample_rate` | 1..9999999 / 1..4294967295 / 1..4294967295 | 10..25662141 | 7893..8795 | 1..65535 / 1..4294967295 / 1..4294967295 |
 | `sample_volume` | 0..64 | 0..64 | 0..64 | 0..64 |
 | `sample_gain` | 0..64 | 64..64 | 64..64 | 64..64 |
@@ -151,6 +158,12 @@ those and no volume column either. Impulse Tracker states a waveform's length in
 `sample_bytes` is the one row it leaves empty and the other three fill. A caller reaching for a dash is
 asking about a field that does not exist, which is a different mistake from asking for a value out of
 range.
+
+The two offsets are the reach of a format's own pointers: Scream Tracker 3 finds every block by the
+paragraph it opens on, so a two-byte entry sees 1048560 bytes into a file and the third byte an
+instrument record spends on its waveform sees 268435440. The other three walk their files front to back
+and address nothing, so no distance bounds them. A module packing more patterns than the two-byte table
+reaches is told so as a quantity, where a writer would otherwise meet it as an overflow.
 
 `sample_frames` and `sample_bytes` measure one waveform two ways: the frames it holds per channel, and
 the block those frames come to once the depth and the channel count are counted in. The two coincide for

@@ -21,7 +21,7 @@ from trackmod.trackers.mod.settings import MODSettings
 from trackmod.trackers.mod.sizing import module_bytes
 from trackmod.trackers.mod.spec.identity import EXTENSION
 from trackmod.trackers.mod.spec.storage import MOD_STORAGE
-from trackmod.trackers.mod.writer import write_module
+from trackmod.trackers.mod.writer import write_module, written_dialect
 
 
 class MODModule(BaseModel):
@@ -34,7 +34,8 @@ class MODModule(BaseModel):
     music has to go instead.
 
     Raises:
-        ValueError: when the song's cells name instruments, which this format keeps no records for.
+        ValueError: when the song's cells name instruments, which this format keeps no records for, or
+            when the settings name a tag stating a width other than the one the song plays.
     """
 
     model_config = FROZEN
@@ -46,6 +47,11 @@ class MODModule(BaseModel):
     @model_validator(mode="after")
     def _cells_name_samples(self) -> MODModule:
         sampled(self.song)
+        return self
+
+    @model_validator(mode="after")
+    def _settings_state_the_songs_width(self) -> MODModule:
+        written_dialect(self.song, self.settings)
         return self
 
     @classmethod
@@ -117,13 +123,18 @@ class MODModule(BaseModel):
         A file read back is held to the widest level, because a file that exists is evidence its values
         were storable, so :meth:`violations` stays empty for one a later tracker wrote. This answers the
         other question: which ceilings does it pass, and whose reading does passing them cost? Each
-        violation names the ceiling through its severity.
+        violation names the ceiling through the level it broke.
         """
         return violations(self.song, limits=mod_limits(Compliance.CANONICAL))
 
     @property
-    def reach(self) -> Compliance:
-        """The strictest level the song fits inside, which is what says who will read it back."""
+    def reach(self) -> Compliance | None:
+        """The strictest level the song fits inside, or ``None`` for one no level holds.
+
+        A song whose values all sit inside a record layout reaches one of the three levels, and which
+        one says who will read it back. A song carrying a value no layout holds reaches none of them,
+        which :meth:`exceeded` states as a structural violation.
+        """
         return reached(self.exceeded())
 
     def require_reach(self, compliance: Compliance) -> None:

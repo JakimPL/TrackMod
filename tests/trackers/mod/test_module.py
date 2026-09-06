@@ -94,10 +94,12 @@ def test_the_tag_a_file_carried_is_the_tag_it_is_written_back_under(mod_song: So
     assert MODModule.parse(data).settings.dialect == DIALECTS[b"M!K!"]
 
 
-def test_a_tag_stating_another_width_than_the_song_holds_is_refused(mod_song: Song) -> None:
+def test_a_tag_stating_another_width_than_the_song_holds_is_refused_where_it_is_bound(mod_song: Song) -> None:
+    # A module that reports itself writable and then refuses to serialise is a module a caller cannot
+    # act on, so the disagreement is met where the two are put together.
     stated = MODSettings(dialect=DIALECTS[b"6CHN"])
     with pytest.raises(ValueError, match="states 6 channels"):
-        MODModule.from_song(mod_song, compliance=Compliance.CANONICAL, settings=stated).to_bytes()
+        MODModule.from_song(mod_song, compliance=Compliance.CANONICAL, settings=stated)
 
 
 def test_the_clock_is_the_one_every_module_of_this_format_starts_on(mod_song: Song) -> None:

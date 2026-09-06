@@ -4,6 +4,7 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel
 
+from trackmod.module.storage import padded
 from trackmod.schema.config import FROZEN
 from trackmod.schema.scalars import Count, Offset
 from trackmod.trackers.s3m.spec.sizes import (
@@ -18,7 +19,7 @@ from trackmod.trackers.s3m.spec.sizes import (
 
 def aligned(offset: int) -> int:
     """The paragraph boundary at or past ``offset``, which is where the next block a pointer names sits."""
-    return -(-offset // PARAGRAPH_BYTES) * PARAGRAPH_BYTES
+    return padded(offset, alignment=PARAGRAPH_BYTES)
 
 
 def tables_bytes(*, samples: int, patterns: int, orders: int) -> int:
@@ -47,7 +48,8 @@ class Placement(BaseModel):
 
     One more sample therefore moves the body by its own eighty bytes and by whatever padding the shift
     changes, which is why every offset a writer states and every byte a size report counts are read from
-    here and nowhere else.
+    here and nowhere else. ``padding`` is what those boundaries cost: the ground between the last byte of
+    one block and the paragraph the next one opens on.
     """
 
     model_config = FROZEN
@@ -56,6 +58,7 @@ class Placement(BaseModel):
     patterns: tuple[Offset, ...]
     waveforms: tuple[Offset, ...]
     total: Count
+    padding: Count
 
     @classmethod
     def of(
@@ -71,8 +74,16 @@ class Placement(BaseModel):
         the arithmetic needs: everything else the file spends is fixed by the counts.
         """
         samples = len(waveforms)
-        start = aligned(tables_bytes(samples=samples, patterns=len(patterns), orders=orders))
+        tables = tables_bytes(samples=samples, patterns=len(patterns), orders=orders)
+        start = aligned(tables)
         records = tuple(start + INSTRUMENT_RECORD_BYTES * index for index in range(samples))
         packed, after_patterns = _laid(patterns, start + INSTRUMENT_RECORD_BYTES * samples)
         frames, total = _laid(waveforms, after_patterns)
-        return cls(instruments=records, patterns=packed, waveforms=frames, total=total)
+        stated = tables + INSTRUMENT_RECORD_BYTES * samples + sum(patterns) + sum(waveforms)
+        return cls(
+            instruments=records,
+            patterns=packed,
+            waveforms=frames,
+            total=total,
+            padding=total - stated,
+        )

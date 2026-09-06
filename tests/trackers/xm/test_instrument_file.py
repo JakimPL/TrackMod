@@ -16,7 +16,6 @@ from trackmod.core.songs.song import Song
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
-from trackmod.limits.severity import Severity
 from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.layout.instrument import INSTRUMENT_FILE_HEADER
 from trackmod.trackers.xm.spec.identity import (
@@ -142,7 +141,7 @@ def test_a_sample_staged_below_full_gain_is_reported_at_every_compliance(xm_song
     for compliance in Compliance:
         (reported,) = instrument_file(staged, compliance=compliance).violations()
         assert reported.capability is Capability.SAMPLE_GAIN
-        assert reported.severity is Severity.STRUCTURAL
+        assert reported.level is Compliance.STRUCTURAL
 
     with pytest.raises(LimitError):
         instrument_file(staged).to_bytes()

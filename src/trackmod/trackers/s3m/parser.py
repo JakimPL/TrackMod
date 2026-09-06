@@ -13,7 +13,7 @@ from trackmod.core.songs.repair import repaired_order
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import SampleVoices
 from trackmod.spec.grid import MIN_CHANNELS
-from trackmod.trackers.s3m.channels import stated_width
+from trackmod.trackers.s3m.channels import channel_table, stated_width
 from trackmod.trackers.s3m.layout.file import FILE_HEADER
 from trackmod.trackers.s3m.layout.instrument import INSTRUMENT_RECORD
 from trackmod.trackers.s3m.panning import shared_panning
@@ -62,7 +62,7 @@ class ModuleReader:
         self._sample_offsets = self._read_table(cursor, "sample_count")
         self._pattern_offsets = self._read_table(cursor, "pattern_count")
         self._panning = self._read_panning(cursor)
-        self._channels = max(stated_width(self._settings_table), MIN_CHANNELS)
+        self._channels, self._channel_settings = self._read_width()
 
     def song(self) -> Song:
         """The format-agnostic content the file carries, with whatever it stated out of range drawn in."""
@@ -87,14 +87,25 @@ class ModuleReader:
             mix_volume=mixing & MIX_VOLUME_MASK,
             stereo=bool(mixing & STEREO_MIXING),
             flags=HeaderFlag(read_int(self._header, "flags")),
-            channels=self._settings_table,
+            channels=self._channel_settings,
             channel_panning=self._panning,
             created_with=read_int(self._header, "created_with"),
         )
 
-    @property
-    def _settings_table(self) -> tuple[int, ...]:
-        return tuple(read_bytes(self._header, "channel_settings"))
+    def _read_width(self) -> tuple[int, tuple[int, ...]]:
+        """How wide this module's cells are, and the settings table that states it.
+
+        A table naming no slot at all states a module of no width, and a song holds one channel at the
+        least — so the table is filled in to name the channel the song plays, which leaves a file read
+        here as one a writer lays down again.
+        """
+        stated = tuple(read_bytes(self._header, "channel_settings"))
+        width = stated_width(stated)
+        if width >= MIN_CHANNELS:
+            return width, stated
+
+        self._repairs.made(f"a settings table naming {width} channels read as {MIN_CHANNELS}", subject="song")
+        return MIN_CHANNELS, channel_table(MIN_CHANNELS)
 
     def _playback(self) -> Playback:
         """The clock the file starts on, with a speed or a tempo below its floor read as the default."""

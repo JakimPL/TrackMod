@@ -19,8 +19,10 @@ from trackmod.trackers.s3m.spec.ranges import (
     CANONICAL_MAX_SAMPLE_FRAMES,
     CANONICAL_MAX_SAMPLE_RATE,
     CANONICAL_MAX_SAMPLES,
+    MAX_BLOCK_OFFSET,
     MAX_GLOBAL_VOLUME,
     MAX_MIX_VOLUME,
+    MAX_SAMPLE_OFFSET,
     MAX_SAMPLE_VOLUME,
     MAX_SPEED,
     MAX_TEMPO,
@@ -57,6 +59,7 @@ CAPACITIES: Final = {
     ),
     Capability.PATTERN_ROWS: Capacity.fixed(Bound(minimum=PATTERN_ROWS, maximum=PATTERN_ROWS)),
     Capability.PATTERN_BYTES: Capacity.fixed(Bound(minimum=0, maximum=WORD_MAX)),
+    Capability.BLOCK_OFFSET: Capacity.fixed(Bound(minimum=0, maximum=MAX_BLOCK_OFFSET)),
     Capability.SAMPLES: Capacity(
         canonical=Bound(minimum=0, maximum=CANONICAL_MAX_SAMPLES),
         extended=Bound(minimum=0, maximum=STRUCTURAL_MAX_SAMPLES),
@@ -72,6 +75,7 @@ CAPACITIES: Final = {
         extended=Bound(minimum=0, maximum=STRUCTURAL_MAX_SAMPLE_BYTES),
         structural=Bound(minimum=0, maximum=STRUCTURAL_MAX_SAMPLE_BYTES),
     ),
+    Capability.SAMPLE_OFFSET: Capacity.fixed(Bound(minimum=0, maximum=MAX_SAMPLE_OFFSET)),
     Capability.SAMPLE_RATE: Capacity(
         canonical=Bound(minimum=1, maximum=CANONICAL_MAX_SAMPLE_RATE),
         extended=Bound(minimum=1, maximum=STRUCTURAL_MAX_SAMPLE_RATE),

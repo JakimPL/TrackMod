@@ -11,6 +11,7 @@ from trackmod.limits.violation import Violation
 from trackmod.trackers.s3m.addressing import sampled
 from trackmod.trackers.s3m.patterns.sizing import block_bytes
 from trackmod.trackers.s3m.settings import S3MSettings
+from trackmod.trackers.s3m.sizing import module_placement
 
 
 def check_song(checklist: Checklist, song: Song) -> None:
@@ -52,6 +53,19 @@ def check_samples(checklist: Checklist, samples: Sequence[Sample]) -> None:
         checklist.check(Capability.SAMPLE_GAIN, sample.gain, subject=subject)
 
 
+def check_placement(checklist: Checklist, song: Song) -> None:
+    """Grade where the blocks this module's tables name land, which is as far as its pointers reach.
+
+    Every block is found by the paragraph it opens on rather than by walking the file, so how large a
+    module may grow is settled by how far its pointers see: the header's two tables name a paragraph in
+    two bytes, and an instrument record names its waveform's in three.
+    """
+    placement = module_placement(song)
+    named = (*placement.instruments, *placement.patterns)
+    checklist.check(Capability.BLOCK_OFFSET, max(named, default=0), subject="song")
+    checklist.check(Capability.SAMPLE_OFFSET, max(placement.waveforms, default=0), subject="song")
+
+
 def check_settings(checklist: Checklist, settings: S3MSettings) -> None:
     """Grade the song-wide levels this format adds."""
     checklist.check(Capability.SONG_VOLUME, settings.global_volume, subject="settings")
@@ -68,5 +82,6 @@ def violations(song: Song, settings: S3MSettings, *, limits: Limits) -> tuple[Vi
     check_song(checklist, song)
     check_patterns(checklist, song)
     check_samples(checklist, sampled(song).samples)
+    check_placement(checklist, song)
     check_settings(checklist, settings)
     return checklist.violations

@@ -3,9 +3,11 @@ import pytest
 
 from tests.conftest import lattice, rescaled
 from tests.trackers.s3m.conftest import S3M_CHANNELS, s3m_pattern
+from trackmod.core.effects.effect import Effect
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
+from trackmod.core.patterns.grid import Pattern
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
@@ -16,7 +18,6 @@ from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
-from trackmod.limits.severity import Severity
 from trackmod.spec.pitch import REFERENCE_RATE
 from trackmod.spec.width import BYTE_MAX
 from trackmod.trackers.s3m.limits import s3m_limits
@@ -28,6 +29,7 @@ from trackmod.trackers.s3m.spec.ranges import (
     CANONICAL_MAX_SAMPLE_BYTES,
     CANONICAL_MAX_SAMPLE_FRAMES,
     CANONICAL_MAX_SAMPLE_RATE,
+    MAX_BLOCK_OFFSET,
     MAX_GLOBAL_VOLUME,
     PATTERN_ROWS,
     STRUCTURAL_MAX_CHANNELS,
@@ -56,6 +58,44 @@ def test_the_editor_stops_short_of_what_the_records_hold(capability: Capability,
     assert bound(Compliance.STRUCTURAL, capability)[1] == wider
 
 
+PACKED_PATTERNS = 90
+
+
+def crowded_pattern() -> Pattern:
+    """A pattern stating every column of every cell, which is the largest block this format packs."""
+    builder = PatternBuilder(rows=PATTERN_ROWS, channels=STRUCTURAL_MAX_CHANNELS)
+    for row in range(PATTERN_ROWS):
+        for channel in range(STRUCTURAL_MAX_CHANNELS):
+            builder.place(
+                row,
+                channel,
+                Cell(note=Note(60), instrument=0, volume=32, effect=Effect(command=1, parameter=1)),
+            )
+
+    return builder.build()
+
+
+def test_a_song_reaching_past_what_a_pointer_names_is_reported_rather_than_overflowing() -> None:
+    # Every block is found by the paragraph its pointer names, so a module of enough full patterns runs
+    # past what two bytes reach -- a quantity, and one the writer would otherwise meet as an overflow.
+    crowded = crowded_pattern()
+    song = keyed_song(60).model_copy(
+        update={
+            "channels": STRUCTURAL_MAX_CHANNELS,
+            "patterns": tuple(crowded for _ in range(PACKED_PATTERNS)),
+        }
+    )
+    module = S3MModule.from_song(song, compliance=Compliance.STRUCTURAL)
+
+    (reported,) = module.violations()
+    assert reported.capability is Capability.BLOCK_OFFSET
+    assert reported.level is Compliance.STRUCTURAL
+    assert reported.bound.maximum == MAX_BLOCK_OFFSET
+
+    with pytest.raises(LimitError, match="block_offset"):
+        module.to_bytes()
+
+
 def test_the_song_volume_stops_where_the_tracker_did_and_its_byte_holds_more() -> None:
     assert bound(Compliance.EXTENDED, Capability.SONG_VOLUME)[1] == MAX_GLOBAL_VOLUME
     assert bound(Compliance.STRUCTURAL, Capability.SONG_VOLUME)[1] == BYTE_MAX
@@ -78,7 +118,7 @@ def test_a_song_wider_than_the_tracker_mixed_reaches_the_level_above_it(s3m_song
     assert wide.violations() == ()
     assert wide.reach is Compliance.EXTENDED
     assert [violation.capability for violation in wide.exceeded()] == [Capability.CHANNELS]
-    assert wide.exceeded()[0].severity is Severity.COMPLIANCE
+    assert wide.exceeded()[0].level is Compliance.CANONICAL
     with pytest.raises(LimitError, match="channels"):
         wide.require_reach(Compliance.CANONICAL)
 
@@ -87,7 +127,7 @@ def test_a_song_wider_than_the_settings_table_is_refused_at_every_level(s3m_song
     beyond = S3MModule.from_song(rescaled(s3m_song, STRUCTURAL_MAX_CHANNELS + 1), compliance=Compliance.STRUCTURAL)
     violations = beyond.violations()
     assert [violation.capability for violation in violations] == [Capability.CHANNELS]
-    assert violations[0].severity is Severity.STRUCTURAL
+    assert violations[0].level is Compliance.STRUCTURAL
 
 
 def keyed_song(key: int) -> Song:

@@ -4,7 +4,12 @@ from trackmod.spec.grid import MIN_CHANNELS
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.width import BYTE_MAX, DOUBLE_WORD_MAX, WORD_MAX
 from trackmod.trackers.s3m.spec.orders import ORDER_SEPARATOR
-from trackmod.trackers.s3m.spec.sizes import CHANNELS_STORED
+from trackmod.trackers.s3m.spec.sizes import (
+    CHANNELS_STORED,
+    PARAGRAPH_BYTES,
+    PARAPOINTER_BITS,
+    WAVEFORM_POINTER_BITS,
+)
 from trackmod.trackers.s3m.spec.storage import CANONICAL_FRAME_BYTES, STRUCTURAL_FRAME_BYTES
 
 CANONICAL_MAX_CHANNELS: Final = 16
@@ -17,6 +22,9 @@ CANONICAL_MAX_ORDERS: Final = BYTE_MAX
 STRUCTURAL_MAX_ORDERS: Final = WORD_MAX
 
 PATTERN_ROWS: Final = 64
+
+MAX_BLOCK_OFFSET: Final = ((1 << PARAPOINTER_BITS) - 1) * PARAGRAPH_BYTES
+MAX_SAMPLE_OFFSET: Final = ((1 << WAVEFORM_POINTER_BITS) - 1) * PARAGRAPH_BYTES
 
 CANONICAL_MAX_SAMPLES: Final = 99
 STRUCTURAL_MAX_SAMPLES: Final = BYTE_MAX

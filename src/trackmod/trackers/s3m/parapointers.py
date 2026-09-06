@@ -1,8 +1,5 @@
-from trackmod.spec.width import BITS_PER_BYTE, WORD_MAX
-from trackmod.trackers.s3m.spec.sizes import PARAGRAPH_BYTES
-
-WAVEFORM_SHIFT = BITS_PER_BYTE * 2
-LOW_WORD_MASK = WORD_MAX
+from trackmod.spec.width import WORD_MAX
+from trackmod.trackers.s3m.spec.sizes import PARAGRAPH_BYTES, PARAPOINTER_BITS
 
 
 def parapointer(offset: int) -> int:
@@ -36,9 +33,9 @@ def split_pointer(offset: int) -> tuple[int, int]:
         ValueError: when the offset sits inside a paragraph rather than on one.
     """
     paragraph = parapointer(offset)
-    return paragraph >> WAVEFORM_SHIFT, paragraph & LOW_WORD_MASK
+    return paragraph >> PARAPOINTER_BITS, paragraph & WORD_MAX
 
 
 def joined_pointer(high: int, low: int) -> int:
     """Where the waveform a record's two pointer fields name begins."""
-    return pointed((high << WAVEFORM_SHIFT) | low)
+    return pointed((high << PARAPOINTER_BITS) | low)

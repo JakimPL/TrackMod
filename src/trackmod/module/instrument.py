@@ -32,8 +32,8 @@ class InstrumentFile(Protocol):
         """Every bound the unit breaks, empty when the file is writable."""
 
     @property
-    def reach(self) -> Compliance:
-        """The strictest level the unit fits inside, which is what says who will read it back."""
+    def reach(self) -> Compliance | None:
+        """The strictest level the unit fits inside, or ``None`` for one no level holds."""
 
     def exceeded(self) -> tuple[Violation, ...]:
         """Every bound the unit passes at the strictest level, whatever level it is held to."""

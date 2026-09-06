@@ -36,7 +36,9 @@ sample frames                  pointed at by each record
 Every block a table names opens on a **paragraph** of sixteen bytes, so a two-byte entry reaches
 1048560 bytes into the file and whatever came before a block is padded out to its boundary. A record
 points at its own frames with a third byte on top of that pair, reaching 268435440 — which is why the
-waveforms take the ground the file runs furthest over and the records and the patterns come first.
+waveforms take the ground the file runs furthest over and the records and the patterns come first. Those
+two distances are what bound a module's size, and a song packing more than either of them reaches is
+reported as `block_offset` or `sample_offset` rather than met as an overflow.
 
 The header counts the positions, the records and the patterns at offsets 32, 34 and 36, carries a word of
 song-wide switches at 38, the program that wrote the module at 40 and the sign of its frames at 42, and

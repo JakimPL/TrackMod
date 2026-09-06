@@ -10,7 +10,6 @@ from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
-from trackmod.limits.severity import Severity
 from trackmod.spec.width import BYTE_MAX, DOUBLE_WORD_MAX, WORD_MAX
 from trackmod.trackers.it.limits import it_limits
 from trackmod.trackers.it.module import ITModule
@@ -60,8 +59,16 @@ def test_a_fadeout_past_the_tracker_is_a_compliance_violation_the_extended_level
     quick = revoiced(song, instruments=(faster, *voices.instruments[1:]))
     canonical = ITModule.from_song(quick, compliance=Compliance.CANONICAL).violations()
     assert [violation.capability for violation in canonical] == [Capability.FADEOUT]
-    assert canonical[0].severity is Severity.COMPLIANCE
+    assert canonical[0].level is Compliance.CANONICAL
     assert ITModule.from_song(quick, compliance=Compliance.EXTENDED).violations() == ()
+
+
+@pytest.mark.parametrize(("field", "value"), [("panning_separation", BYTE_MAX + 1), ("created_with", WORD_MAX + 1)])
+def test_a_song_wide_field_past_the_bytes_that_carry_it_is_refused_where_it_is_set(field: str, value: int) -> None:
+    # Neither field is a quantity any capacity states, so the model is where the header's width is kept
+    # and a value past it is refused before a writer meets it.
+    with pytest.raises(ValueError, match=field):
+        ITSettings(**{field: value})
 
 
 def test_the_rate_the_tracker_edits_stops_short_of_what_its_field_holds() -> None:
@@ -81,7 +88,7 @@ def test_a_rate_past_the_tracker_is_reported_and_still_stored(song: Song) -> Non
 
     (reported,) = ITModule.from_song(tuned, compliance=Compliance.CANONICAL).violations()
     assert reported.capability is Capability.SAMPLE_RATE
-    assert reported.severity is Severity.COMPLIANCE
+    assert reported.level is Compliance.CANONICAL
     assert ITModule.parse(module.to_bytes()).song.voices.samples[0].rate == MAX_C5_SPEED + 1
 
 
@@ -100,14 +107,14 @@ def test_a_song_volume_past_the_tracker_is_reported_and_still_fits_its_byte(song
 
     (reported,) = ITModule.from_song(song, compliance=Compliance.EXTENDED, settings=loud).violations()
     assert reported.capability is Capability.SONG_VOLUME
-    assert reported.severity is Severity.EXTENDED
+    assert reported.level is Compliance.EXTENDED
 
 
 def test_extra_channels_are_a_compliance_violation_the_extended_level_allows(song: Song) -> None:
     wide = rescaled(song, 96)
     canonical = ITModule.from_song(wide, compliance=Compliance.CANONICAL).violations()
     assert [violation.capability for violation in canonical] == [Capability.CHANNELS]
-    assert canonical[0].severity is Severity.COMPLIANCE
+    assert canonical[0].level is Compliance.CANONICAL
     assert ITModule.from_song(wide, compliance=Compliance.EXTENDED).violations() == ()
 
 
@@ -116,7 +123,7 @@ def test_writing_a_module_the_format_refuses_raises(song: Song) -> None:
     with pytest.raises(LimitError) as error:
         ITModule.from_song(over, compliance=Compliance.EXTENDED).to_bytes()
 
-    assert error.value.violations[0].severity is Severity.STRUCTURAL
+    assert error.value.violations[0].level is Compliance.STRUCTURAL
 
 
 def test_a_short_pattern_is_a_compliance_violation_the_extended_level_allows(song: Song) -> None:
@@ -163,7 +170,7 @@ def test_an_amount_past_what_the_column_holds_is_reported(song: Song) -> None:
     (violation,) = ITModule.from_song(past, compliance=Compliance.EXTENDED).violations()
     assert violation.capability is Capability.VOLUME_COMMAND
     assert violation.value == MAX_VOLUME_COMMAND + 1
-    assert violation.severity is Severity.STRUCTURAL
+    assert violation.level is Compliance.STRUCTURAL
     assert violation.subject == "pattern 0"
 
 
@@ -239,5 +246,5 @@ def test_a_pattern_taller_than_any_player_reads_is_still_storable(song: Song) ->
 
     (reported,) = ITModule.from_song(stretched, compliance=Compliance.EXTENDED).violations()
     assert reported.capability is Capability.PATTERN_ROWS
-    assert reported.severity is Severity.EXTENDED
+    assert reported.level is Compliance.EXTENDED
     assert ITModule.from_song(stretched, compliance=Compliance.STRUCTURAL).violations() == ()

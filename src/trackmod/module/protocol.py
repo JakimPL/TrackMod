@@ -32,8 +32,8 @@ class TrackerModule(Protocol):
         """Every bound the song breaks, empty when the module is writable."""
 
     @property
-    def reach(self) -> Compliance:
-        """The strictest level the song fits inside, which is what says who will read it back."""
+    def reach(self) -> Compliance | None:
+        """The strictest level the song fits inside, or ``None`` for one no level holds."""
 
     def exceeded(self) -> tuple[Violation, ...]:
         """Every bound the song passes at the strictest level, whatever level it is held to."""

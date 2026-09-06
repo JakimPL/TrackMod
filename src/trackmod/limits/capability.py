@@ -9,6 +9,10 @@ class Capability(StrEnum):
     compares two numbers of the same kind. The pair that measures a waveform is where the unit matters
     most: ``SAMPLE_FRAMES`` counts frames per channel as the model holds them, and ``SAMPLE_BYTES``
     counts the block those frames occupy once stored, which a sample's depth and channel count settle.
+
+    The two offsets are the other pair worth knowing: a format that finds its sections through tables of
+    pointers can only name a block the pointer reaches, so ``BLOCK_OFFSET`` and ``SAMPLE_OFFSET`` state
+    how far into a file each of its tables sees.
     """
 
     CHANNELS = "channels"
@@ -16,11 +20,13 @@ class Capability(StrEnum):
     ORDERS = "orders"
     PATTERN_ROWS = "pattern_rows"
     PATTERN_BYTES = "pattern_bytes"
+    BLOCK_OFFSET = "block_offset"
     INSTRUMENTS = "instruments"
     SAMPLES = "samples"
     SAMPLES_PER_INSTRUMENT = "samples_per_instrument"
     SAMPLE_FRAMES = "sample_frames"
     SAMPLE_BYTES = "sample_bytes"
+    SAMPLE_OFFSET = "sample_offset"
     SAMPLE_RATE = "sample_rate"
     SAMPLE_VOLUME = "sample_volume"
     SAMPLE_GAIN = "sample_gain"

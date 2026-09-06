@@ -10,6 +10,7 @@ from trackmod.trackers.s3m.spec.sizes import (
     FILE_HEADER_BYTES,
     INSTRUMENT_RECORD_BYTES,
     ORDER_BYTES,
+    PARAGRAPH_BYTES,
     PARAPOINTER_BYTES,
     PATTERN_LENGTH_BYTES,
 )
@@ -29,4 +30,5 @@ S3M_STORAGE: Final = Storage(
     instrument=NO_RECORD,
     empty_instrument=NO_RECORD,
     sample=PARAPOINTER_BYTES + INSTRUMENT_RECORD_BYTES,
+    alignment=PARAGRAPH_BYTES,
 )

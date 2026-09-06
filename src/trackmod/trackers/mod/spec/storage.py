@@ -4,7 +4,7 @@ from trackmod.binary.pcm.encoding import PcmEncoding
 from trackmod.binary.pcm.sign import PcmSign
 from trackmod.core.samples.depth import BitDepth
 from trackmod.module.storage import Storage
-from trackmod.trackers.mod.spec.sizes import FILE_HEADER_BYTES
+from trackmod.trackers.mod.spec.sizes import FILE_HEADER_BYTES, WORD_BYTES
 
 PCM_ENCODING: Final = PcmEncoding.ABSOLUTE
 PCM_SIGN: Final = PcmSign.SIGNED
@@ -19,4 +19,5 @@ MOD_STORAGE: Final = Storage(
     instrument=NO_RECORD,
     empty_instrument=NO_RECORD,
     sample=NO_RECORD,
+    alignment=WORD_BYTES,
 )

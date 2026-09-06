@@ -117,13 +117,18 @@ class XMModule(BaseModel):
         A file read back is held to the widest level, because a file that exists is evidence its values
         were storable, so :meth:`violations` stays empty for one a later tracker wrote. This answers the
         other question: which ceilings does it pass, and whose reading does passing them cost? Each
-        violation names the ceiling through its severity.
+        violation names the ceiling through the level it broke.
         """
         return violations(self.song, limits=xm_limits(Compliance.CANONICAL))
 
     @property
-    def reach(self) -> Compliance:
-        """The strictest level the song fits inside, which is what says who will read it back."""
+    def reach(self) -> Compliance | None:
+        """The strictest level the song fits inside, or ``None`` for one no level holds.
+
+        A song whose values all sit inside a record layout reaches one of the three levels, and which
+        one says who will read it back. A song carrying a value no layout holds reaches none of them,
+        which :meth:`exceeded` states as a structural violation.
+        """
         return reached(self.exceeded())
 
     def require_reach(self, compliance: Compliance) -> None:

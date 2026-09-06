@@ -3,7 +3,7 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 
 from trackmod.schema.config import FROZEN
-from trackmod.spec.width import BYTE_MAX
+from trackmod.spec.width import BYTE_MAX, WORD_MAX
 from trackmod.trackers.it.extensions import Extensions
 from trackmod.trackers.it.spec.defaults import (
     DEFAULT_CHANNEL_PANNING,
@@ -22,6 +22,9 @@ ChannelBytes = Annotated[
     tuple[Annotated[int, Field(ge=0, le=BYTE_MAX)], ...],
     Field(min_length=CHANNELS_STORED, max_length=CHANNELS_STORED),
 ]
+
+PanningSeparation = Annotated[int, Field(ge=0, le=BYTE_MAX)]
+Version = Annotated[int, Field(ge=0, le=WORD_MAX)]
 
 
 class ITSettings(BaseModel):
@@ -48,10 +51,10 @@ class ITSettings(BaseModel):
 
     global_volume: int = DEFAULT_GLOBAL_VOLUME
     mix_volume: int = DEFAULT_MIX_VOLUME
-    panning_separation: int = DEFAULT_PANNING_SEPARATION
+    panning_separation: PanningSeparation = DEFAULT_PANNING_SEPARATION
     channel_panning: ChannelBytes = DEFAULT_CHANNEL_PANNING
     channel_volume: ChannelBytes = DEFAULT_CHANNEL_VOLUME
     flags: HeaderFlag = DEFAULT_FLAGS
     message: str = DEFAULT_MESSAGE
-    created_with: int = CREATED_WITH
+    created_with: Version = CREATED_WITH
     extensions: Extensions = Extensions()

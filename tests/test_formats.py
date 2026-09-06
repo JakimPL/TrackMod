@@ -31,10 +31,10 @@ from trackmod.limits.capability import Capability
 from trackmod.limits.checklist import Checklist
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
-from trackmod.limits.severity import Severity
 from trackmod.limits.table import Limits
 from trackmod.module.instrument import InstrumentFile
 from trackmod.module.protocol import TrackerModule
+from trackmod.module.storage import NO_PADDING, Storage
 from trackmod.spec.levels import CENTRE_PANNING, MAX_VOLUME
 from trackmod.spec.pitch import RATE_NOTE, REFERENCE_RATE
 from trackmod.spec.width import NIBBLE_MAX
@@ -85,7 +85,7 @@ PORTABLE_INSTRUMENTS: Final = 3
 PORTABLE_ROWS: Final = (32, 64)
 PORTABLE_SEED: Final = 0
 GENERATED_SEEDS: Final = (1, 2, 3, 4)
-EXTRA_FRAMES: Final = 64
+EXTRA_FRAMES: Final = (64, 65)
 
 HACKED_TEMPO: Final = 441
 SAMPLED_FRAMES: Final = (32, 40, 24)
@@ -345,9 +345,6 @@ class Binding:
     holds, because the formats disagree about what a cell may name: one numbers instruments, one numbers
     samples, and one is written either way.
 
-    ``paragraph`` is the boundary the format's blocks open on, which is how exactly a storage table can
-    predict what one more voice costs: a format laying its records out end to end predicts it to the
-    byte, and one placing every block on a paragraph predicts it to within the padding that shifts.
     """
 
     name: str
@@ -355,7 +352,6 @@ class Binding:
     bind: Callable[[Song, Compliance], TrackerModule]
     parse: Callable[[bytes], TrackerModule]
     song: Callable[[Envelope, int], Song]
-    paragraph: int = 1
 
 
 @dataclass(frozen=True)
@@ -374,14 +370,7 @@ class InstrumentBinding:
 IT_BINDING: Final = Binding(name="it", catalog=IT_EFFECTS, bind=it_binding, parse=parse_it, song=it_song)
 XM_BINDING: Final = Binding(name="xm", catalog=XM_EFFECTS, bind=xm_binding, parse=parse_xm, song=xm_song)
 MOD_BINDING: Final = Binding(name="mod", catalog=MOD_EFFECTS, bind=mod_binding, parse=parse_mod, song=mod_song)
-S3M_BINDING: Final = Binding(
-    name="s3m",
-    catalog=S3M_EFFECTS,
-    bind=s3m_binding,
-    parse=parse_s3m,
-    song=s3m_song,
-    paragraph=PARAGRAPH_BYTES,
-)
+S3M_BINDING: Final = Binding(name="s3m", catalog=S3M_EFFECTS, bind=s3m_binding, parse=parse_s3m, song=s3m_song)
 
 BINDINGS: Final = (IT_BINDING, XM_BINDING, MOD_BINDING, S3M_BINDING)
 VOICED_BINDINGS: Final = (IT_BINDING, XM_BINDING)
@@ -471,15 +460,20 @@ def one_more_voice(song: Song, sample: Sample) -> Song:
             )
 
 
-def spare_sample(song: Song) -> Sample:
+def spare_sample(song: Song, frames: int) -> Sample:
     """One more waveform stored the way the song's own samples are, so a format writes it the same."""
     stored = song.voices.samples[0]
     return Sample(
         name="extra",
-        pcm=lattice(np.linspace(-1.0, 1.0, EXTRA_FRAMES), stored.depth),
+        pcm=lattice(np.linspace(-1.0, 1.0, frames), stored.depth),
         rate=stored.rate,
         depth=stored.depth,
     )
+
+
+def over_prediction(storage: Storage) -> int:
+    """How far a storage table may over-state one more voice, which is a boundary where blocks are padded."""
+    return 0 if storage.alignment == NO_PADDING else storage.alignment
 
 
 def test_a_song_inside_its_tracker_reaches_no_further(binding: Binding, portable: Song) -> None:
@@ -498,7 +492,7 @@ def test_a_song_past_its_tracker_reaches_the_level_above_it(binding: Binding, po
     assert wide.violations() == ()
     assert wide.reach is Compliance.EXTENDED
     assert [violation.capability for violation in wide.exceeded()] == [Capability.CHANNELS]
-    assert wide.exceeded()[0].severity is Severity.COMPLIANCE
+    assert wide.exceeded()[0].level is Compliance.CANONICAL
 
     wide.require_reach(Compliance.EXTENDED)
     with pytest.raises(LimitError, match="channels"):
@@ -518,15 +512,19 @@ def test_a_file_is_read_at_the_level_that_says_its_values_were_storable(binding:
     assert binding.parse(data).limits.compliance is Compliance.STRUCTURAL
 
 
-def test_the_storage_table_predicts_what_one_more_voice_costs(binding: Binding, portable: Song) -> None:
-    extra = spare_sample(portable)
+@pytest.mark.parametrize("frames", EXTRA_FRAMES)
+def test_the_storage_table_predicts_what_one_more_voice_costs(binding: Binding, portable: Song, frames: int) -> None:
+    # A budget has to hold what it promised, so a prediction covers the padding as well as the bytes: to
+    # the byte where a file lays its content down back to back, and to within one boundary where every
+    # block opens on a paragraph and one more table entry may tip the tables onto the next.
+    extra = spare_sample(portable, frames)
     grown = one_more_voice(portable, extra)
     storage = binding.bind(portable, Compliance.CANONICAL).storage
     growth = len(written(binding.bind(grown, Compliance.CANONICAL))) - len(
         written(binding.bind(portable, Compliance.CANONICAL))
     )
     predicted = storage.instrument_bytes(samples=1) + storage.sample_bytes(frames=extra.frames, depth=extra.depth)
-    assert abs(growth - predicted) < binding.paragraph
+    assert 0 <= predicted - growth <= over_prediction(storage)
 
 
 def test_the_size_model_agrees_with_the_written_file(binding: Binding, portable: Song) -> None:
@@ -734,13 +732,14 @@ def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
     impulse = it_limits(Compliance.EXTENDED)
     fast_tracker = xm_limits(Compliance.EXTENDED)
     protracker = mod_limits(Compliance.EXTENDED)
-    assert set(Capability) - set(impulse.capacities) == {Capability.SAMPLE_BYTES}
-    assert set(Capability) - set(fast_tracker.capacities) == {
+    addressed = {Capability.BLOCK_OFFSET, Capability.SAMPLE_OFFSET}
+    assert set(Capability) - set(impulse.capacities) == addressed | {Capability.SAMPLE_BYTES}
+    assert set(Capability) - set(fast_tracker.capacities) == addressed | {
         Capability.SONG_VOLUME,
         Capability.MIX_VOLUME,
         Capability.MESSAGE_BYTES,
     }
-    assert set(Capability) - set(protracker.capacities) == {
+    assert set(Capability) - set(protracker.capacities) == addressed | {
         Capability.PATTERN_BYTES,
         Capability.INSTRUMENTS,
         Capability.SAMPLES_PER_INSTRUMENT,
@@ -843,12 +842,20 @@ def test_only_one_format_stores_a_tempo_past_the_byte(instrumented: Song) -> Non
     assert XMModule.from_song(fast, compliance=Compliance.EXTENDED).violations() == ()
     (relaxed,) = XMModule.from_song(fast, compliance=Compliance.CANONICAL).violations()
     assert relaxed.capability is Capability.TEMPO
-    assert relaxed.severity is Severity.COMPLIANCE
+    assert relaxed.level is Compliance.CANONICAL
 
     for compliance in Compliance:
         (refused,) = ITModule.from_song(fast, compliance=compliance).violations()
         assert refused.capability is Capability.TEMPO
-        assert refused.severity is Severity.STRUCTURAL
+        assert refused.level is Compliance.STRUCTURAL
+
+
+def test_a_song_one_format_stores_and_another_cannot_reaches_a_level_and_none(instrumented: Song) -> None:
+    """One song, two formats: the one whose word holds the tempo reaches a level, the other reaches none."""
+    fast = instrumented.model_copy(update={"playback": Playback(speed=PORTABLE_SPEED, tempo=HACKED_TEMPO)})
+
+    assert XMModule.from_song(fast, compliance=Compliance.EXTENDED).reach is Compliance.EXTENDED
+    assert ITModule.from_song(fast, compliance=Compliance.STRUCTURAL).reach is None
 
 
 def test_a_structural_violation_is_refused_at_every_compliance_level(instrumented: Song) -> None:
@@ -857,7 +864,7 @@ def test_a_structural_violation_is_refused_at_every_compliance_level(instrumente
         with pytest.raises(LimitError) as raised:
             ITModule.from_song(fast, compliance=compliance).to_bytes()
 
-        assert raised.value.violations[0].severity is Severity.STRUCTURAL
+        assert raised.value.violations[0].level is Compliance.STRUCTURAL
 
 
 def test_every_format_carries_more_channels_than_its_tracker_reads(binding: Binding, portable: Song) -> None:
@@ -871,7 +878,7 @@ def test_every_format_carries_more_channels_than_its_tracker_reads(binding: Bind
         for violation in binding.bind(wide, Compliance.CANONICAL).violations()
         if violation.capability is Capability.CHANNELS
     ]
-    assert reported.severity is Severity.COMPLIANCE
+    assert reported.level is Compliance.CANONICAL
 
 
 def test_each_catalogue_spells_one_intent_in_its_own_bytes() -> None:

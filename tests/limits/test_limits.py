@@ -8,7 +8,6 @@ from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError, require
 from trackmod.limits.guard import require_range
 from trackmod.limits.reach import beyond, reached
-from trackmod.limits.severity import Severity
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
 
@@ -43,14 +42,14 @@ def test_a_value_is_graded_against_the_widest_ceiling_it_passes() -> None:
     # The widest ceiling a value passes is the one worth reporting, because passing a wide bound means
     # passing every tighter one, and the widest says who will still read the file back.
     severities = {
-        BEYOND_CANONICAL: Severity.COMPLIANCE,
-        BEYOND_EXTENDED: Severity.EXTENDED,
-        BEYOND_STRUCTURAL: Severity.STRUCTURAL,
+        BEYOND_CANONICAL: Compliance.CANONICAL,
+        BEYOND_EXTENDED: Compliance.EXTENDED,
+        BEYOND_STRUCTURAL: Compliance.STRUCTURAL,
     }
     for value, severity in severities.items():
         violation = graded(Compliance.CANONICAL, value)
         assert violation is not None
-        assert violation.severity is severity
+        assert violation.level is severity
 
 
 def test_each_level_reports_the_ceilings_at_or_beyond_it() -> None:
@@ -75,12 +74,12 @@ def severities_by_level() -> tuple[int, ...]:
 def test_a_value_the_field_cannot_hold_always_fails(compliance: Compliance) -> None:
     violation = graded(compliance, BEYOND_STRUCTURAL)
     assert violation is not None
-    assert violation.severity is Severity.STRUCTURAL
+    assert violation.level is Compliance.STRUCTURAL
 
 
 def test_a_capability_with_no_headroom_fails_identically_at_every_level() -> None:
     graded_channels = [limits(compliance).check(Capability.CHANNELS, 65, subject="song") for compliance in Compliance]
-    assert all(violation is not None and violation.severity is Severity.STRUCTURAL for violation in graded_channels)
+    assert all(violation is not None and violation.level is Compliance.STRUCTURAL for violation in graded_channels)
 
 
 def test_the_effective_bound_widens_with_compliance() -> None:
@@ -102,6 +101,13 @@ def test_an_empty_bound_is_rejected() -> None:
         Bound(minimum=10, maximum=9)
 
 
+def test_a_capacity_table_is_handed_out_as_a_view_rather_than_a_dict() -> None:
+    # A frozen model whose one mapping field is writable is frozen in name only, and the table a caller
+    # reads is what every check in the library grades against.
+    with pytest.raises(TypeError):
+        limits(Compliance.CANONICAL).capacities[Capability.TEMPO] = Capacity.fixed(Bound(minimum=0, maximum=1))
+
+
 def test_a_song_breaking_nothing_reaches_the_tightest_level() -> None:
     assert reached(()) is Compliance.CANONICAL
 
@@ -110,11 +116,20 @@ def test_a_song_reaches_the_level_above_the_widest_ceiling_it_passes() -> None:
     for value, level in (
         (BEYOND_CANONICAL, Compliance.EXTENDED),
         (BEYOND_EXTENDED, Compliance.STRUCTURAL),
-        (BEYOND_STRUCTURAL, Compliance.STRUCTURAL),
     ):
         violation = graded(Compliance.CANONICAL, value)
         assert violation is not None
         assert reached((violation,)) is level
+
+
+def test_a_song_no_record_layout_holds_reaches_no_level_at_all() -> None:
+    # The widest level is the answer for a song whose values are all storable, so a song carrying one
+    # that is not has to answer differently -- otherwise the two are told apart by nothing.
+    stored = graded(Compliance.CANONICAL, BEYOND_EXTENDED)
+    unstorable = graded(Compliance.CANONICAL, BEYOND_STRUCTURAL)
+    assert stored is not None and unstorable is not None
+    assert reached((stored,)) is Compliance.STRUCTURAL
+    assert reached((unstorable,)) is None
 
 
 def test_only_the_ceilings_at_or_past_a_level_are_what_holding_to_it_refuses() -> None:

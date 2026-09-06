@@ -19,12 +19,14 @@ from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.repairs.report import RepairWarning
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import InstrumentVoices, SampleVoices
 from trackmod.limits.compliance import Compliance
+from trackmod.spec.grid import MIN_CHANNELS
 from trackmod.spec.levels import CENTRE_PANNING, MAX_PANNING
 from trackmod.spec.pitch import REFERENCE_RATE
 from trackmod.trackers.s3m.layout.file import FILE_HEADER
@@ -120,10 +122,23 @@ def test_a_module_stating_no_panning_leaves_every_channel_on_its_own_side(s3m_so
     assert recovered.channel_panning is None
 
 
-def test_a_channel_table_of_another_width_than_the_song_is_refused(s3m_song: Song) -> None:
+def test_a_channel_table_of_another_width_than_the_song_is_refused_where_it_is_bound(s3m_song: Song) -> None:
+    # A module that reports itself writable and then refuses to serialise is a module a caller cannot
+    # act on, so the disagreement is met where the two are put together.
     settings = S3MSettings(channels=tuple(range(8)) + (0xFF,) * (CHANNELS_STORED - 8))
     with pytest.raises(ValueError, match="8 channels"):
-        written(s3m_song, settings)
+        S3MModule.from_song(s3m_song, compliance=Compliance.CANONICAL, settings=settings)
+
+
+def test_a_file_whose_table_names_no_channel_reads_as_one_and_is_written_again() -> None:
+    # A song holds a channel at the least, so the width is drawn up to one -- and the table that states
+    # it is drawn up with it, which is what leaves the file writable rather than only readable.
+    with pytest.warns(RepairWarning, match="settings table"):
+        module = S3MModule.parse(raw_module(channels=0, patterns=(silent_block(),)))
+
+    assert module.song.channels == MIN_CHANNELS
+    assert module.violations() == ()
+    assert S3MModule.parse(module.to_bytes()).song.channels == MIN_CHANNELS
 
 
 def test_a_song_whose_cells_name_instruments_is_refused() -> None:

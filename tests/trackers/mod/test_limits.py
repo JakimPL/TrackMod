@@ -9,7 +9,6 @@ from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.song import Song
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
-from trackmod.limits.severity import Severity
 from trackmod.spec.pitch import REFERENCE_RATE
 from trackmod.trackers.mod.limits import mod_limits
 from trackmod.trackers.mod.module import MODModule
@@ -54,7 +53,7 @@ def test_a_width_the_tag_spells_but_the_players_stop_short_of_is_stored_and_repo
 
     (reported,) = module.exceeded()
     assert reported.capability is Capability.CHANNELS
-    assert reported.severity is Severity.EXTENDED
+    assert reported.level is Compliance.EXTENDED
 
     data = module.to_bytes()
     assert data[TAG_OFFSET : TAG_OFFSET + TAG_BYTES] == WIDE_TAG
@@ -72,7 +71,7 @@ def test_more_patterns_than_the_plain_tag_was_read_with_reaches_past_the_tracker
 
     (reported,) = MODModule.from_song(many, compliance=Compliance.CANONICAL).violations()
     assert reported.capability is Capability.PATTERNS
-    assert reported.severity is Severity.COMPLIANCE
+    assert reported.level is Compliance.CANONICAL
 
 
 def test_a_pinned_capacity_states_one_value_at_either_level() -> None:
@@ -102,7 +101,7 @@ def test_a_key_below_the_tabulated_octaves_is_reported_rather_than_refused(mod_s
     assert MODModule.from_song(low, compliance=Compliance.EXTENDED).violations() == ()
     (reported,) = MODModule.from_song(low, compliance=Compliance.CANONICAL).violations()
     assert reported.capability is Capability.NOTE
-    assert reported.severity is Severity.COMPLIANCE
+    assert reported.level is Compliance.CANONICAL
 
 
 def test_a_pattern_playing_no_key_reports_nothing_about_keys(mod_song: Song) -> None:

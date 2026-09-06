@@ -101,8 +101,8 @@ another. What survives that trip is what both ends carry — see [`limits.md`](l
 a value the model holds no room for is read as it stands and reported, once, as a `RepairWarning`.
 
 A module also says how far it reaches past the tracker its format names: `recovered.reach` is the strictest
-of the three levels its values fit inside, and `recovered.exceeded()` is which ceilings it passed to get
-there.
+of the three levels its values fit inside — or `None` for a song carrying a value no record layout holds —
+and `recovered.exceeded()` is which ceilings it passed to get there.
 
 ## One instrument on its own
 
@@ -166,10 +166,16 @@ through offset tables charges the entry here, where a caller budgets against one
 is charged per stored **slot** — once per waveform where a sample table is shared, once per owner where an
 instrument owns its samples.
 
+The table also states the boundary a format's blocks open on, and every count above is rounded to it, so
+what a caller budgets covers the padding as well as the bytes: `storage.alignment` is one byte where a
+file lays its content down back to back, a word where a record counts its length in pairs of frames, and a
+paragraph where a pointer names one.
+
 The table is what each format's size model reads, so `SizeReport.headers` *is* the table evaluated against
 the counts a song declares. What the table states and what the writer lays out therefore have one home,
-and adding an instrument and its sample grows the file by exactly what `instrument_bytes` and
-`sample_bytes` predicted.
+and adding an instrument and its sample grows the file by what `instrument_bytes` and `sample_bytes`
+predicted — exactly, for the three that lay their blocks down back to back, and by at most that for the
+one that opens each of them on a paragraph, where one more table entry may tip the tables onto the next.
 
 ## Staying format-agnostic
 

@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 from trackmod.schema.config import FROZEN
 from trackmod.schema.scalars import Panning
-from trackmod.spec.width import BYTE_MAX
+from trackmod.spec.width import BYTE_MAX, WORD_MAX
 from trackmod.trackers.s3m.spec.defaults import (
     DEFAULT_FLAGS,
     DEFAULT_GLOBAL_VOLUME,
@@ -24,6 +24,8 @@ ChannelPanning = Annotated[
     tuple[Panning | None, ...],
     Field(min_length=CHANNELS_STORED, max_length=CHANNELS_STORED),
 ]
+
+Version = Annotated[int, Field(ge=0, le=WORD_MAX)]
 
 
 class S3MSettings(BaseModel):
@@ -54,4 +56,4 @@ class S3MSettings(BaseModel):
     flags: HeaderFlag = DEFAULT_FLAGS
     channels: ChannelBytes | None = None
     channel_panning: ChannelPanning | None = None
-    created_with: int = CREATED_WITH
+    created_with: Version = CREATED_WITH

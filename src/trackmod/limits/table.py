@@ -1,13 +1,14 @@
 from collections.abc import Mapping
+from types import MappingProxyType
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from trackmod.limits.bound import Bound
 from trackmod.limits.capability import Capability
 from trackmod.limits.capacity import Capacity
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.reach import depth
-from trackmod.limits.severity import Severity
+from trackmod.limits.tier import Tier
 from trackmod.limits.violation import Violation
 from trackmod.schema.config import FROZEN
 
@@ -28,6 +29,12 @@ class Limits(BaseModel):
 
     compliance: Compliance
     capacities: Mapping[Capability, Capacity]
+
+    @field_validator("capacities", mode="after")
+    @classmethod
+    def _sealed(cls, capacities: Mapping[Capability, Capacity]) -> Mapping[Capability, Capacity]:
+        """Hand the table out as a read-only view, so a frozen model stays frozen all the way down."""
+        return MappingProxyType(dict(capacities))
 
     def declares(self, capability: Capability) -> bool:
         """Whether this format states a capacity for ``capability`` at all.
@@ -60,13 +67,13 @@ class Limits(BaseModel):
             case Compliance.STRUCTURAL:
                 return capacity.structural
 
-    def tiers(self, capability: Capability) -> tuple[tuple[Compliance, Bound, Severity], ...]:
-        """The three ceilings a capability states, widest first, each with the severity of passing it."""
+    def tiers(self, capability: Capability) -> tuple[Tier, ...]:
+        """The three ceilings a capability states, widest first, each with the level passing it breaks."""
         capacity = self.capacity(capability)
         return (
-            (Compliance.STRUCTURAL, capacity.structural, Severity.STRUCTURAL),
-            (Compliance.EXTENDED, capacity.extended, Severity.EXTENDED),
-            (Compliance.CANONICAL, capacity.canonical, Severity.COMPLIANCE),
+            Tier(level=Compliance.STRUCTURAL, bound=capacity.structural),
+            Tier(level=Compliance.EXTENDED, bound=capacity.extended),
+            Tier(level=Compliance.CANONICAL, bound=capacity.canonical),
         )
 
     def check(self, capability: Capability, value: int, *, subject: str) -> Violation | None:
@@ -75,18 +82,18 @@ class Limits(BaseModel):
         The widest ceiling the value passes is the one it is graded against, because a value outside a
         wide bound is outside every tighter one and the widest says who will still read it back.
         """
-        for level, bound, severity in self.tiers(capability):
-            if bound.contains(value):
+        for tier in self.tiers(capability):
+            if tier.bound.contains(value):
                 continue
 
-            if depth(level) < depth(self.compliance):
+            if depth(tier.level) < depth(self.compliance):
                 return None
 
             return Violation(
                 capability=capability,
                 value=value,
-                bound=bound,
-                severity=severity,
+                bound=tier.bound,
+                level=tier.level,
                 subject=subject,
             )
 

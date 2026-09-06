@@ -3,7 +3,6 @@ import pytest
 from trackmod.core.songs.song import Song
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
-from trackmod.limits.severity import Severity
 from trackmod.spec.width import WORD_MAX
 from trackmod.trackers.it.message import MessageBlock, message_data
 from trackmod.trackers.it.module import ITModule
@@ -48,10 +47,10 @@ def test_the_size_model_agrees_with_a_file_carrying_a_message(song: Song) -> Non
 
 
 @pytest.mark.parametrize(
-    ("length", "compliance", "severity"),
+    ("length", "compliance", "level"),
     [
-        (CANONICAL_MAX_MESSAGE_BYTES, Compliance.CANONICAL, Severity.COMPLIANCE),
-        (WORD_MAX, Compliance.EXTENDED, Severity.STRUCTURAL),
+        (CANONICAL_MAX_MESSAGE_BYTES, Compliance.CANONICAL, Compliance.CANONICAL),
+        (WORD_MAX, Compliance.EXTENDED, Compliance.STRUCTURAL),
     ],
     ids=["canonical", "structural"],
 )
@@ -59,11 +58,11 @@ def test_a_message_past_what_the_container_holds_is_reported(
     song: Song,
     length: int,
     compliance: Compliance,
-    severity: Severity,
+    level: Compliance,
 ) -> None:
     (violation,) = module(song, "m" * length, compliance=compliance).violations()
     assert violation.capability is Capability.MESSAGE_BYTES
-    assert violation.severity is severity
+    assert violation.level is level
     assert violation.value == length + TERMINATOR_BYTES
 
 

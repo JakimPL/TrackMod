@@ -15,7 +15,6 @@ from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
-from trackmod.limits.severity import Severity
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.width import WORD_MAX
 from trackmod.trackers.xm.instruments.envelope import parse_envelope
@@ -84,7 +83,7 @@ def test_more_patterns_than_the_tracker_edited_are_reported_and_the_word_still_h
 
     (reported,) = XMModule.from_song(many, compliance=Compliance.EXTENDED).violations()
     assert reported.capability is Capability.PATTERNS
-    assert reported.severity is Severity.EXTENDED
+    assert reported.level is Compliance.EXTENDED
 
 
 def test_the_fadeout_the_tracker_honours_stops_short_of_what_its_field_holds() -> None:
@@ -101,7 +100,7 @@ def test_a_fadeout_past_the_tracker_is_a_compliance_violation_the_extended_level
     quick = revoiced(xm_song, instruments=(faster, *xm_voices.instruments[1:]))
     canonical = XMModule.from_song(quick, compliance=Compliance.CANONICAL).violations()
     assert [violation.capability for violation in canonical] == [Capability.FADEOUT]
-    assert canonical[0].severity is Severity.COMPLIANCE
+    assert canonical[0].level is Compliance.CANONICAL
     assert XMModule.from_song(quick, compliance=Compliance.EXTENDED).violations() == ()
 
 
@@ -116,7 +115,7 @@ def test_a_hacked_tempo_is_a_compliance_violation_the_extended_level_allows(xm_s
     fast = xm_song.model_copy(update={"playback": Playback(speed=1, tempo=441)})
     canonical = XMModule.from_song(fast, compliance=Compliance.CANONICAL).violations()
     assert [violation.capability for violation in canonical] == [Capability.TEMPO]
-    assert canonical[0].severity is Severity.COMPLIANCE
+    assert canonical[0].level is Compliance.CANONICAL
     assert XMModule.from_song(fast, compliance=Compliance.EXTENDED).violations() == ()
 
 
@@ -132,7 +131,7 @@ def test_writing_a_module_wider_than_any_player_reads_raises(xm_song: Song) -> N
     with pytest.raises(LimitError) as error:
         XMModule.from_song(over, compliance=Compliance.EXTENDED).to_bytes()
 
-    assert error.value.violations[0].severity is Severity.EXTENDED
+    assert error.value.violations[0].level is Compliance.EXTENDED
 
 
 def test_a_width_the_header_word_still_holds_is_written_at_the_widest_level(xm_song: Song) -> None:
@@ -202,7 +201,7 @@ def test_an_amount_past_what_the_column_holds_is_reported(xm_song: Song) -> None
     (violation,) = XMModule.from_song(past, compliance=Compliance.EXTENDED).violations()
     assert violation.capability is Capability.VOLUME_COMMAND
     assert violation.value == MAX_VOLUME_COMMAND + 1
-    assert violation.severity is Severity.STRUCTURAL
+    assert violation.level is Compliance.STRUCTURAL
     assert violation.subject == "pattern 0"
 
 
@@ -251,7 +250,7 @@ def test_a_tempo_past_what_the_players_read_is_reported_before_the_word_runs_out
     beyond = xm_song.model_copy(update={"playback": Playback(speed=6, tempo=EXTENDED_MAX_TEMPO + 1)})
     (reported,) = XMModule.from_song(beyond, compliance=Compliance.EXTENDED).violations()
     assert reported.capability is Capability.TEMPO
-    assert reported.severity is Severity.EXTENDED
+    assert reported.level is Compliance.EXTENDED
     assert XMModule.from_song(beyond, compliance=Compliance.STRUCTURAL).violations() == ()
 
 
