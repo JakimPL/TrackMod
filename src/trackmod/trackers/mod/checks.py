@@ -1,34 +1,14 @@
 from collections.abc import Sequence
 
-import numpy as np
-
-from trackmod.core.patterns.grid import Pattern
+from trackmod.core.notes.checks import check_keys
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
 from trackmod.limits.capability import Capability
 from trackmod.limits.checklist import Checklist
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
-from trackmod.spec.grid import EMPTY
-from trackmod.spec.pitch import NOTE_COUNT
 from trackmod.trackers.mod.addressing import sampled
-from trackmod.trackers.mod.samples.writer import stored_frames
-
-
-def check_keys(checklist: Checklist, pattern: Pattern, *, subject: str) -> None:
-    """Grade the lowest and the highest key a pattern plays.
-
-    This is the one format whose key range is bounded at both ends: a cell states a period, and a period
-    is twelve bits, so how deep the music reaches is as much a quantity as how high. Both ends are
-    therefore worth reporting.
-    """
-    notes = pattern.note
-    keys = notes[(notes != EMPTY) & (notes < NOTE_COUNT)]
-    if not keys.size:
-        return
-
-    for key in sorted({int(np.min(keys)), int(np.max(keys))}):
-        checklist.check(Capability.NOTE, key, subject=subject)
+from trackmod.trackers.mod.samples.writer import stored_bytes
 
 
 def check_song(checklist: Checklist, song: Song) -> None:
@@ -54,14 +34,18 @@ def check_patterns(checklist: Checklist, song: Song) -> None:
 
 
 def check_samples(checklist: Checklist, samples: Sequence[Sample]) -> None:
-    """Grade each sample's stored length, playback rate and two volume levels.
+    """Grade each sample's length, playback rate and two volume levels.
+
+    A waveform is bounded twice over, because a record states its length in pairs of bytes: the frames
+    it holds, and the block those frames come to once the pair is filled.
 
     The rate bound is the whole of this format's tuning: sixteen rows an eighth of a semitone apart
     around the reference, so a sample recorded anywhere else is told to be resampled onto one of them.
     """
     for index, sample in enumerate(samples):
         subject = f"sample {index} ({sample.name!r})"
-        checklist.check(Capability.SAMPLE_FRAMES, stored_frames(sample.frames), subject=subject)
+        checklist.check(Capability.SAMPLE_FRAMES, sample.frames, subject=subject)
+        checklist.check(Capability.SAMPLE_BYTES, stored_bytes(sample), subject=subject)
         checklist.check(Capability.SAMPLE_RATE, sample.rate, subject=subject)
         checklist.check(Capability.SAMPLE_VOLUME, sample.volume, subject=subject)
         checklist.check(Capability.SAMPLE_GAIN, sample.gain, subject=subject)

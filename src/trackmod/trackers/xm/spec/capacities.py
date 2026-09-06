@@ -3,12 +3,15 @@ from typing import Final
 from trackmod.limits.bound import Bound
 from trackmod.limits.capability import Capability
 from trackmod.limits.capacity import Capacity
-from trackmod.spec.levels import MAX_INSTRUMENT_VOLUME, MAX_PANNING, MAX_VOLUME
+from trackmod.spec.levels import MAX_INSTRUMENT_VOLUME, MAX_VOLUME
 from trackmod.spec.width import WORD_MAX
 from trackmod.trackers.xm.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
     CANONICAL_MAX_FADEOUT,
     CANONICAL_MAX_INSTRUMENTS,
+    CANONICAL_MAX_ORDERS,
+    CANONICAL_MAX_PATTERNS,
+    CANONICAL_MAX_SAMPLES,
     CANONICAL_MAX_SPEED,
     CANONICAL_MAX_TEMPO,
     CANONICAL_MIN_TEMPO,
@@ -20,12 +23,10 @@ from trackmod.trackers.xm.spec.ranges import (
     EXTENDED_MAX_TEMPO,
     EXTENDED_SAMPLES_PER_INSTRUMENT,
     MAX_NOTE,
-    MAX_ORDERS,
-    MAX_PATTERNS,
     MAX_ROWS,
+    MAX_SAMPLE_BYTES,
     MAX_SAMPLE_FRAMES,
     MAX_SAMPLE_RATE,
-    MAX_SAMPLES,
     MAX_SPEED,
     MAX_TEMPO,
     MAX_VOLUME_COMMAND,
@@ -35,7 +36,10 @@ from trackmod.trackers.xm.spec.ranges import (
     MIN_SPEED,
     MIN_TEMPO,
     STRUCTURAL_MAX_CHANNELS,
+    STRUCTURAL_MAX_ORDERS,
+    STRUCTURAL_MAX_PATTERNS,
     STRUCTURAL_MAX_ROWS,
+    STRUCTURAL_MAX_SAMPLES,
 )
 from trackmod.trackers.xm.spec.sizes import ENVELOPE_POINTS
 
@@ -45,8 +49,16 @@ CAPACITIES: Final = {
         extended=Bound(minimum=1, maximum=EXTENDED_MAX_CHANNELS),
         structural=Bound(minimum=1, maximum=STRUCTURAL_MAX_CHANNELS),
     ),
-    Capability.PATTERNS: Capacity.fixed(Bound(minimum=0, maximum=MAX_PATTERNS)),
-    Capability.ORDERS: Capacity.fixed(Bound(minimum=0, maximum=MAX_ORDERS)),
+    Capability.PATTERNS: Capacity(
+        canonical=Bound(minimum=0, maximum=CANONICAL_MAX_PATTERNS),
+        extended=Bound(minimum=0, maximum=CANONICAL_MAX_PATTERNS),
+        structural=Bound(minimum=0, maximum=STRUCTURAL_MAX_PATTERNS),
+    ),
+    Capability.ORDERS: Capacity(
+        canonical=Bound(minimum=0, maximum=CANONICAL_MAX_ORDERS),
+        extended=Bound(minimum=0, maximum=CANONICAL_MAX_ORDERS),
+        structural=Bound(minimum=0, maximum=STRUCTURAL_MAX_ORDERS),
+    ),
     Capability.PATTERN_ROWS: Capacity(
         canonical=Bound(minimum=MIN_ROWS, maximum=MAX_ROWS),
         extended=Bound(minimum=MIN_ROWS, maximum=EXTENDED_MAX_ROWS),
@@ -58,13 +70,18 @@ CAPACITIES: Final = {
         extended=Bound(minimum=0, maximum=EXTENDED_MAX_INSTRUMENTS),
         structural=Bound(minimum=0, maximum=EXTENDED_MAX_INSTRUMENTS),
     ),
-    Capability.SAMPLES: Capacity.fixed(Bound(minimum=0, maximum=MAX_SAMPLES)),
+    Capability.SAMPLES: Capacity(
+        canonical=Bound(minimum=0, maximum=CANONICAL_MAX_SAMPLES),
+        extended=Bound(minimum=0, maximum=STRUCTURAL_MAX_SAMPLES),
+        structural=Bound(minimum=0, maximum=STRUCTURAL_MAX_SAMPLES),
+    ),
     Capability.SAMPLES_PER_INSTRUMENT: Capacity(
         canonical=Bound(minimum=0, maximum=CANONICAL_SAMPLES_PER_INSTRUMENT),
         extended=Bound(minimum=0, maximum=EXTENDED_SAMPLES_PER_INSTRUMENT),
         structural=Bound(minimum=0, maximum=EXTENDED_SAMPLES_PER_INSTRUMENT),
     ),
     Capability.SAMPLE_FRAMES: Capacity.fixed(Bound(minimum=0, maximum=MAX_SAMPLE_FRAMES)),
+    Capability.SAMPLE_BYTES: Capacity.fixed(Bound(minimum=0, maximum=MAX_SAMPLE_BYTES)),
     Capability.SAMPLE_RATE: Capacity.fixed(Bound(minimum=MIN_SAMPLE_RATE, maximum=MAX_SAMPLE_RATE)),
     Capability.SAMPLE_VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME)),
     Capability.SAMPLE_GAIN: Capacity.fixed(Bound(minimum=MAX_VOLUME, maximum=MAX_VOLUME)),
@@ -88,8 +105,6 @@ CAPACITIES: Final = {
         extended=Bound(minimum=MIN_SPEED, maximum=MAX_SPEED),
         structural=Bound(minimum=MIN_SPEED, maximum=MAX_SPEED),
     ),
-    Capability.VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME)),
     Capability.VOLUME_COMMAND: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME_COMMAND)),
     Capability.VOLUME_PANNING: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME_PANNING)),
-    Capability.PANNING: Capacity.fixed(Bound(minimum=0, maximum=MAX_PANNING)),
 }

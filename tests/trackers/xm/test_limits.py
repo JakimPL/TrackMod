@@ -26,6 +26,8 @@ from trackmod.trackers.xm.spec.flags import EnvelopeFlag
 from trackmod.trackers.xm.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
     CANONICAL_MAX_FADEOUT,
+    CANONICAL_MAX_ORDERS,
+    CANONICAL_MAX_PATTERNS,
     CANONICAL_MAX_TEMPO,
     ENVELOPE_LEVELS,
     EXTENDED_MAX_CHANNELS,
@@ -49,6 +51,40 @@ def test_the_tempo_word_is_where_this_format_has_its_headroom() -> None:
 def test_the_channel_count_has_headroom_too() -> None:
     assert xm_limits(Compliance.CANONICAL).bound(Capability.CHANNELS).maximum == CANONICAL_MAX_CHANNELS
     assert xm_limits(Compliance.EXTENDED).bound(Capability.CHANNELS).maximum == EXTENDED_MAX_CHANNELS
+
+
+def test_the_counts_the_tracker_edited_stop_short_of_the_header_words() -> None:
+    # The header states both counts in sixteen bits, and the editor stopped at 256 of each.
+    for capability, edited in (
+        (Capability.PATTERNS, CANONICAL_MAX_PATTERNS),
+        (Capability.ORDERS, CANONICAL_MAX_ORDERS),
+    ):
+        assert xm_limits(Compliance.EXTENDED).bound(capability).maximum == edited
+        assert xm_limits(Compliance.STRUCTURAL).bound(capability).maximum == WORD_MAX
+
+
+def test_the_sample_slots_a_module_holds_are_what_its_two_counts_multiply_to() -> None:
+    # Samples live inside instruments here, so how many a module holds is a product rather than a field
+    # of its own, and it widens exactly as far as its two factors do.
+    for compliance in (Compliance.CANONICAL, Compliance.STRUCTURAL):
+        limits = xm_limits(compliance)
+        instruments = limits.bound(Capability.INSTRUMENTS).maximum
+        per_instrument = limits.bound(Capability.SAMPLES_PER_INSTRUMENT).maximum
+        assert limits.bound(Capability.SAMPLES).maximum == instruments * per_instrument
+
+
+def test_more_patterns_than_the_tracker_edited_are_reported_and_the_word_still_holds_them(xm_song: Song) -> None:
+    many = xm_song.model_copy(
+        update={
+            "patterns": tuple(xm_song.patterns[0] for _ in range(CANONICAL_MAX_PATTERNS + 1)),
+            "order": OrderList(entries=(0,)),
+        }
+    )
+    assert XMModule.from_song(many, compliance=Compliance.STRUCTURAL).violations() == ()
+
+    (reported,) = XMModule.from_song(many, compliance=Compliance.EXTENDED).violations()
+    assert reported.capability is Capability.PATTERNS
+    assert reported.severity is Severity.EXTENDED
 
 
 def test_the_fadeout_the_tracker_honours_stops_short_of_what_its_field_holds() -> None:

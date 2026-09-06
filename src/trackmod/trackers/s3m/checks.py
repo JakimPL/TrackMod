@@ -1,8 +1,6 @@
 from collections.abc import Sequence
 
-import numpy as np
-
-from trackmod.core.patterns.grid import Pattern
+from trackmod.core.notes.checks import check_keys
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
 from trackmod.core.volumes.checks import check_volumes
@@ -10,27 +8,9 @@ from trackmod.limits.capability import Capability
 from trackmod.limits.checklist import Checklist
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
-from trackmod.spec.grid import EMPTY
-from trackmod.spec.pitch import NOTE_COUNT
 from trackmod.trackers.s3m.addressing import sampled
-from trackmod.trackers.s3m.patterns.sizing import packed_bytes
+from trackmod.trackers.s3m.patterns.sizing import block_bytes
 from trackmod.trackers.s3m.settings import S3MSettings
-
-
-def check_keys(checklist: Checklist, pattern: Pattern, *, subject: str) -> None:
-    """Grade the lowest and the highest key a pattern plays.
-
-    A cell spells a key as an octave over a semitone and counts its octaves from the one above the
-    model's own, so the deepest keys the model numbers have no byte here — which makes how deep the
-    music reaches as much a quantity as how high, and both ends worth reporting.
-    """
-    notes = pattern.note
-    keys = notes[(notes != EMPTY) & (notes < NOTE_COUNT)]
-    if not keys.size:
-        return
-
-    for key in sorted({int(np.min(keys)), int(np.max(keys))}):
-        checklist.check(Capability.NOTE, key, subject=subject)
 
 
 def check_song(checklist: Checklist, song: Song) -> None:
@@ -44,20 +24,29 @@ def check_song(checklist: Checklist, song: Song) -> None:
 
 
 def check_patterns(checklist: Checklist, song: Song) -> None:
-    """Grade each pattern's height, the stream it packs into, the keys it plays and the volumes it states."""
+    """Grade each pattern's height, the block it packs into, the keys it plays and the volumes it states.
+
+    The block is what the length field states, so what is graded is the packed stream and the two bytes
+    of length that open it.
+    """
     for index, pattern in enumerate(song.patterns):
         subject = f"pattern {index}"
         checklist.check(Capability.PATTERN_ROWS, pattern.rows, subject=subject)
-        checklist.check(Capability.PATTERN_BYTES, packed_bytes(pattern), subject=subject)
+        checklist.check(Capability.PATTERN_BYTES, block_bytes(pattern), subject=subject)
         check_keys(checklist, pattern, subject=subject)
         check_volumes(checklist, pattern, subject=subject)
 
 
 def check_samples(checklist: Checklist, samples: Sequence[Sample]) -> None:
-    """Grade each sample's stored length, playback rate and two volume levels."""
+    """Grade each sample's length, playback rate and two volume levels.
+
+    A waveform is bounded twice over: the frames a record names, and the block they come to once the
+    depth and the channel count are counted in, which is the ceiling the tracker's own loader states.
+    """
     for index, sample in enumerate(samples):
         subject = f"sample {index} ({sample.name!r})"
-        checklist.check(Capability.SAMPLE_FRAMES, sample.stored_bytes, subject=subject)
+        checklist.check(Capability.SAMPLE_FRAMES, sample.frames, subject=subject)
+        checklist.check(Capability.SAMPLE_BYTES, sample.stored_bytes, subject=subject)
         checklist.check(Capability.SAMPLE_RATE, sample.rate, subject=subject)
         checklist.check(Capability.SAMPLE_VOLUME, sample.volume, subject=subject)
         checklist.check(Capability.SAMPLE_GAIN, sample.gain, subject=subject)

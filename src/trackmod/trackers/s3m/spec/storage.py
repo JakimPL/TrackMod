@@ -2,6 +2,8 @@ from typing import Final
 
 from trackmod.binary.pcm.encoding import PcmEncoding
 from trackmod.binary.pcm.sign import PcmSign
+from trackmod.core.samples.depth import BitDepth
+from trackmod.core.samples.sample import STEREO_CHANNELS
 from trackmod.module.storage import Storage
 from trackmod.trackers.s3m.spec.sizes import (
     CHANNELS_STORED,
@@ -14,6 +16,9 @@ from trackmod.trackers.s3m.spec.sizes import (
 
 PCM_ENCODING: Final = PcmEncoding.ABSOLUTE
 PCM_SIGN: Final = PcmSign.UNSIGNED
+
+CANONICAL_FRAME_BYTES: Final = BitDepth.EIGHT.bytes_per_frame
+STRUCTURAL_FRAME_BYTES: Final = BitDepth.SIXTEEN.bytes_per_frame * STEREO_CHANNELS
 
 NO_RECORD: Final = 0
 

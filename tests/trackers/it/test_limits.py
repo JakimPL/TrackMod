@@ -11,9 +11,10 @@ from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
 from trackmod.limits.severity import Severity
-from trackmod.spec.width import BYTE_MAX, WORD_MAX
+from trackmod.spec.width import BYTE_MAX, DOUBLE_WORD_MAX, WORD_MAX
 from trackmod.trackers.it.limits import it_limits
 from trackmod.trackers.it.module import ITModule
+from trackmod.trackers.it.settings import ITSettings
 from trackmod.trackers.it.spec.orders import ORDER_SEPARATOR
 from trackmod.trackers.it.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
@@ -23,6 +24,9 @@ from trackmod.trackers.it.spec.ranges import (
     EXTENDED_MAX_CHANNELS,
     EXTENDED_MAX_PATTERNS,
     EXTENDED_MAX_ROWS,
+    MAX_C5_SPEED,
+    MAX_GLOBAL_VOLUME,
+    MAX_MIX_VOLUME,
     MAX_PATTERNS,
     MAX_ROWS,
     MAX_VOLUME_COMMAND,
@@ -58,6 +62,45 @@ def test_a_fadeout_past_the_tracker_is_a_compliance_violation_the_extended_level
     assert [violation.capability for violation in canonical] == [Capability.FADEOUT]
     assert canonical[0].severity is Severity.COMPLIANCE
     assert ITModule.from_song(quick, compliance=Compliance.EXTENDED).violations() == ()
+
+
+def test_the_rate_the_tracker_edits_stops_short_of_what_its_field_holds() -> None:
+    # A sample record keeps its playback rate in four bytes, and the tracker's own editor counted to
+    # seven digits of hertz, so the two part company well inside the field.
+    assert it_limits(Compliance.CANONICAL).bound(Capability.SAMPLE_RATE).maximum == MAX_C5_SPEED
+    assert it_limits(Compliance.STRUCTURAL).bound(Capability.SAMPLE_RATE).maximum == DOUBLE_WORD_MAX
+
+
+def test_a_rate_past_the_tracker_is_reported_and_still_stored(song: Song) -> None:
+    voices = voices_of(song)
+    fast = voices.samples[0].model_copy(update={"rate": MAX_C5_SPEED + 1})
+    tuned = revoiced(song, samples=(fast, *voices.samples[1:]))
+
+    module = ITModule.from_song(tuned, compliance=Compliance.EXTENDED)
+    assert module.violations() == ()
+
+    (reported,) = ITModule.from_song(tuned, compliance=Compliance.CANONICAL).violations()
+    assert reported.capability is Capability.SAMPLE_RATE
+    assert reported.severity is Severity.COMPLIANCE
+    assert ITModule.parse(module.to_bytes()).song.voices.samples[0].rate == MAX_C5_SPEED + 1
+
+
+def test_the_song_wide_levels_stop_where_the_tracker_did_and_their_bytes_hold_more() -> None:
+    for capability, honoured in (
+        (Capability.SONG_VOLUME, MAX_GLOBAL_VOLUME),
+        (Capability.MIX_VOLUME, MAX_MIX_VOLUME),
+    ):
+        assert it_limits(Compliance.EXTENDED).bound(capability).maximum == honoured
+        assert it_limits(Compliance.STRUCTURAL).bound(capability).maximum == BYTE_MAX
+
+
+def test_a_song_volume_past_the_tracker_is_reported_and_still_fits_its_byte(song: Song) -> None:
+    loud = ITSettings(global_volume=MAX_GLOBAL_VOLUME + 1)
+    assert ITModule.from_song(song, compliance=Compliance.STRUCTURAL, settings=loud).violations() == ()
+
+    (reported,) = ITModule.from_song(song, compliance=Compliance.EXTENDED, settings=loud).violations()
+    assert reported.capability is Capability.SONG_VOLUME
+    assert reported.severity is Severity.EXTENDED
 
 
 def test_extra_channels_are_a_compliance_violation_the_extended_level_allows(song: Song) -> None:

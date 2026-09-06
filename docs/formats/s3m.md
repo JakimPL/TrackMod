@@ -195,7 +195,7 @@ puts the floor there.
 | Compressed waveforms | — |
 | Note column commands | cut |
 | Song message | — |
-| Song volume | `0..64` |
+| Song volume | `0..64` canonical, one byte stored |
 | Mix volume | `0..127` |
 | Channel panning table | 32 entries, sixteen positions each |
 

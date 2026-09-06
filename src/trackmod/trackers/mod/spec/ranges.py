@@ -1,15 +1,16 @@
 from typing import Final
 
-from trackmod.spec.width import BYTE_MAX, WORD_MAX
+from trackmod.spec.width import BYTE_MAX, DECIMAL_BYTE_MAX, WORD_MAX
 from trackmod.trackers.mod.spec.periods import FINETUNE_RATES
 from trackmod.trackers.mod.spec.sizes import ORDER_TABLE_BYTES, SAMPLE_SLOTS, WORD_BYTES
+from trackmod.trackers.mod.spec.storage import PCM_DEPTH
 
 CANONICAL_CHANNELS: Final = 4
 EXTENDED_MIN_CHANNELS: Final = 1
 EXTENDED_MAX_CHANNELS: Final = 32
+STRUCTURAL_MAX_CHANNELS: Final = DECIMAL_BYTE_MAX
 
 TAGGED_MAX_PATTERNS: Final = 64
-CANONICAL_MAX_PATTERNS: Final = 128
 EXTENDED_MAX_PATTERNS: Final = BYTE_MAX + 1
 
 MAX_ORDERS: Final = ORDER_TABLE_BYTES
@@ -17,7 +18,8 @@ MAX_ORDERS: Final = ORDER_TABLE_BYTES
 PATTERN_ROWS: Final = 64
 
 MAX_SAMPLES: Final = SAMPLE_SLOTS
-MAX_SAMPLE_FRAMES: Final = WORD_MAX * WORD_BYTES
+MAX_SAMPLE_BYTES: Final = WORD_MAX * WORD_BYTES
+MAX_SAMPLE_FRAMES: Final = MAX_SAMPLE_BYTES // PCM_DEPTH.bytes_per_frame
 
 MIN_SAMPLE_RATE: Final = min(FINETUNE_RATES)
 MAX_SAMPLE_RATE: Final = max(FINETUNE_RATES)

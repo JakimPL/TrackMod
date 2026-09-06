@@ -83,7 +83,7 @@ def test_a_song_holding_more_patterns_than_the_plain_tag_was_read_with_states_th
             "order": OrderList(entries=(0,)),
         }
     )
-    data = MODModule.from_song(many, compliance=Compliance.CANONICAL).to_bytes()
+    data = MODModule.from_song(many, compliance=Compliance.EXTENDED).to_bytes()
     assert data[TAG_OFFSET : TAG_OFFSET + TAG_BYTES] == b"M!K!"
 
 

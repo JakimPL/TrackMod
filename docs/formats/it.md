@@ -186,8 +186,8 @@ independent compressed streams. Every other field the header states is one both 
 ### Tuning
 
 The rate is stored as **C5Speed**: the hertz at which the sample sounds when key C-5 is pressed. That is
-what the shared model records, written straight out, so a 44100 Hz recording comes back at 44100 Hz, and
-the 32-bit field counts to 9999999.
+what the shared model records, written straight out, so a 44100 Hz recording comes back at 44100 Hz. The
+editor counted to 9999999 hertz; the 32-bit field holds far more, and the two ceilings differ there.
 
 ## Later additions
 
@@ -251,8 +251,8 @@ shortest whole-frame row this format reaches is 441 frames — the one-byte temp
 | Compressed waveforms | blocks, read at either sum |
 | Note column commands | off, cut, fade |
 | Song message | `0..8000` canonical, `\r` separated |
-| Song volume | `0..128` |
-| Mix volume | `0..128` |
+| Song volume | `0..128` canonical, one byte stored |
+| Mix volume | `0..128` canonical, one byte stored |
 | Channel panning table | 64 entries, beside a 64-entry channel volume table |
 
 | Content | Reported as |

@@ -13,8 +13,8 @@ from trackmod.trackers.mod.dialect import (
 from trackmod.trackers.mod.spec.identity import TAG_BYTES, TAG_OFFSET
 from trackmod.trackers.mod.spec.ranges import (
     CANONICAL_CHANNELS,
-    EXTENDED_MAX_CHANNELS,
     EXTENDED_MIN_CHANNELS,
+    STRUCTURAL_MAX_CHANNELS,
     TAGGED_MAX_PATTERNS,
 )
 from trackmod.trackers.mod.tag import chosen, detected, stated_tag
@@ -31,9 +31,10 @@ def test_no_two_dialects_claim_one_tag() -> None:
 
 def test_the_generated_families_cover_every_width_the_format_reaches() -> None:
     widths = {
-        DIALECTS[channel_tag(channels)].channels for channels in range(EXTENDED_MIN_CHANNELS, EXTENDED_MAX_CHANNELS + 1)
+        DIALECTS[channel_tag(channels)].channels
+        for channels in range(EXTENDED_MIN_CHANNELS, STRUCTURAL_MAX_CHANNELS + 1)
     }
-    assert widths == set(range(EXTENDED_MIN_CHANNELS, EXTENDED_MAX_CHANNELS + 1))
+    assert widths == set(range(EXTENDED_MIN_CHANNELS, STRUCTURAL_MAX_CHANNELS + 1))
 
 
 def test_the_tag_is_read_from_the_end_of_the_header() -> None:
@@ -78,4 +79,4 @@ def test_another_width_is_written_under_the_family_that_spells_it() -> None:
 
 def test_a_width_no_dialect_states_is_refused() -> None:
     with pytest.raises(ValueError, match="no dialect states"):
-        chosen(channels=EXTENDED_MAX_CHANNELS + 1, patterns=1)
+        chosen(channels=STRUCTURAL_MAX_CHANNELS + 1, patterns=1)

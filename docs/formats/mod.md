@@ -15,7 +15,7 @@ The header is a fixed slab of 1084 bytes, and that decision shapes everything be
 | Byte order | big-endian |
 | A cell's instrument column names | a sample |
 | Sections are found by | walking fixed sizes, front to back |
-| Channels | 4 canonical, 1..32 extended and stored |
+| Channels | 4 canonical, 1..32 extended, 1..99 stored |
 | Pattern rows | 64 |
 | Note range | 3 tabulated octaves, shared keys 48..83 canonical, 21..119 stored |
 | Waveform storage | 8-bit signed, one channel |
@@ -132,7 +132,7 @@ before a single pattern byte is read:
 | `CD61`, `CD81` | 6, 8 | Octalyser |
 | `FA04`, `FA06`, `FA08` | 4, 6, 8 | Digital Tracker |
 | `TDZ1` through `TDZ4` | 1..4 | TakeTracker |
-| `1CHN` through `9CHN`, `10CH` through `32CH` | 1..32 | the multichannel families |
+| `1CHN` through `9CHN`, `10CH` through `99CH` | 1..99 | the multichannel families |
 
 A tag naming a layout that stores its patterns another way is refused by name — `FLT8` writes each
 eight-channel pattern as two four-channel ones — and so is the fifteen-sample layout written before any

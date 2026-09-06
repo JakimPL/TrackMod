@@ -1,9 +1,11 @@
 import pytest
 
+from tests.conftest import rescaled
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.song import Song
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
@@ -11,6 +13,7 @@ from trackmod.limits.severity import Severity
 from trackmod.spec.pitch import REFERENCE_RATE
 from trackmod.trackers.mod.limits import mod_limits
 from trackmod.trackers.mod.module import MODModule
+from trackmod.trackers.mod.spec.identity import TAG_BYTES, TAG_OFFSET
 from trackmod.trackers.mod.spec.periods import (
     CANONICAL_MAX_NOTE,
     CANONICAL_MIN_NOTE,
@@ -25,16 +28,51 @@ from trackmod.trackers.mod.spec.ranges import (
     MAX_SAMPLES,
     MIN_SAMPLE_RATE,
     PATTERN_ROWS,
+    STRUCTURAL_MAX_CHANNELS,
+    TAGGED_MAX_PATTERNS,
 )
 
 PINNED = (Capability.SPEED, Capability.TEMPO, Capability.PATTERN_ROWS, Capability.SAMPLE_GAIN)
+WIDE_CHANNELS = 40
+WIDE_TAG = b"40CH"
 
 
 def test_the_width_the_tracker_read_is_the_only_canonical_one() -> None:
     canonical = mod_limits(Compliance.CANONICAL).bound(Capability.CHANNELS)
     extended = mod_limits(Compliance.EXTENDED).bound(Capability.CHANNELS)
+    structural = mod_limits(Compliance.STRUCTURAL).bound(Capability.CHANNELS)
     assert canonical.minimum == canonical.maximum == CANONICAL_CHANNELS
-    assert extended.maximum == EXTENDED_MAX_CHANNELS
+    assert (extended.maximum, structural.maximum) == (EXTENDED_MAX_CHANNELS, STRUCTURAL_MAX_CHANNELS)
+    assert (extended.maximum, structural.maximum) == (32, 99)
+
+
+def test_a_width_the_tag_spells_but_the_players_stop_short_of_is_stored_and_reported(mod_song: Song) -> None:
+    # Two digits and the letters naming them fill the tag, so the families spell a width the players
+    # descended from this format read no module at -- which is what makes the two levels part company.
+    module = MODModule.from_song(rescaled(mod_song, WIDE_CHANNELS), compliance=Compliance.STRUCTURAL)
+    assert module.violations() == ()
+
+    (reported,) = module.exceeded()
+    assert reported.capability is Capability.CHANNELS
+    assert reported.severity is Severity.EXTENDED
+
+    data = module.to_bytes()
+    assert data[TAG_OFFSET : TAG_OFFSET + TAG_BYTES] == WIDE_TAG
+    assert MODModule.parse(data).song.channels == WIDE_CHANNELS
+
+
+def test_more_patterns_than_the_plain_tag_was_read_with_reaches_past_the_tracker(mod_song: Song) -> None:
+    many = mod_song.model_copy(
+        update={
+            "patterns": tuple(mod_song.patterns[0] for _ in range(TAGGED_MAX_PATTERNS + 1)),
+            "order": OrderList(entries=(0,)),
+        }
+    )
+    assert MODModule.from_song(many, compliance=Compliance.EXTENDED).violations() == ()
+
+    (reported,) = MODModule.from_song(many, compliance=Compliance.CANONICAL).violations()
+    assert reported.capability is Capability.PATTERNS
+    assert reported.severity is Severity.COMPLIANCE
 
 
 def test_a_pinned_capacity_states_one_value_at_either_level() -> None:

@@ -1,7 +1,7 @@
 from typing import Final
 
 from trackmod.spec.levels import MAX_VOLUME
-from trackmod.spec.width import BYTE_MAX, WORD_MAX
+from trackmod.spec.width import BYTE_MAX, DOUBLE_WORD_MAX, WORD_MAX
 from trackmod.trackers.it.spec.orders import ORDER_SEPARATOR
 
 PAN_CENTER: Final = 32
@@ -13,6 +13,8 @@ MAX_VOLUME_PANNING: Final = MAX_VOLUME
 
 MAX_GLOBAL_VOLUME: Final = 128
 MAX_MIX_VOLUME: Final = 128
+STRUCTURAL_MAX_GLOBAL_VOLUME: Final = BYTE_MAX
+STRUCTURAL_MAX_MIX_VOLUME: Final = BYTE_MAX
 
 MAX_PATTERNS: Final = 200
 EXTENDED_MAX_PATTERNS: Final = 240
@@ -44,6 +46,7 @@ MIN_TEMPO: Final = 32
 MAX_TEMPO: Final = BYTE_MAX
 
 MAX_C5_SPEED: Final = 9_999_999
+STRUCTURAL_MAX_C5_SPEED: Final = DOUBLE_WORD_MAX
 
 CANONICAL_MAX_FADEOUT: Final = 128
 STRUCTURAL_MAX_FADEOUT: Final = WORD_MAX

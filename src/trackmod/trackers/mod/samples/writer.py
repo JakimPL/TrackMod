@@ -20,6 +20,11 @@ def stored_frames(frames: int) -> int:
     return frames + frames % WORD_BYTES
 
 
+def stored_bytes(sample: Sample) -> int:
+    """How many bytes a waveform occupies once stored, at the one depth this format writes."""
+    return stored_frames(sample.frames) * PCM_DEPTH.bytes_per_frame
+
+
 def reject_unstorable(sample: Sample) -> None:
     """Refuse to serialise a sample this format has no records for.
 

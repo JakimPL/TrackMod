@@ -1,11 +1,9 @@
 from collections.abc import Sequence
 
-import numpy as np
-
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.unit import InstrumentUnit
-from trackmod.core.patterns.grid import Pattern
+from trackmod.core.notes.checks import check_keys
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
 from trackmod.core.volumes.checks import check_volumes
@@ -13,8 +11,6 @@ from trackmod.limits.capability import Capability
 from trackmod.limits.checklist import Checklist
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
-from trackmod.spec.grid import EMPTY
-from trackmod.spec.pitch import NOTE_COUNT
 from trackmod.trackers.xm.addressing import routed
 from trackmod.trackers.xm.patterns.sizing import packed_bytes
 
@@ -33,18 +29,6 @@ def check_envelope(
     for point in envelope.points:
         checklist.check(Capability.ENVELOPE_TICK, point.tick, subject=subject)
         checklist.check(Capability.ENVELOPE_VALUE, point.value, subject=subject)
-
-
-def check_keys(checklist: Checklist, pattern: Pattern, *, subject: str) -> None:
-    """Grade the highest key a pattern plays, which this format numbers fewer of than the model.
-
-    Only keys are graded; the note column's commands are numbered past the keyboard in the shared model
-    and are the writer's business, not a quantity to bound.
-    """
-    notes = pattern.note
-    keys = notes[(notes != EMPTY) & (notes < NOTE_COUNT)]
-    if keys.size:
-        checklist.check(Capability.NOTE, int(np.max(keys)), subject=subject)
 
 
 def check_song(checklist: Checklist, song: Song) -> None:
@@ -75,7 +59,10 @@ def check_patterns(checklist: Checklist, song: Song) -> None:
 
 
 def check_samples(checklist: Checklist, samples: Sequence[Sample]) -> None:
-    """Grade each sample's waveform length, playback rate and two volume levels.
+    """Grade each sample's length, playback rate and two volume levels.
+
+    A waveform is bounded twice over, because a header states its length in bytes: the frames it holds,
+    and the block those frames come to at the depth they are stored in.
 
     The gain bound is what tells a caller this format has no per-sample multiplier: a sample asking for
     anything below full gain is reporting that the scaling has to be baked into its waveform instead.
@@ -83,6 +70,7 @@ def check_samples(checklist: Checklist, samples: Sequence[Sample]) -> None:
     for index, sample in enumerate(samples):
         subject = f"sample {index} ({sample.name!r})"
         checklist.check(Capability.SAMPLE_FRAMES, sample.frames, subject=subject)
+        checklist.check(Capability.SAMPLE_BYTES, sample.stored_bytes, subject=subject)
         checklist.check(Capability.SAMPLE_RATE, sample.rate, subject=subject)
         checklist.check(Capability.SAMPLE_VOLUME, sample.volume, subject=subject)
         checklist.check(Capability.SAMPLE_GAIN, sample.gain, subject=subject)

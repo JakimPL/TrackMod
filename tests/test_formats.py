@@ -28,9 +28,11 @@ from trackmod.core.voices.convert import flattened, raised
 from trackmod.core.voices.voices import InstrumentVoices, SampleVoices
 from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.limits.capability import Capability
+from trackmod.limits.checklist import Checklist
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
 from trackmod.limits.severity import Severity
+from trackmod.limits.table import Limits
 from trackmod.module.instrument import InstrumentFile
 from trackmod.module.protocol import TrackerModule
 from trackmod.spec.levels import CENTRE_PANNING, MAX_VOLUME
@@ -732,7 +734,7 @@ def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
     impulse = it_limits(Compliance.EXTENDED)
     fast_tracker = xm_limits(Compliance.EXTENDED)
     protracker = mod_limits(Compliance.EXTENDED)
-    assert set(impulse.capacities) == set(Capability)
+    assert set(Capability) - set(impulse.capacities) == {Capability.SAMPLE_BYTES}
     assert set(Capability) - set(fast_tracker.capacities) == {
         Capability.SONG_VOLUME,
         Capability.MIX_VOLUME,
@@ -747,7 +749,6 @@ def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
         Capability.ENVELOPE_VALUE,
         Capability.ENVELOPE_TICK,
         Capability.FADEOUT,
-        Capability.VOLUME,
         Capability.VOLUME_COMMAND,
         Capability.VOLUME_PANNING,
         Capability.SONG_VOLUME,
@@ -774,6 +775,66 @@ def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
 
     with pytest.raises(ValueError, match="keeps no field for fadeout"):
         scream_tracker.bound(Capability.FADEOUT)
+
+
+def volume_panned() -> Pattern:
+    """A grid whose one cell states a volume-column panning, which three of the four columns hold."""
+    builder = PatternBuilder(rows=MOD_PATTERN_ROWS, channels=PORTABLE_CHANNELS)
+    builder.place(
+        0,
+        0,
+        Cell(
+            note=Note(RATE_NOTE),
+            instrument=0,
+            volume=VolumeCommand(effect=VolumeEffect.PANNING, amount=0),
+        ),
+    )
+    return builder.build()
+
+
+def panning_stated(song: Song) -> Song:
+    """The same song carrying one more pattern, whose volume column states a panning."""
+    return song.model_copy(update={"patterns": (*song.patterns, volume_panned())})
+
+
+def graded(module: TrackerModule) -> set[Capability]:
+    """Every capability a module reaches for while grading itself."""
+    seen: set[Capability] = set()
+    check = Checklist.check
+
+    def record(checklist: Checklist, capability: Capability, value: int, *, subject: str) -> None:
+        seen.add(capability)
+        check(checklist, capability, value, subject=subject)
+
+    with pytest.MonkeyPatch.context() as patched:
+        patched.setattr(Checklist, "check", record)
+        module.violations()
+
+    return seen
+
+
+def declaring(envelope: Envelope) -> tuple[tuple[TrackerModule, Limits], ...]:
+    """Each format's module over a song stating every quantity that format declares a capacity for."""
+    instrumented = (panning_stated(it_song(envelope, PORTABLE_SEED)), panning_stated(xm_song(envelope, PORTABLE_SEED)))
+    sampled = (mod_song(envelope, PORTABLE_SEED), panning_stated(s3m_song(envelope, PORTABLE_SEED)))
+    compliance = Compliance.EXTENDED
+    return (
+        (it_binding(instrumented[0], compliance), it_limits(compliance)),
+        (xm_binding(instrumented[1], compliance), xm_limits(compliance)),
+        (mod_binding(sampled[0], compliance), mod_limits(compliance)),
+        (s3m_binding(sampled[1], compliance), s3m_limits(compliance)),
+    )
+
+
+def test_a_format_grades_every_capacity_it_declares(fade_envelope: Envelope) -> None:
+    """Every declared capacity is reached by a check, and every check asks for a declared capacity.
+
+    A capacity nothing grades is a ceiling a caller is promised and never held to; a check reaching for
+    a capacity its format leaves undeclared is refused by name where it is met, which is what once cost
+    a whole read surface over a single volume-column slide.
+    """
+    for module, limits in declaring(fade_envelope):
+        assert graded(module) == set(limits.capacities)
 
 
 def test_only_one_format_stores_a_tempo_past_the_byte(instrumented: Song) -> None:

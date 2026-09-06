@@ -4,7 +4,7 @@ from trackmod.limits.bound import Bound
 from trackmod.limits.capability import Capability
 from trackmod.limits.capacity import Capacity
 from trackmod.spec.grid import MIN_ROWS
-from trackmod.spec.levels import MAX_PANNING, MAX_VOLUME
+from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.pitch import NOTE_COUNT
 from trackmod.spec.width import (
     BYTE_MAX,
@@ -35,10 +35,13 @@ from trackmod.trackers.it.spec.ranges import (
     MAX_VOLUME_PANNING,
     MIN_SPEED,
     MIN_TEMPO,
+    STRUCTURAL_MAX_C5_SPEED,
     STRUCTURAL_MAX_CHANNELS,
     STRUCTURAL_MAX_FADEOUT,
+    STRUCTURAL_MAX_GLOBAL_VOLUME,
     STRUCTURAL_MAX_INSTRUMENTS,
     STRUCTURAL_MAX_MESSAGE_BYTES,
+    STRUCTURAL_MAX_MIX_VOLUME,
     STRUCTURAL_MAX_ORDERS,
     STRUCTURAL_MAX_PATTERNS,
     STRUCTURAL_MAX_ROWS,
@@ -80,7 +83,11 @@ CAPACITIES: Final = {
     ),
     Capability.SAMPLES_PER_INSTRUMENT: Capacity.fixed(Bound(minimum=0, maximum=BYTE_MAX)),
     Capability.SAMPLE_FRAMES: Capacity.fixed(Bound(minimum=0, maximum=DOUBLE_WORD_MAX)),
-    Capability.SAMPLE_RATE: Capacity.fixed(Bound(minimum=1, maximum=MAX_C5_SPEED)),
+    Capability.SAMPLE_RATE: Capacity(
+        canonical=Bound(minimum=1, maximum=MAX_C5_SPEED),
+        extended=Bound(minimum=1, maximum=STRUCTURAL_MAX_C5_SPEED),
+        structural=Bound(minimum=1, maximum=STRUCTURAL_MAX_C5_SPEED),
+    ),
     Capability.SAMPLE_VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME)),
     Capability.SAMPLE_GAIN: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME)),
     Capability.INSTRUMENT_VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_GLOBAL_VOLUME)),
@@ -95,15 +102,21 @@ CAPACITIES: Final = {
     Capability.NOTE: Capacity.fixed(Bound(minimum=0, maximum=NOTE_COUNT - 1)),
     Capability.TEMPO: Capacity.fixed(Bound(minimum=MIN_TEMPO, maximum=MAX_TEMPO)),
     Capability.SPEED: Capacity.fixed(Bound(minimum=MIN_SPEED, maximum=MAX_SPEED)),
-    Capability.VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME)),
     Capability.VOLUME_COMMAND: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME_COMMAND)),
     Capability.VOLUME_PANNING: Capacity.fixed(Bound(minimum=0, maximum=MAX_VOLUME_PANNING)),
-    Capability.SONG_VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_GLOBAL_VOLUME)),
-    Capability.MIX_VOLUME: Capacity.fixed(Bound(minimum=0, maximum=MAX_MIX_VOLUME)),
+    Capability.SONG_VOLUME: Capacity(
+        canonical=Bound(minimum=0, maximum=MAX_GLOBAL_VOLUME),
+        extended=Bound(minimum=0, maximum=MAX_GLOBAL_VOLUME),
+        structural=Bound(minimum=0, maximum=STRUCTURAL_MAX_GLOBAL_VOLUME),
+    ),
+    Capability.MIX_VOLUME: Capacity(
+        canonical=Bound(minimum=0, maximum=MAX_MIX_VOLUME),
+        extended=Bound(minimum=0, maximum=MAX_MIX_VOLUME),
+        structural=Bound(minimum=0, maximum=STRUCTURAL_MAX_MIX_VOLUME),
+    ),
     Capability.MESSAGE_BYTES: Capacity(
         canonical=Bound(minimum=0, maximum=CANONICAL_MAX_MESSAGE_BYTES),
         extended=Bound(minimum=0, maximum=STRUCTURAL_MAX_MESSAGE_BYTES),
         structural=Bound(minimum=0, maximum=STRUCTURAL_MAX_MESSAGE_BYTES),
     ),
-    Capability.PANNING: Capacity.fixed(Bound(minimum=0, maximum=MAX_PANNING)),
 }

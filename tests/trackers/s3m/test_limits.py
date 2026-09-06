@@ -6,6 +6,7 @@ from tests.trackers.s3m.conftest import S3M_CHANNELS, s3m_pattern
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
+from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
@@ -17,14 +18,17 @@ from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
 from trackmod.limits.severity import Severity
 from trackmod.spec.pitch import REFERENCE_RATE
+from trackmod.spec.width import BYTE_MAX
 from trackmod.trackers.s3m.limits import s3m_limits
 from trackmod.trackers.s3m.module import S3MModule
 from trackmod.trackers.s3m.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
 from trackmod.trackers.s3m.spec.keys import CANONICAL_MAX_NOTE, MAX_NOTE
 from trackmod.trackers.s3m.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
+    CANONICAL_MAX_SAMPLE_BYTES,
     CANONICAL_MAX_SAMPLE_FRAMES,
     CANONICAL_MAX_SAMPLE_RATE,
+    MAX_GLOBAL_VOLUME,
     PATTERN_ROWS,
     STRUCTURAL_MAX_CHANNELS,
 )
@@ -50,6 +54,11 @@ def test_the_editor_stops_short_of_what_the_records_hold(capability: Capability,
     assert bound(Compliance.CANONICAL, capability)[1] == canonical
     assert bound(Compliance.EXTENDED, capability)[1] == wider
     assert bound(Compliance.STRUCTURAL, capability)[1] == wider
+
+
+def test_the_song_volume_stops_where_the_tracker_did_and_its_byte_holds_more() -> None:
+    assert bound(Compliance.EXTENDED, Capability.SONG_VOLUME)[1] == MAX_GLOBAL_VOLUME
+    assert bound(Compliance.STRUCTURAL, Capability.SONG_VOLUME)[1] == BYTE_MAX
 
 
 def test_every_pattern_of_this_format_is_the_same_height() -> None:
@@ -101,16 +110,38 @@ def test_a_key_above_the_octaves_the_editor_spells_reaches_past_the_tracker() ->
     assert [violation.capability for violation in module.exceeded()] == [Capability.NOTE]
 
 
+def sampled_song(sample: Sample) -> Song:
+    """A song carrying one waveform, which is how a sample bound is exercised on its own."""
+    return keyed_song(60).model_copy(update={"voices": SampleVoices(samples=(sample,))})
+
+
 def test_a_sample_longer_than_the_tracker_stored_reaches_past_it() -> None:
     long = Sample(
         name="long",
-        pcm=lattice(np.zeros(CANONICAL_MAX_SAMPLE_FRAMES + 1)),
+        pcm=lattice(np.zeros(CANONICAL_MAX_SAMPLE_FRAMES + 1), BitDepth.EIGHT),
+        rate=REFERENCE_RATE,
+        depth=BitDepth.EIGHT,
+    )
+    module = S3MModule.from_song(sampled_song(long), compliance=Compliance.EXTENDED)
+    assert module.violations() == ()
+    assert [violation.capability for violation in module.exceeded()] == [
+        Capability.SAMPLE_FRAMES,
+        Capability.SAMPLE_BYTES,
+    ]
+
+
+def test_a_wide_sample_inside_the_frames_the_tracker_loaded_states_the_block_it_comes_to() -> None:
+    frames = CANONICAL_MAX_SAMPLE_BYTES // 2
+    wide = Sample(
+        name="wide",
+        pcm=lattice(np.zeros((frames, 2))),
         rate=REFERENCE_RATE,
     )
-    song = keyed_song(60).model_copy(update={"voices": SampleVoices(samples=(long,))})
-    module = S3MModule.from_song(song, compliance=Compliance.EXTENDED)
+    module = S3MModule.from_song(sampled_song(wide), compliance=Compliance.EXTENDED)
     assert module.violations() == ()
-    assert [violation.capability for violation in module.exceeded()] == [Capability.SAMPLE_FRAMES]
+    (reported,) = module.exceeded()
+    assert reported.capability is Capability.SAMPLE_BYTES
+    assert reported.value == frames * 2 * 2
 
 
 def test_a_rate_past_the_word_the_tracker_read_reaches_past_it() -> None:

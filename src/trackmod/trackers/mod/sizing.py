@@ -2,7 +2,7 @@ from trackmod.core.songs.song import Song
 from trackmod.module.size import SizeReport
 from trackmod.trackers.mod.addressing import sampled
 from trackmod.trackers.mod.patterns.sizing import packed_bytes
-from trackmod.trackers.mod.samples.writer import stored_frames
+from trackmod.trackers.mod.samples.writer import stored_bytes
 from trackmod.trackers.mod.spec.storage import MOD_STORAGE
 
 NO_INSTRUMENTS: tuple[int, ...] = ()
@@ -20,7 +20,7 @@ def module_bytes(song: Song) -> SizeReport:
     per_pattern = [packed_bytes(pattern) for pattern in song.patterns]
     return SizeReport(
         patterns=sum(per_pattern),
-        pcm=sum(stored_frames(sample.frames) for sample in voices.samples),
+        pcm=sum(stored_bytes(sample) for sample in voices.samples),
         headers=MOD_STORAGE.overhead(
             instruments=NO_INSTRUMENTS,
             samples=len(voices.samples),

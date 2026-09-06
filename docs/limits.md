@@ -116,16 +116,17 @@ and structural; a single bound is a field with no headroom at any level.
 
 | Capability | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 |
 |---|---|---|---|---|
-| `channels` | 1..64 / 1..127 / 1..127 | 1..32 / 1..127 / 1..65535 | 4..4 / 1..32 / 1..32 | 1..16 / 1..32 / 1..32 |
-| `patterns` | 0..200 / 0..240 / 0..254 | 0..256 | 0..128 / 0..256 / 0..256 | 0..100 / 0..254 / 0..254 |
-| `orders` | 0..256 / 0..65535 / 0..65535 | 0..256 | 0..128 | 0..255 / 0..65535 / 0..65535 |
+| `channels` | 1..64 / 1..127 / 1..127 | 1..32 / 1..127 / 1..65535 | 4..4 / 1..32 / 1..99 | 1..16 / 1..32 / 1..32 |
+| `patterns` | 0..200 / 0..240 / 0..254 | 0..256 / 0..256 / 0..65535 | 0..64 / 0..256 / 0..256 | 0..100 / 0..254 / 0..254 |
+| `orders` | 0..256 / 0..65535 / 0..65535 | 0..256 / 0..256 / 0..65535 | 0..128 | 0..255 / 0..65535 / 0..65535 |
 | `pattern_rows` | 32..200 / 1..1024 / 1..65535 | 1..256 / 1..1024 / 1..65535 | 64..64 | 64..64 |
 | `pattern_bytes` | 0..65535 | 0..65535 | — | 0..65535 |
 | `instruments` | 0..99 / 0..255 / 0..255 | 0..128 / 0..255 / 0..255 | — | — |
-| `samples` | 0..99 / 0..255 / 0..255 | 0..2048 | 0..31 | 0..99 / 0..255 / 0..255 |
+| `samples` | 0..99 / 0..255 / 0..255 | 0..2048 / 0..65025 / 0..65025 | 0..31 | 0..99 / 0..255 / 0..255 |
 | `samples_per_instrument` | 0..255 | 0..16 / 0..255 / 0..255 | — | — |
-| `sample_frames` | 0..4294967295 | 0..2147483647 | 0..131070 | 0..64000 / 0..4294967295 / 0..4294967295 |
-| `sample_rate` | 1..9999999 | 10..25662141 | 7893..8795 | 1..65535 / 1..4294967295 / 1..4294967295 |
+| `sample_frames` | 0..4294967295 | 0..4294967295 | 0..131070 | 0..64000 / 0..4294967295 / 0..4294967295 |
+| `sample_bytes` | — | 0..4294967295 | 0..131070 | 0..64000 / 0..17179869180 / 0..17179869180 |
+| `sample_rate` | 1..9999999 / 1..4294967295 / 1..4294967295 | 10..25662141 | 7893..8795 | 1..65535 / 1..4294967295 / 1..4294967295 |
 | `sample_volume` | 0..64 | 0..64 | 0..64 | 0..64 |
 | `sample_gain` | 0..64 | 64..64 | 64..64 | 64..64 |
 | `instrument_volume` | 0..128 | 128..128 | — | — |
@@ -136,20 +137,26 @@ and structural; a single bound is a field with no headroom at any level.
 | `note` | 0..119 | 0..95 | 48..83 / 21..119 / 21..119 | 12..107 / 12..119 / 12..119 |
 | `tempo` | 32..255 | 32..255 / 32..1000 / 1..65535 | 125..125 | 32..255 |
 | `speed` | 1..255 | 1..31 / 1..65535 / 1..65535 | 6..6 | 1..255 |
-| `volume` | 0..64 | 0..64 | — | 0..64 |
 | `volume_command` | 0..9 | 0..15 | — | — |
 | `volume_panning` | 0..64 | 0..15 | — | 0..64 |
-| `song_volume` | 0..128 | — | — | 0..64 |
-| `mix_volume` | 0..128 | — | — | 0..127 |
-| `panning` | 0..255 | 0..255 | 0..255 | 0..255 |
+| `song_volume` | 0..128 / 0..128 / 0..255 | — | — | 0..64 / 0..64 / 0..255 |
+| `mix_volume` | 0..128 / 0..128 / 0..255 | — | — | 0..127 |
 | `message_bytes` | 0..8000 / 0..65535 / 0..65535 | — | — | — |
 
 A dash means the format keeps no such field, so it states no capacity and `limits.bound(...)` and
 `limits.check(...)` both refuse it by name; `limits.declares(...)` is the question to ask first.
 FastTracker 2 has no song-wide volume, no mix volume and no song message; Scream Tracker 3 keeps one
 table of samples, so it has neither instrument records nor envelopes; Amiga ProTracker keeps none of
-those and no volume column either. A caller reaching for one is asking about a field that does not
-exist, which is a different mistake from asking for a value out of range.
+those and no volume column either. Impulse Tracker states a waveform's length in frames, which is why
+`sample_bytes` is the one row it leaves empty and the other three fill. A caller reaching for a dash is
+asking about a field that does not exist, which is a different mistake from asking for a value out of
+range.
+
+`sample_frames` and `sample_bytes` measure one waveform two ways: the frames it holds per channel, and
+the block those frames come to once the depth and the channel count are counted in. The two coincide for
+an eight-bit mono waveform and part company for every other, which is what puts Scream Tracker 3's
+loader ceiling of 64000 **bytes** in the row that is denominated in them: a sixteen-bit stereo sample of
+20000 frames sits well inside the frame ceiling, comes to 80000 bytes, and that is the number reported.
 
 A capacity pinned to a single value states that the format applies no such adjustment: `sample_gain` at
 64 says FastTracker 2 multiplies nothing, and Amiga ProTracker's `speed` and `tempo` at 6 and 125 say
@@ -165,10 +172,10 @@ apart.
 channels in FastTracker 2, sixteen in Scream Tracker 3, four in Amiga ProTracker. **Structural** is read
 off the record layout and is provable: a sixteen-bit field holds 65535, a packed cell announcing its
 channel as `(channel + 1) | 0x80` leaves seven bits for the number, a twelve-bit period reaches down to
-one key and no further, a channel settings table of 32 entries names 32 channels, and an order byte
-whose `0xFE` and `0xFF` are the separator and the end of song names `0..253`. **Extended** is measured,
-by asking the players descended from these trackers what they read back rather than what they merely
-accept.
+one key and no further, a channel settings table of 32 entries names 32 channels, four tag characters
+spelling two decimal digits name up to 99, and an order byte whose `0xFE` and `0xFF` are the separator
+and the end of song names `0..253`. **Extended** is measured, by asking the players descended from these
+trackers what they read back rather than what they merely accept.
 
 The cases where the levels part company are the ones worth naming:
 
@@ -180,8 +187,14 @@ The cases where the levels part company are the ones worth naming:
 | XM tempo | 255, one byte of it | 1000, past which the tempo is drawn back | 65535, the header's word |
 | IT patterns | 200, the editor's own | 240, past which the count is drawn back | 254, what an order byte names |
 | MOD note range | 48..83, the three tabulated octaves | 21..119, every period the field holds | the same |
+| MOD channels | 4, the only width the tracker wrote | 32, as far as the players read | 99, as far as two digits spell |
+| MOD patterns | 64, what the plain tag was read with | 256, what an order byte names | the same |
+| IT sample rate | 9999999, the editor's own | 4294967295, the record's four bytes | the same |
+| IT, S3M song volume | 128 and 64, each tracker's own | the same | 255, the byte that carries it |
+| XM patterns, orders | 256 each, the editor's own | the same | 65535, the header's words |
 | S3M channels | 16, the slots the tracker mixes | 32, the settings table's entries | the same |
-| S3M sample length | 64000 bytes, what the tracker loads | 4294967295, the record's own field | the same |
+| S3M sample frames | 64000, the loader's ceiling at a byte a frame | 4294967295, the record's own field | the same |
+| S3M sample bytes | 64000, what the tracker's loader holds | that field at four bytes a frame | the same |
 | S3M sample rate | 65535, the low word the tracker reads | 4294967295, the whole field | the same |
 | S3M note range | 12..107, the eight octaves it names | 12..119, every key two nibbles spell | the same |
 
