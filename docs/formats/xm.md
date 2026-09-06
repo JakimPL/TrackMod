@@ -234,6 +234,7 @@ format's own starting speed of 6, and reported.
 | Song volume | — |
 | Mix volume | — |
 | Channel panning table | — |
+| What names the writer | twenty bytes of header text |
 
 | Content | Reported as |
 |---|---|

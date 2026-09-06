@@ -94,6 +94,15 @@ class STModule(BaseModel, Reaching):
         return EXTENSION
 
     @property
+    def provenance(self) -> None:
+        """What this module states about the program that wrote it, which this format leaves unstated.
+
+        The trackers writing this layout each wrote the same six hundred bytes and signed none of them,
+        so a file of it names its writer nowhere.
+        """
+        return None
+
+    @property
     def limits(self) -> Limits:
         """The bounds this module is held to, at its compliance level."""
         return st_limits(self.compliance)

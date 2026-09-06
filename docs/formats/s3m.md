@@ -178,8 +178,12 @@ spend the room its record left. Three things reach a reader:
 - **Stereo and sixteen-bit frames** are two flag bits the trackers after it set, and both are read here.
 - **A packing byte** states the ADPCM a later tracker wrote, which is refused by name.
 - **The word at offset 40** states the program and the version that wrote the module, `0x1320` being
-  Scream Tracker 3.20 itself. Those numbers belong to the programs that took them, so a file keeps the
-  one it arrived with and one written here states `0x1320`.
+  Scream Tracker 3.20 itself, `0x2` Imago Orpheus, `0x3` Impulse Tracker, `0x4` Schism Tracker and `0x5`
+  OpenMPT. Those numbers belong to the programs that took them, so a file keeps the one it arrived with
+  and one written here states `0x1320`.
+- **The eight bytes at offset 54** are where a tracker signs a mark instead — Sound Club writes
+  `SCLUB2.0` there, and this library writes `TrackMod`. A mark names the writer where the number names
+  the reading, and a file keeps the mark it arrived with.
 
 The word at offset 38 carries eight switches, most of them naming an older tracker's reading. The highest
 says a writer attached a block of its own, which the word at offset 62 points at.
@@ -227,6 +231,7 @@ puts the floor there.
 | Song volume | `0..64` canonical, one byte stored |
 | Mix volume | `0..127` |
 | Channel panning table | 32 entries, sixteen positions each |
+| What names the writer | a program number above a version, and a signature in eight reserved bytes |
 
 | Content | Reported as |
 |---|---|

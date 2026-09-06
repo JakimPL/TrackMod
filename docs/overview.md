@@ -139,6 +139,11 @@ A module also says how far it reaches past the tracker its format names: `recove
 of the three levels its values fit inside — or `None` for a song carrying a value no record layout holds —
 and `recovered.exceeded()` is which ceilings it passed to get there.
 
+`recovered.provenance` names the program that wrote the bytes, where the file states one, and says which kind of
+statement carried it: a name the header spells outright, a mark a writer signed into bytes the format reserves, a
+program number above a version, or the tag naming the family that settled the layout. It is `None` for the one format
+whose files name their writer nowhere.
+
 ## One instrument on its own
 
 The two formats that keep instrument records also store a single voice as a file of its own — `.iti` and
@@ -181,6 +186,9 @@ The result is the voice table the format that wrote the bytes addresses, so the 
 mattering at the point the bytes are read. The extension is matched in either capitalisation, and one that
 no format here writes is refused by name. `EXTENSIONS`, `MODULE_EXTENSIONS` and `INSTRUMENT_EXTENSIONS`
 state which suffixes are read, so the suffix table lives here, once.
+
+`parse_provenance` answers the other question the same way, naming the program that wrote a module without a caller
+choosing a format first.
 
 Two formats share `.mod`, because the older of them was written before a name carried an extension at
 all, so that suffix is read from the bytes rather than the name: a file carrying a tag states which

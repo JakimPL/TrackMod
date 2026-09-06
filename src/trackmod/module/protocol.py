@@ -5,6 +5,7 @@ from trackmod.core.songs.song import Song
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
+from trackmod.module.provenance import Provenance
 from trackmod.module.size import SizeReport
 from trackmod.module.storage import Storage
 
@@ -27,6 +28,14 @@ class TrackerModule(Protocol):
     @property
     def extension(self) -> str:
         """The file extension this format is written with, including the leading dot."""
+
+    @property
+    def provenance(self) -> Provenance | None:
+        """What the file states about the program that wrote it, or ``None`` for a format stating none.
+
+        A module built here carries what this library writes, and one read from a file carries what that
+        file arrived with, so the answer is about the bytes rather than the song.
+        """
 
     def violations(self) -> tuple[Violation, ...]:
         """Every bound the song breaks, empty when the module is writable."""

@@ -58,6 +58,7 @@ from trackmod.trackers.registry import (
     EXTENSIONS,
     INSTRUMENT_EXTENSIONS,
     MODULE_EXTENSIONS,
+    parse_provenance,
     parse_voices,
     reads,
 )
@@ -695,6 +696,38 @@ def test_a_unit_saves_under_the_extension_its_format_writes_instruments_with(
     assert path.read_bytes() == written.to_bytes()
     parsed = instrument_binding.parse_unit(path.read_bytes())
     assert parsed.unit.instrument.name == voices_of(voiced).instruments[0].name
+
+
+def test_what_wrote_a_file_survives_being_written_and_read_back(binding: Binding, portable: Song) -> None:
+    module = binding.bind(portable, Compliance.CANONICAL)
+    recovered = binding.parse(written(module))
+    assert recovered.provenance == module.provenance
+
+
+def test_a_binding_names_what_wrote_the_file_where_its_format_states_one(
+    binding: Binding,
+    portable: Song,
+) -> None:
+    # Four of the five spend a field on the program that wrote a file -- a name, a number, or the tag
+    # naming the family that settled the layout. The fifth spends none, so its files name no writer.
+    stated = binding.bind(portable, Compliance.CANONICAL).provenance
+
+    if binding is ST_BINDING:
+        assert stated is None
+    else:
+        assert stated is not None and stated.stated
+
+
+def test_the_registry_names_what_wrote_a_module_from_its_extension(binding: Binding, portable: Song) -> None:
+    module = binding.bind(portable, Compliance.CANONICAL)
+    data = written(module)
+    assert parse_provenance(data, extension=module.extension) == module.provenance
+    assert parse_provenance(data, extension=module.extension.upper()) == module.provenance
+
+
+def test_the_registry_refuses_to_name_a_writer_for_an_extension_no_module_format_writes() -> None:
+    with pytest.raises(ValueError, match=UNWRITTEN_EXTENSION):
+        parse_provenance(b"", extension=UNWRITTEN_EXTENSION)
 
 
 def test_the_registry_reads_a_module_by_the_extension_that_wrote_it(binding: Binding, portable: Song) -> None:

@@ -10,6 +10,7 @@ OFFSET_CODE: Final = "<I"
 
 NAME_BYTES: Final = 26
 FILENAME_BYTES: Final = 12
+SIGNATURE_BYTES: Final = 4
 
 CHANNELS_STORED: Final = 64
 

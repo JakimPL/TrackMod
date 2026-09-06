@@ -28,6 +28,7 @@ is written to more than one of them.
 | Sample table | one, shared by every instrument | one copy per owning instrument | thirty-one fixed slots | one, addressed by every cell | fifteen fixed slots |
 | Sample gain | a multiplier, `0..64` | the level baked into the waveform | the level baked into the waveform | the level baked into the waveform | the level baked into the waveform |
 | The header's clock | a speed byte and a tempo byte | two sixteen-bit fields | the clock the lineage starts on | a speed byte and a tempo byte | the clock the lineage starts on |
+| What names the writer | a number, and a mark in four reserved bytes | twenty bytes of text | the tag's family | a number, and a mark in eight reserved bytes | — |
 | An absent volume | the mask bit leaves the column out | the byte `0x00` | — | the marker bit leaves the column out | — |
 | Volume-column rates | ten steps | sixteen steps | — | — | — |
 | Volume-column panning | 65 positions | 16 positions | — | 65 positions | — |
@@ -37,7 +38,7 @@ is written to more than one of them.
 | Fade counter | 1024 | 32768 | — | — | — |
 
 The first seven rows are answered by all five formats, and the rows below them belong to the ones
-keeping a volume column or instrument records. The six that follow are the ones worth reading twice.
+keeping a volume column, instrument records, or a field naming the program that wrote a file. The six that follow are the ones worth reading twice.
 
 **Each format spells its own note commands.** Impulse Tracker spells three of them, FastTracker 2 the
 key off and Scream Tracker 3 the cut, while the two Amiga formats put a period in that column and

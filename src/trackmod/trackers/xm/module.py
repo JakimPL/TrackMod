@@ -9,6 +9,7 @@ from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import require
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
+from trackmod.module.provenance import Evidence, Provenance
 from trackmod.module.reaching import Reaching
 from trackmod.module.size import SizeReport
 from trackmod.module.storage import Storage
@@ -96,6 +97,16 @@ class XMModule(BaseModel, Reaching):
     def extension(self) -> str:
         """The file extension this format is written with."""
         return EXTENSION
+
+    @property
+    def provenance(self) -> Provenance:
+        """What this module states about the program that wrote it.
+
+        This format spends twenty bytes of its header on a name, so the field answers the question
+        directly and the name it holds is the whole of the answer.
+        """
+        tracker = self.settings.tracker
+        return Provenance(evidence=Evidence.NAMED, stated=tracker, tracker=tracker or None)
 
     @property
     def limits(self) -> Limits:

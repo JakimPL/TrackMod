@@ -2,6 +2,7 @@ from collections.abc import Callable, Mapping
 from typing import Final
 
 from trackmod.core.voices.voices import InstrumentVoices, Voices
+from trackmod.module.provenance import Provenance
 from trackmod.trackers.it.instrument_file import ITInstrumentFile
 from trackmod.trackers.it.module import ITModule
 from trackmod.trackers.it.spec.identity import EXTENSION as IT_EXTENSION
@@ -54,6 +55,28 @@ def _fast_tracker_instrument(data: bytes) -> Voices:
     return InstrumentVoices(instruments=(unit.instrument,), samples=unit.samples)
 
 
+def _impulse_tracker_writer(data: bytes) -> Provenance | None:
+    return ITModule.parse(data).provenance
+
+
+def _fast_tracker_writer(data: bytes) -> Provenance | None:
+    return XMModule.parse(data).provenance
+
+
+def _scream_tracker_writer(data: bytes) -> Provenance | None:
+    return S3MModule.parse(data).provenance
+
+
+def _amiga_writer(data: bytes) -> Provenance | None:
+    """What an Amiga module states about the program that wrote it, under whichever layout holds it.
+
+    The tag is what the newer layout states and the whole of what it has, and the older one states
+    nothing at all, so which layout the bytes hold is what settles whether there is an answer.
+    """
+    older = written_here(data) and not tagged(data)
+    return None if older else MODModule.parse(data).provenance
+
+
 READERS: Final[Mapping[str, Callable[[bytes], Voices]]] = {
     IT_EXTENSION: _impulse_tracker_module,
     XM_EXTENSION: _fast_tracker_module,
@@ -61,6 +84,13 @@ READERS: Final[Mapping[str, Callable[[bytes], Voices]]] = {
     S3M_EXTENSION: _scream_tracker_module,
     ITI_EXTENSION: _impulse_tracker_instrument,
     XI_EXTENSION: _fast_tracker_instrument,
+}
+
+WRITER_READERS: Final[Mapping[str, Callable[[bytes], Provenance | None]]] = {
+    IT_EXTENSION: _impulse_tracker_writer,
+    XM_EXTENSION: _fast_tracker_writer,
+    MOD_EXTENSION: _amiga_writer,
+    S3M_EXTENSION: _scream_tracker_writer,
 }
 
 MODULE_EXTENSIONS: Final = frozenset({IT_EXTENSION, XM_EXTENSION, MOD_EXTENSION, S3M_EXTENSION})
@@ -90,5 +120,22 @@ def parse_voices(data: bytes, *, extension: str) -> Voices:
     if reader is None:
         understood = ", ".join(sorted(READERS))
         raise ValueError(f"{extension!r} names no format here; {understood} are the ones written")
+
+    return reader(data)
+
+
+def parse_provenance(data: bytes, *, extension: str) -> Provenance | None:
+    """What the bytes state about the program that wrote them, or ``None`` for a format stating none.
+
+    Which format wrote them is what the extension states, in either capitalisation, and the two sharing
+    ``.mod`` are told apart from the bytes as :func:`parse_voices` tells them apart.
+
+    Raises:
+        ValueError: when no module format writes that extension, or the data reads as another one.
+    """
+    reader = WRITER_READERS.get(extension.lower())
+    if reader is None:
+        understood = ", ".join(sorted(WRITER_READERS))
+        raise ValueError(f"{extension!r} names no module format here; {understood} are the ones written")
 
     return reader(data)

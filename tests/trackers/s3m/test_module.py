@@ -28,6 +28,8 @@ from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import InstrumentVoices, SampleVoices
 from trackmod.limits.compliance import Compliance
+from trackmod.module.provenance import Evidence
+from trackmod.spec.application import APPLICATION_MARK
 from trackmod.spec.grid import MIN_CHANNELS
 from trackmod.spec.levels import CENTRE_PANNING, MAX_PANNING
 from trackmod.spec.pitch import REFERENCE_RATE
@@ -55,9 +57,11 @@ from trackmod.trackers.s3m.spec.sizes import (
     FILE_HEADER_BYTES,
     PARAGRAPH_BYTES,
     PARAPOINTER_BYTES,
+    SIGNATURE_BYTES,
 )
 
 ONE_ORDER = b"\x00"
+SIGNATURE_OFFSET = 54  # the eight bytes this format reserves, which a tracker signs
 UNREACHED_PARAGRAPH = 0xF000
 
 
@@ -424,3 +428,33 @@ def test_a_waveform_of_any_shape_this_format_stores_survives_the_whole_module(
     (recovered,) = S3MModule.parse(module.to_bytes()).song.voices.samples
     assert (recovered.frames, recovered.channels, recovered.depth) == (sample.frames, sample.channels, sample.depth)
     assert np.array_equal(recovered.pcm, sample.pcm)
+
+
+def test_a_song_built_here_signs_the_bytes_this_format_reserves(s3m_song: Song) -> None:
+    data = written(s3m_song)
+
+    assert data[SIGNATURE_OFFSET : SIGNATURE_OFFSET + SIGNATURE_BYTES] == APPLICATION_MARK
+    assert S3MModule.parse(data).provenance.tracker == "TrackMod"
+
+
+def test_a_file_signed_by_another_tracker_keeps_the_mark_it_arrived_with(s3m_song: Song) -> None:
+    # Sound Club spends these eight bytes on its own name, so a file read here states it again.
+    arrived = bytearray(written(s3m_song))
+    arrived[SIGNATURE_OFFSET : SIGNATURE_OFFSET + SIGNATURE_BYTES] = b"SCLUB2.0"
+
+    recovered = S3MModule.parse(bytes(arrived))
+
+    assert recovered.settings.signature == b"SCLUB2.0"
+    assert recovered.provenance.tracker == "Sound Club"
+    assert recovered.provenance.evidence is Evidence.SIGNED
+    assert recovered.to_bytes()[SIGNATURE_OFFSET : SIGNATURE_OFFSET + SIGNATURE_BYTES] == b"SCLUB2.0"
+
+
+def test_a_module_another_tracker_numbered_names_that_tracker(s3m_song: Song) -> None:
+    # Impulse Tracker writes this format too, and takes a number of its own above the version.
+    settings = S3MSettings(created_with=0x3216, signature=bytes(SIGNATURE_BYTES))
+    recovered = S3MModule.parse(written(s3m_song, settings))
+
+    assert recovered.provenance.tracker == "Impulse Tracker"
+    assert recovered.provenance.evidence is Evidence.NUMBERED
+    assert recovered.provenance.stated == "0x3216"

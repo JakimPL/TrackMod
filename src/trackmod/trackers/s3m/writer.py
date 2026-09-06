@@ -96,6 +96,7 @@ def file_header(song: Song, settings: S3MSettings, *, patterns: int) -> bytes:
             "pattern_count": patterns,
             "flags": int(settings.flags),
             "created_with": settings.created_with,
+            "signature": settings.signature,
             "frame_format": UNSIGNED_FRAMES,
             "magic": MAGIC_MODULE,
             "global_volume": settings.global_volume,

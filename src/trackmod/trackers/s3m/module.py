@@ -10,6 +10,7 @@ from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import require
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
+from trackmod.module.provenance import Provenance
 from trackmod.module.reaching import Reaching
 from trackmod.module.size import SizeReport
 from trackmod.module.storage import Storage
@@ -21,6 +22,7 @@ from trackmod.trackers.s3m.settings import S3MSettings
 from trackmod.trackers.s3m.sizing import module_bytes
 from trackmod.trackers.s3m.spec.identity import EXTENSION
 from trackmod.trackers.s3m.spec.storage import S3M_STORAGE
+from trackmod.trackers.s3m.version import stated_provenance
 from trackmod.trackers.s3m.writer import write_module, written_channels
 
 
@@ -103,6 +105,11 @@ class S3MModule(BaseModel, Reaching):
     def extension(self) -> str:
         """The file extension this format is written with."""
         return EXTENSION
+
+    @property
+    def provenance(self) -> Provenance:
+        """What this module states about the program that wrote it."""
+        return stated_provenance(created_with=self.settings.created_with, signature=self.settings.signature)
 
     @property
     def limits(self) -> Limits:

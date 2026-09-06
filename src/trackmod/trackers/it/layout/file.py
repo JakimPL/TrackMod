@@ -6,6 +6,7 @@ from trackmod.trackers.it.spec.sizes import (
     CHANNELS_STORED,
     FILE_HEADER_BYTES,
     NAME_BYTES,
+    SIGNATURE_BYTES,
 )
 
 FILE_HEADER: Final = Record(
@@ -30,6 +31,7 @@ FILE_HEADER: Final = Record(
         Field(name="pitch_wheel_depth", offset=53, code="B"),
         Field(name="message_length", offset=54, code="<H"),
         Field(name="message_offset", offset=56, code="<I"),
+        Field(name="signature", offset=60, code=f"{SIGNATURE_BYTES}s"),
         Field(name="channel_pan", offset=64, code=f"{CHANNELS_STORED}s"),
         Field(name="channel_volume", offset=128, code=f"{CHANNELS_STORED}s"),
     ),

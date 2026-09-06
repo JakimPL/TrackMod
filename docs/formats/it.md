@@ -145,9 +145,8 @@ order are held at the tick before them; both are reported.
 
 ### Fadeout
 
-A fading voice loses `fadeout` from a counter of **1024** every tick, so it falls silent after
-`1024 / fadeout` ticks. The field is sixteen bits wide, and the editor counts to 128 — eight ticks, the
-quickest fade it states.
+A fading voice loses `fadeout` from a counter of **1024** every tick, so it falls silent after `1024 / fadeout` ticks.
+The field is sixteen bits wide, and the editor counts to 128 — eight ticks, the quickest fade it states.
 
 The fade begins where the volume envelope **ends**, so an instrument whose curve runs on fades that much
 later. See [`README.md`](README.md) for where the formats disagree about a shared field.
@@ -206,8 +205,15 @@ after it spend that room. Three kinds of block reach the model:
 The stated blocks sit between the offset tables and the records, so they move every offset the header states.
 
 The header carries at offset 40 the version of whatever program wrote the module, each taking a number of its own
-above the twelve version bits: `0x0` Impulse Tracker, `0x1` Schism Tracker, `0x5` OpenMPT. Those numbers belong to the
-programs that took them, so a file keeps the one it arrived with and one written here states `0x0214`.
+above the twelve version bits, and at offset 60 four bytes where several of them sign a mark instead. Both are kept as
+they arrive, and offset 42 states the reading a file was written for, which stays `0x0214`: the instrument record
+written here carries the filter bytes Impulse Tracker 2.14 added at 58 and 59.
+
+| Number | Program | Mark | Program |
+|---|---|---|---|
+| `0x0` | Impulse Tracker | `OMPT` | OpenMPT |
+| `0x1` | Schism Tracker | `CHBI` | ChibiTracker |
+| `0x5` | OpenMPT | `TMOD` | this library |
 
 ## One instrument on its own (`.iti`)
 
@@ -254,6 +260,7 @@ shortest whole-frame row this format reaches is 441 frames — the one-byte temp
 | Song volume | `0..128` canonical, one byte stored |
 | Mix volume | `0..128` canonical, one byte stored |
 | Channel panning table | 64 entries, beside a 64-entry channel volume table |
+| What names the writer | a program number above a version, and a signature in four reserved bytes |
 
 | Content | Reported as |
 |---|---|

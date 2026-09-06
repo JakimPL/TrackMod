@@ -179,6 +179,7 @@ own range, which is one parameter byte.
 | Song volume | — |
 | Mix volume | — |
 | Channel panning table | — |
+| What names the writer | the tag, naming the family that settled the layout |
 
 | Content | Reported as |
 |---|---|

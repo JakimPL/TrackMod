@@ -168,6 +168,7 @@ player reads it in.
 | Song volume | — |
 | Mix volume | — |
 | Channel panning table | — |
+| What names the writer | — |
 
 | Content | Reported as |
 |---|---|

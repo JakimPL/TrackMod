@@ -95,6 +95,7 @@ class ModuleReader:
             message=self._message(),
             extensions=self._extensions(),
             created_with=read_int(self._header, "created_with"),
+            signature=read_bytes(self._header, "signature"),
         )
 
     def _voiced(self, patterns: tuple[Pattern, ...], *, channels: int, slots: int) -> tuple[Pattern, ...]:

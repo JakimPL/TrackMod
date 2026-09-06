@@ -10,6 +10,8 @@ from trackmod.core.repairs.report import RepairWarning
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
 from trackmod.limits.compliance import Compliance
+from trackmod.module.provenance import Evidence
+from trackmod.spec.application import APPLICATION_TAG
 from trackmod.spec.pitch import NOTE_COUNT
 from trackmod.trackers.it.layout.file import FILE_HEADER
 from trackmod.trackers.it.module import ITModule
@@ -24,12 +26,14 @@ from trackmod.trackers.it.spec.sizes import (
     FILE_HEADER_BYTES,
     OFFSET_TABLE_ENTRY_BYTES,
     PATTERN_HEADER_BYTES,
+    SIGNATURE_BYTES,
 )
 from trackmod.trackers.it.spec.storage import IT_STORAGE
 from trackmod.trackers.it.version import Tracker, wrote
 
 EXTRA_FRAMES = 64
 EXTRA_CHANNELS = 5
+SIGNATURE_OFFSET = 60  # the four bytes this format reserves, which several trackers sign
 SILENT_ROWS = 64  # the height this format's own tracker opens a pattern at, and plays one it stores nowhere
 
 
@@ -230,3 +234,41 @@ def test_a_block_stating_a_stream_longer_than_the_file_holds_reads_what_is_there
         recovered = ITModule.parse(bytes(data[: offset + PATTERN_HEADER_BYTES + held])).song
 
     assert recovered.patterns[0].rows == song.patterns[0].rows
+
+
+def test_a_song_built_here_signs_the_bytes_this_format_reserves(song: Song) -> None:
+    written = module(song).to_bytes()
+
+    assert written[SIGNATURE_OFFSET : SIGNATURE_OFFSET + SIGNATURE_BYTES] == APPLICATION_TAG
+    assert module(song).provenance.tracker == "TrackMod"
+
+
+def test_a_file_signed_by_another_tracker_keeps_the_mark_it_arrived_with(song: Song) -> None:
+    # OpenMPT, ChibiTracker and Schism Tracker each write a mark of their own into these four bytes, so
+    # a file read here and written back states the writer it stated before.
+    arrived = bytearray(module(song).to_bytes())
+    arrived[SIGNATURE_OFFSET : SIGNATURE_OFFSET + SIGNATURE_BYTES] = b"OMPT"
+
+    recovered = ITModule.parse(bytes(arrived))
+
+    assert recovered.settings.signature == b"OMPT"
+    assert recovered.to_bytes()[SIGNATURE_OFFSET : SIGNATURE_OFFSET + SIGNATURE_BYTES] == b"OMPT"
+
+
+def test_a_mark_names_the_writer_where_the_number_above_the_version_names_the_reading(song: Song) -> None:
+    # ChibiTracker states Impulse Tracker's own number and signs its own mark, so the mark is the
+    # closer answer and the number is the reading the file was written for.
+    chibi = ITModule.from_song(song, compliance=Compliance.EXTENDED, settings=ITSettings(signature=b"CHBI"))
+
+    assert wrote(chibi.settings.created_with) is Tracker.IMPULSE_TRACKER
+    assert chibi.provenance.tracker == "ChibiTracker"
+    assert chibi.provenance.evidence is Evidence.SIGNED
+
+
+def test_a_mark_no_program_here_claims_falls_back_to_the_number(song: Song) -> None:
+    # Schism Tracker spends these bytes on a date rather than a name, so the number is what is left.
+    dated = ITModule.from_song(song, compliance=Compliance.EXTENDED, settings=ITSettings(signature=b"\xe4\xf8\x22\x00"))
+
+    assert dated.provenance.evidence is Evidence.NUMBERED
+    assert dated.provenance.tracker == "Impulse Tracker"
+    assert dated.provenance.stated == "0x0214"

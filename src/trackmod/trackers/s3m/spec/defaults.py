@@ -1,5 +1,6 @@
 from typing import Final
 
+from trackmod.spec.application import APPLICATION_MARK
 from trackmod.trackers.s3m.spec.flags import HeaderFlag
 from trackmod.trackers.s3m.spec.ranges import MAX_GLOBAL_VOLUME
 
@@ -10,6 +11,7 @@ DEFAULT_GLOBAL_VOLUME: Final = MAX_GLOBAL_VOLUME
 DEFAULT_MIX_VOLUME: Final = 48
 DEFAULT_STEREO: Final = True
 DEFAULT_FLAGS: Final = HeaderFlag(0)
+DEFAULT_SIGNATURE: Final = APPLICATION_MARK
 
 NO_LOOP: Final = 0
 NO_FRAMES: Final = 0

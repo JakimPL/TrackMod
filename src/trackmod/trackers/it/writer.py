@@ -82,6 +82,7 @@ def file_header(
             "pattern_count": pattern_count,
             "created_with": settings.created_with,
             "compatible_with": COMPATIBLE_WITH,
+            "signature": settings.signature,
             "flags": int(stated_flags(settings.flags, song.voices)),
             "special": int(message.special | settings.extensions.special),
             "global_volume": settings.global_volume,

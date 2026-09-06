@@ -4,12 +4,14 @@ from pathlib import Path
 
 from pydantic import BaseModel, model_validator
 
+from trackmod.binary.text import decode_name
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.convert import sampled
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import require
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
+from trackmod.module.provenance import Evidence, Provenance
 from trackmod.module.reaching import Reaching
 from trackmod.module.size import SizeReport
 from trackmod.module.storage import Storage
@@ -102,6 +104,21 @@ class MODModule(BaseModel, Reaching):
     def extension(self) -> str:
         """The file extension this format is written with."""
         return EXTENSION
+
+    @property
+    def provenance(self) -> Provenance:
+        """What this module states about the program that wrote it.
+
+        This format states no version anywhere, and the tag is what a reader has. A tag names the family
+        that settled the layout it states, so it reaches as far as the family and every tracker writing
+        that layout states the same one.
+        """
+        dialect = written_dialect(self.song, self.settings)
+        return Provenance(
+            evidence=Evidence.TAGGED,
+            stated=decode_name(dialect.tag),
+            tracker=dialect.tracker,
+        )
 
     @property
     def limits(self) -> Limits:

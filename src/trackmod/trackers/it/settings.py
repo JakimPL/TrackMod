@@ -13,10 +13,11 @@ from trackmod.trackers.it.spec.defaults import (
     DEFAULT_MESSAGE,
     DEFAULT_MIX_VOLUME,
     DEFAULT_PANNING_SEPARATION,
+    DEFAULT_SIGNATURE,
 )
 from trackmod.trackers.it.spec.flags import HeaderFlag
 from trackmod.trackers.it.spec.identity import CREATED_WITH
-from trackmod.trackers.it.spec.sizes import CHANNELS_STORED
+from trackmod.trackers.it.spec.sizes import CHANNELS_STORED, SIGNATURE_BYTES
 
 ChannelBytes = Annotated[
     tuple[Annotated[int, Field(ge=0, le=BYTE_MAX)], ...],
@@ -25,6 +26,7 @@ ChannelBytes = Annotated[
 
 PanningSeparation = Annotated[int, Field(ge=0, le=BYTE_MAX)]
 Version = Annotated[int, Field(ge=0, le=WORD_MAX)]
+Signature = Annotated[bytes, Field(min_length=SIGNATURE_BYTES, max_length=SIGNATURE_BYTES)]
 
 
 class ITSettings(BaseModel):
@@ -42,6 +44,11 @@ class ITSettings(BaseModel):
     module written back states the same origin it stated before, and a song built from nothing states
     the version this format's own tracker wrote.
 
+    ``signature`` is the four bytes this format reserves at offset 60, which several trackers spend on a
+    mark of their own — ``OMPT``, ``CHBI``, and this library's own ``TMOD``. A file read here keeps the
+    mark it arrived with, so writing it again states the same writer, and a song built from nothing is
+    signed here (:func:`~trackmod.trackers.it.version.signed`).
+
     ``extensions`` holds what a writer appended past the records Impulse Tracker itself laid out, so a
     file carrying channel names, an editing history or the properties a later tracker keeps for itself
     reads with all of them and writes them back (:class:`~trackmod.trackers.it.extensions.Extensions`).
@@ -57,4 +64,5 @@ class ITSettings(BaseModel):
     flags: HeaderFlag = DEFAULT_FLAGS
     message: str = DEFAULT_MESSAGE
     created_with: Version = CREATED_WITH
+    signature: Signature = DEFAULT_SIGNATURE
     extensions: Extensions = Extensions()

@@ -9,11 +9,12 @@ from trackmod.trackers.s3m.spec.defaults import (
     DEFAULT_FLAGS,
     DEFAULT_GLOBAL_VOLUME,
     DEFAULT_MIX_VOLUME,
+    DEFAULT_SIGNATURE,
     DEFAULT_STEREO,
 )
 from trackmod.trackers.s3m.spec.flags import HeaderFlag
 from trackmod.trackers.s3m.spec.identity import CREATED_WITH
-from trackmod.trackers.s3m.spec.sizes import CHANNELS_STORED
+from trackmod.trackers.s3m.spec.sizes import CHANNELS_STORED, SIGNATURE_BYTES
 
 ChannelBytes = Annotated[
     tuple[Annotated[int, Field(ge=0, le=BYTE_MAX)], ...],
@@ -26,6 +27,7 @@ ChannelPanning = Annotated[
 ]
 
 Version = Annotated[int, Field(ge=0, le=WORD_MAX)]
+Signature = Annotated[bytes, Field(min_length=SIGNATURE_BYTES, max_length=SIGNATURE_BYTES)]
 
 
 class S3MSettings(BaseModel):
@@ -47,6 +49,10 @@ class S3MSettings(BaseModel):
     ``created_with`` is the version field naming the program that wrote a file. Those numbers belong to
     the programs that took them, so a module written back states the same origin it stated before, and a
     song built from nothing states the revision this format's own tracker settled.
+
+    ``signature`` is the eight bytes this format reserves at offset 54, which a tracker spends on a mark
+    of its own. A file read here keeps the mark it arrived with, and a song built from nothing is signed
+    here (:func:`~trackmod.trackers.s3m.version.signed`).
     """
 
     model_config = FROZEN
@@ -58,3 +64,4 @@ class S3MSettings(BaseModel):
     channels: ChannelBytes | None = None
     channel_panning: ChannelPanning | None = None
     created_with: Version = CREATED_WITH
+    signature: Signature = DEFAULT_SIGNATURE

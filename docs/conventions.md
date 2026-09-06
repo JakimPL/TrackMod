@@ -117,7 +117,8 @@ and `—` where it has none, in these rows:
 Shared sample table · Volume envelope · Panning envelope · Pitch envelope · Envelope sustain ·
 Envelope carry · Fadeout · New note action · Sample volume · Sample gain · Sample panning ·
 Sample auto-vibrato · Sample loop · Sustain loop · Stereo waveforms · Compressed waveforms ·
-Note column commands · Song message · Song volume · Mix volume · Channel panning table
+Note column commands · Song message · Song volume · Mix volume · Channel panning table ·
+What names the writer
 ```
 
 A refusals table follows it under the same heading, listing what a format has no encoding for at all.

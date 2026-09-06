@@ -1,5 +1,6 @@
 from typing import Final
 
+from trackmod.spec.application import APPLICATION_TAG
 from trackmod.trackers.it.spec.flags import HeaderFlag, SamplePanning
 from trackmod.trackers.it.spec.ranges import (
     CHANNEL_VOLUME_FULL,
@@ -16,6 +17,7 @@ DEFAULT_CHANNEL_PANNING: Final = (PAN_CENTER,) * CHANNELS_STORED
 DEFAULT_CHANNEL_VOLUME: Final = (CHANNEL_VOLUME_FULL,) * CHANNELS_STORED
 DEFAULT_FLAGS: Final = HeaderFlag.USE_INSTRUMENTS | HeaderFlag.LINEAR_SLIDES
 DEFAULT_MESSAGE: Final = ""
+DEFAULT_SIGNATURE: Final = APPLICATION_TAG
 
 C5_NOTE: Final = 60
 NO_SAMPLE: Final = 0

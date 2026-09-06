@@ -30,6 +30,7 @@ from trackmod.trackers.it.spec.sizes import (
     OFFSET_CODE,
     OFFSET_TABLE_ENTRY_BYTES,
     SAMPLE_HEADER_BYTES,
+    SIGNATURE_BYTES,
 )
 
 CHANNELS = ("Kick", "Snare", "")
@@ -66,6 +67,7 @@ def _module_with_a_message_before_the_first_record(*, message: str, channel_name
             "pattern_count": 0,
             "created_with": 0,
             "compatible_with": 0,
+            "signature": bytes(SIGNATURE_BYTES),
             "flags": 0,
             "special": int(SpecialFlag.MESSAGE),
             "global_volume": 128,

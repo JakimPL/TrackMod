@@ -6,6 +6,7 @@ from trackmod.trackers.s3m.spec.sizes import (
     CHANNELS_STORED,
     FILE_HEADER_BYTES,
     NAME_BYTES,
+    SIGNATURE_BYTES,
 )
 
 FILE_HEADER: Final = Record(
@@ -27,6 +28,7 @@ FILE_HEADER: Final = Record(
         Field(name="mix_volume", offset=51, code="B"),
         Field(name="click_removal", offset=52, code="B"),
         Field(name="default_panning", offset=53, code="B"),
+        Field(name="signature", offset=54, code=f"{SIGNATURE_BYTES}s"),
         Field(name="special", offset=62, code="<H"),
         Field(name="channel_settings", offset=64, code=f"{CHANNELS_STORED}s"),
     ),

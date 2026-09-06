@@ -93,6 +93,7 @@ class ModuleReader:
             channels=self._channel_settings,
             channel_panning=self._panning,
             created_with=read_int(self._header, "created_with"),
+            signature=read_bytes(self._header, "signature"),
         )
 
     def _read_width(self) -> tuple[int, tuple[int, ...]]:

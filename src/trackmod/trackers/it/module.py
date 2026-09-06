@@ -9,6 +9,7 @@ from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import require
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
+from trackmod.module.provenance import Provenance
 from trackmod.module.reaching import Reaching
 from trackmod.module.size import SizeReport
 from trackmod.module.storage import Storage
@@ -20,6 +21,7 @@ from trackmod.trackers.it.settings import ITSettings
 from trackmod.trackers.it.sizing import module_bytes
 from trackmod.trackers.it.spec.identity import EXTENSION
 from trackmod.trackers.it.spec.storage import IT_STORAGE
+from trackmod.trackers.it.version import stated_provenance
 from trackmod.trackers.it.writer import write_module
 
 
@@ -80,6 +82,11 @@ class ITModule(BaseModel, Reaching):
     def extension(self) -> str:
         """The file extension this format is written with."""
         return EXTENSION
+
+    @property
+    def provenance(self) -> Provenance:
+        """What this module states about the program that wrote it."""
+        return stated_provenance(created_with=self.settings.created_with, signature=self.settings.signature)
 
     @property
     def limits(self) -> Limits:
