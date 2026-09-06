@@ -100,5 +100,5 @@ def test_the_order_byte_is_what_lets_a_module_reach_its_widest_pattern_table() -
 def test_a_field_this_format_has_no_room_for_states_no_capacity() -> None:
     limits = mod_limits(Compliance.EXTENDED)
     for capability in (Capability.FADEOUT, Capability.VOLUME_COMMAND, Capability.INSTRUMENTS):
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError, match=f"keeps no field for {capability.value}"):
             limits.bound(capability)

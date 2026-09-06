@@ -1,7 +1,7 @@
 import pytest
 
 from trackmod.trackers.s3m.channels import channel_table, placed, sounded, stated_width
-from trackmod.trackers.s3m.spec.flags import CHANNEL_MUTED, CHANNEL_UNUSED
+from trackmod.trackers.s3m.spec.flags import CHANNEL_MUTED, CHANNEL_RIGHT, CHANNEL_UNUSED
 from trackmod.trackers.s3m.spec.sizes import CHANNELS_STORED
 
 OPENING_SLOTS = (0, 8, 1, 9, 2, 10, 3, 11)
@@ -27,3 +27,15 @@ def test_a_muted_channel_is_stated_and_silent() -> None:
     assert sounded(0)
     assert not sounded(CHANNEL_UNUSED)
     assert not sounded(CHANNEL_MUTED | 4)
+
+
+def test_a_table_leaving_a_gap_states_every_channel_up_to_the_last_slot_it_names() -> None:
+    # A packed cell names its channel by the slot it takes in this table, so a gap in the middle leaves
+    # the channels above it addressable and the width is where the naming stops.
+    table = [CHANNEL_UNUSED] * CHANNELS_STORED
+    table[0], table[2] = 0, CHANNEL_RIGHT
+    assert stated_width(tuple(table)) == 3
+
+
+def test_a_table_naming_no_slot_states_no_channels() -> None:
+    assert stated_width((CHANNEL_UNUSED,) * CHANNELS_STORED) == 0

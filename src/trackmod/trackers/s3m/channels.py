@@ -28,8 +28,12 @@ def channel_table(channels: int) -> tuple[int, ...]:
 
 
 def stated_width(settings: tuple[int, ...]) -> int:
-    """How many channels a settings table declares, which is the run it fills before the unused entries."""
-    return sum(1 for entry in settings if entry != CHANNEL_UNUSED)
+    """How many channels a settings table declares, which is the last slot it names and every one under it.
+
+    A packed cell names its channel by the slot it takes in this table, so a table that leaves a gap in
+    the middle still states every channel up to the last one it names.
+    """
+    return max((channel + 1 for channel, entry in enumerate(settings) if entry != CHANNEL_UNUSED), default=0)
 
 
 def sounded(entry: int) -> bool:

@@ -45,9 +45,10 @@ and the mixing byte spends its seven low bits on the level and the one above the
 
 **A module states its width in a table.** Thirty-two bytes from offset 64 give each channel a mixer slot —
 `0` to `7` on the left, `8` to `15` on the right, the numbers above them the synthesiser's own channels,
-`0x80` added to mute a slot and `0xFF` for a channel this module leaves out. How many entries name a slot
-is how wide every pattern reads, and Scream Tracker 3 lays a song's channels down one to each side in
-turn, so a module opens spread across the field: `0`, `8`, `1`, `9`, and on.
+`0x80` added to mute a slot and `0xFF` for a channel this module leaves out. A cell names its channel by
+the slot it takes here, so the last slot the table names is how wide every pattern reads. Scream Tracker 3
+lays a song's channels down one to each side in turn, so a module opens spread across the field: `0`, `8`,
+`1`, `9`, and on.
 
 **Where each channel opens is a block of its own.** The thirty-two bytes after the pointer tables hold a
 position per channel, and the byte at 53 is what says they are there to read. Each entry reserves a bit

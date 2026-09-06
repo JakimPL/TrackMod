@@ -30,7 +30,12 @@ def check_volumes(checklist: Checklist, pattern: Pattern, *, subject: str) -> No
 
     A level is held to the column's own range where a cell is built, so what is left to grade is how far
     each command's amount reaches. The vocabulary is shared and each format states its own room, so one
-    reading serves both.
+    reading serves every column.
+
+    An intent a column has no run for is content that format has no encoding for, which the packer
+    refuses by name where it is met -- so what is graded here is the amount of every quantity the format
+    keeps a field for.
     """
     for capability, amount in stated_amounts(pattern).items():
-        checklist.check(capability, amount, subject=subject)
+        if checklist.declares(capability):
+            checklist.check(capability, amount, subject=subject)

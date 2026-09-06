@@ -29,13 +29,25 @@ class Limits(BaseModel):
     compliance: Compliance
     capacities: Mapping[Capability, Capacity]
 
+    def declares(self, capability: Capability) -> bool:
+        """Whether this format states a capacity for ``capability`` at all.
+
+        A format states a capacity for each quantity it keeps a field for, so this is what a caller
+        grading a value it found in a song asks before grading it.
+        """
+        return capability in self.capacities
+
     def capacity(self, capability: Capability) -> Capacity:
         """The declared capacity for ``capability``.
 
         Raises:
-            KeyError: when the format declares no capacity for ``capability``.
+            ValueError: when the format keeps no field for ``capability`` and so states no capacity.
         """
-        return self.capacities[capability]
+        capacity = self.capacities.get(capability)
+        if capacity is None:
+            raise ValueError(f"this format keeps no field for {capability.value} and states no capacity for it")
+
+        return capacity
 
     def bound(self, capability: Capability) -> Bound:
         """The effective bound at this compliance level."""

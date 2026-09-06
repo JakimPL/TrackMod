@@ -72,7 +72,7 @@ def test_a_fadeout_past_the_tracker_is_a_compliance_violation_the_extended_level
 def test_this_format_declares_no_song_wide_volume_at_all() -> None:
     limits = xm_limits(Compliance.EXTENDED)
     for capability in (Capability.SONG_VOLUME, Capability.MIX_VOLUME):
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError, match=f"keeps no field for {capability.value}"):
             limits.bound(capability)
 
 

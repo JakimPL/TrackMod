@@ -10,6 +10,10 @@ class Checklist:
         self._limits = limits
         self._violations: list[Violation] = []
 
+    def declares(self, capability: Capability) -> bool:
+        """Whether the format states a capacity for ``capability`` at all."""
+        return self._limits.declares(capability)
+
     def check(self, capability: Capability, value: int, *, subject: str) -> None:
         """Grade ``value`` and record it when it violates the format."""
         violation = self._limits.check(capability, value, subject=subject)

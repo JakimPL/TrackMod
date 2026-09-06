@@ -97,12 +97,28 @@ class ModuleReader:
         the waveforms holds however many were stored — a module carrying patterns its order never
         reaches has more than it names. Taking the larger keeps both, and reading the waveforms at the
         right offset depends on it.
+
+        The room left between the header and the waveforms is what bounds the pair, because a table
+        naming more patterns than the file holds would otherwise read the waveforms as music. The last
+        pattern the room reaches counts even where the file stops inside it, so a file cut short still
+        gives up the music it holds. Only the positions a song plays name a pattern: trackers of this
+        lineage leave stale entries past them, and shortening a song leaves the table as it stood.
         """
-        named = max(read_bytes(self._sequence, "orders"), default=NO_PATTERNS) + 1
+        named = max((entry + 1 for entry in self._order.entries), default=NO_PATTERNS)
         waveforms = sum(stored_bytes(values) for values in self._records)
         room = max(len(data) - FILE_HEADER_BYTES - waveforms, 0)
-        stored = room // (PATTERN_ROWS * self._dialect.channels * CELL_BYTES)
-        return min(max(named, stored), EXTENDED_MAX_PATTERNS)
+        counted = min(max(named, room // self._pattern_bytes), EXTENDED_MAX_PATTERNS)
+        reached = -(-room // self._pattern_bytes)
+        if counted <= reached:
+            return counted
+
+        self._repairs.made(f"an order naming {counted} patterns read as the {reached} the file holds", subject="song")
+        return reached
+
+    @property
+    def _pattern_bytes(self) -> int:
+        """How many bytes one whole pattern occupies, at the width the tag states."""
+        return PATTERN_ROWS * self._dialect.channels * CELL_BYTES
 
     def _read_patterns(self, cursor: Cursor, *, count: int) -> tuple[Pattern, ...]:
         return tuple(

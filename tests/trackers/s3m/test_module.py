@@ -33,6 +33,8 @@ from trackmod.trackers.s3m.panning import shared_panning, stored_panning
 from trackmod.trackers.s3m.settings import S3MSettings
 from trackmod.trackers.s3m.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
 from trackmod.trackers.s3m.spec.flags import (
+    CHANNEL_RIGHT,
+    CHANNEL_UNUSED,
     PANNING_STATED,
     PANNING_TABLE,
     HeaderFlag,
@@ -246,3 +248,20 @@ def test_the_positions_past_an_end_of_song_marker_are_music_the_order_still_name
         patterns=(silent_block(), silent_block()),
     )
     assert S3MModule.parse(data).song.order.entries == (0, 1)
+
+
+def test_a_cell_on_a_channel_above_a_gap_in_the_settings_table_is_music() -> None:
+    # A packed cell names its channel by the slot it takes in the settings table, so a table naming
+    # slots 0 and 2 states three channels and the cell on the third is sounded.
+    data = bytearray(
+        raw_module(
+            records=(instrument_record(kind=int(RecordType.EMPTY)),),
+            patterns=(pattern_block((cell_bytes(2, note=REFERENCE_BYTE, sample=1),)),),
+        )
+    )
+    settings = bytearray([CHANNEL_UNUSED] * CHANNELS_STORED)
+    settings[0], settings[2] = 0, CHANNEL_RIGHT
+    data[64:96] = settings
+    song = S3MModule.parse(bytes(data)).song
+    assert song.channels == 3
+    assert song.patterns[0].cell(row=0, channel=2).note == REFERENCE_KEY

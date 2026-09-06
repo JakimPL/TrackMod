@@ -11,6 +11,7 @@ from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import SampleVoices
+from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
@@ -130,3 +131,26 @@ def test_a_song_the_tracker_mixed_is_narrower_than_the_table_that_states_it(s3m_
     assert module.violations() == ()
     assert module.reach is Compliance.CANONICAL
     assert len(s3m_pattern(channels=S3M_CHANNELS, samples=1, seed=1).note[0]) == S3M_CHANNELS
+
+
+def test_a_column_intent_this_format_states_no_run_for_is_refused_where_it_is_written(
+    s3m_song: Song,
+) -> None:
+    # An intent the column has no run for is content this format has no encoding for, so it is graded
+    # nowhere and refused by name at the point the bytes are made -- as it is in every other format.
+    builder = PatternBuilder(rows=PATTERN_ROWS, channels=S3M_CHANNELS)
+    builder.place(0, 0, Cell(volume=VolumeCommand(effect=VolumeEffect.VOLUME_SLIDE_UP, amount=3)))
+    song = s3m_song.model_copy(update={"patterns": (builder.build(),), "order": OrderList(entries=(0,))})
+    module = S3MModule.from_song(song, compliance=Compliance.CANONICAL)
+    assert module.violations() == ()
+    assert module.reach is Compliance.CANONICAL
+    with pytest.raises(ValueError, match="no run for VOLUME_SLIDE_UP"):
+        module.to_bytes()
+
+
+def test_a_panning_amount_past_the_run_that_holds_it_is_graded(s3m_song: Song) -> None:
+    builder = PatternBuilder(rows=PATTERN_ROWS, channels=S3M_CHANNELS)
+    builder.place(0, 0, Cell(volume=VolumeCommand(effect=VolumeEffect.PANNING, amount=100)))
+    song = s3m_song.model_copy(update={"patterns": (builder.build(),), "order": OrderList(entries=(0,))})
+    violations = S3MModule.from_song(song, compliance=Compliance.CANONICAL).violations()
+    assert [violation.capability for violation in violations] == [Capability.VOLUME_PANNING]

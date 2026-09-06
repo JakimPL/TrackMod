@@ -754,7 +754,7 @@ def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
         Capability.MIX_VOLUME,
         Capability.MESSAGE_BYTES,
     }
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError, match="keeps no field for song_volume"):
         fast_tracker.bound(Capability.SONG_VOLUME)
 
     scream_tracker = s3m_limits(Compliance.EXTENDED)
@@ -769,10 +769,10 @@ def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
         Capability.VOLUME_COMMAND,
         Capability.MESSAGE_BYTES,
     }
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError, match="keeps no field for envelope_points"):
         protracker.bound(Capability.ENVELOPE_POINTS)
 
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError, match="keeps no field for fadeout"):
         scream_tracker.bound(Capability.FADEOUT)
 
 

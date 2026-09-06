@@ -144,7 +144,8 @@ and structural; a single bound is a field with no headroom at any level.
 | `panning` | 0..255 | 0..255 | 0..255 | 0..255 |
 | `message_bytes` | 0..8000 / 0..65535 / 0..65535 | — | — | — |
 
-A dash means the format declares no capacity at all, and `limits.bound(...)` raises `KeyError` for it.
+A dash means the format keeps no such field, so it states no capacity and `limits.bound(...)` and
+`limits.check(...)` both refuse it by name; `limits.declares(...)` is the question to ask first.
 FastTracker 2 has no song-wide volume, no mix volume and no song message; Scream Tracker 3 keeps one
 table of samples, so it has neither instrument records nor envelopes; Amiga ProTracker keeps none of
 those and no volume column either. A caller reaching for one is asking about a field that does not

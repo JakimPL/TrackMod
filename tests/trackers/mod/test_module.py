@@ -30,7 +30,7 @@ from trackmod.trackers.mod.spec.ranges import (
     PATTERN_ROWS,
     TAGGED_MAX_PATTERNS,
 )
-from trackmod.trackers.mod.spec.sizes import FILE_HEADER_BYTES
+from trackmod.trackers.mod.spec.sizes import FILE_HEADER_BYTES, ORDER_TABLE_BYTES
 
 
 def rewritten(song: Song, settings: MODSettings | None = None) -> MODModule:
@@ -254,3 +254,46 @@ def test_a_slot_carrying_only_a_name_is_kept_for_the_text_it_holds() -> None:
     samples = MODModule.parse(data).song.voices.samples
     assert [sample.name for sample in samples] == ["first", "-- greetings --"]
     assert samples[1].frames == 0
+
+
+def test_a_stale_entry_past_the_positions_a_song_plays_names_no_pattern() -> None:
+    # Shortening a song leaves the table as it stood, so an entry past the count names a pattern the
+    # file never stored. Reading it would take the waveforms for music.
+    orders = bytearray(ORDER_TABLE_BYTES)
+    orders[60] = 5
+    data = raw_module(
+        records=(sample_record(name=b"kept", length=4, volume=64),),
+        order_count=1,
+        orders=bytes(orders),
+        patterns=silent_pattern(),
+        waveforms=bytes(8),
+    )
+    module = MODModule.parse(data)
+    assert len(module.song.patterns) == 1
+    assert module.song.voices.samples[0].frames == 8
+
+
+def test_a_song_holding_no_patterns_keeps_the_waveforms_it_carries(mod_samples: tuple[Sample, ...]) -> None:
+    # An unplayed order table is all zeroes, which names position 0 as surely as a played one does. The
+    # room the file leaves is what says no pattern was stored there.
+    silent = Song(
+        name="quiet",
+        channels=CANONICAL_CHANNELS,
+        patterns=(),
+        order=OrderList(entries=()),
+        voices=SampleVoices(samples=mod_samples[:1]),
+        playback=Playback(speed=DEFAULT_SPEED, tempo=DEFAULT_TEMPO),
+    )
+    data = MODModule.from_song(silent, compliance=Compliance.CANONICAL).to_bytes()
+    module = MODModule.parse(data)
+    assert module.song.patterns == ()
+    assert module.song.voices.samples[0].pcm.tolist() == mod_samples[0].pcm.tolist()
+    assert module.to_bytes() == data
+
+
+def test_an_order_naming_more_patterns_than_the_file_holds_reads_the_ones_it_holds() -> None:
+    data = raw_module(order_count=2, orders=bytes((0, 3)), patterns=silent_pattern())
+    with pytest.warns(RepairWarning, match="an order naming 4 patterns read as the 1 the file holds"):
+        song = MODModule.parse(data).song
+
+    assert len(song.patterns) == 1
