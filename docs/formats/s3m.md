@@ -13,7 +13,7 @@ Every section is found through a table of paragraph numbers, and that decision s
 | Tracker | Scream Tracker 3, Sami Tammilehto, 1994 |
 | Byte order | little-endian |
 | A cell's instrument column names | a sample |
-| Sections are found by | two tables of 16-byte paragraph numbers |
+| Sections are found by | two tables of 16-bit entries, each naming a 16-byte paragraph |
 | Channels | 1..16 canonical, 1..32 extended and stored |
 | Pattern rows | 64 |
 | Note range | 8 octaves, shared keys 12..107 canonical, 12..119 stored |
@@ -36,9 +36,10 @@ sample frames                  pointed at by each record
 Every block a table names opens on a **paragraph** of sixteen bytes, so a two-byte entry reaches
 1048560 bytes into the file and whatever came before a block is padded out to its boundary. A record
 points at its own frames with a third byte on top of that pair, reaching 268435440 — which is why the
-waveforms take the ground the file runs furthest over and the records and the patterns come first. Those
-two distances are what bound a module's size, and a song packing more than either of them reaches is
-reported as `block_offset` or `sample_offset` rather than met as an overflow.
+waveforms take the ground the file runs furthest over and the records and the patterns come first.
+
+Those two distances are what bound a module's size, and a song packing more than either of them reaches
+is reported as `block_offset` or `sample_offset` rather than met as an overflow.
 
 The header counts the positions, the records and the patterns at offsets 32, 34 and 36, carries a word of
 song-wide switches at 38, the program that wrote the module at 40 and the sign of its frames at 42, and
@@ -48,14 +49,16 @@ and the mixing byte spends its seven low bits on the level and the one above the
 **A module states its width in a table.** Thirty-two bytes from offset 64 give each channel a mixer slot —
 `0` to `7` on the left, `8` to `15` on the right, the numbers above them the synthesiser's own channels,
 `0x80` added to mute a slot and `0xFF` for a channel this module leaves out. A cell names its channel by
-the slot it takes here, so the last slot the table names is how wide every pattern reads. Scream Tracker 3
-lays a song's channels down one to each side in turn, so a module opens spread across the field: `0`, `8`,
-`1`, `9`, and on.
+the slot it takes here, so the last slot the table names is how wide every pattern reads.
+
+Scream Tracker 3 lays a song's channels down one to each side in turn, so a module opens spread across
+the field: `0`, `8`, `1`, `9`, and on.
 
 **Where each channel opens is a block of its own.** The thirty-two bytes after the pointer tables hold a
-position per channel, and the byte at 53 is what says they are there to read. Each entry reserves a bit
-for stating a position at all and holds it in the low nibble, sixteen steps across the field, so a
-channel claiming none opens on the side its own mixer slot puts it.
+position per channel, and the byte at 53 says they are there to read by holding `0xFC` exactly, which is
+the one value a reader takes for the block being present. Each entry reserves a bit for stating a
+position at all and holds it in the low nibble, sixteen steps across the field, so a channel claiming
+none opens on the side its own mixer slot puts it.
 
 ## Order list
 
@@ -88,18 +91,20 @@ which reads a block counted either way to the same music.
 
 A stream ending before the sixty-fourth row leaves the rows it never reached silent, a stream stopping
 inside a cell leaves that cell silent as well, a cell on a channel past the width the settings state is
-left out, and a pointer past the bytes the file holds names a pattern as absent as one of zero. All four
-are reported.
+left out, and a pointer past the bytes the file holds names an absent pattern; all four are reported. A
+pointer of **zero** is how this format stores a pattern of sixty-four empty rows, so it plays them and is
+read without a word.
 
 ### The note column
 
 The byte spells a key as an **octave over a semitone**, a nibble each, and counts its octaves from the one
 above the model's own: the key a byte names is `12 × octave + semitone + 12`. The deepest key this format
-reaches is therefore the model's C-1, so how deep the music reaches is graded as much as how high, and the
-model's lowest twelve keys are what a song moves up an octave to store.
+reaches is therefore the model's C-1, so how deep the music reaches is graded as much as how high, and a
+cell asking for a key below that octave is refused by name.
 
 `254` cuts a voice and `255` states nothing. A semitone nibble naming more than the twelve in an octave
-reads as an absent note, reported once for a whole pattern.
+reads as an absent note, and so does an octave nibble of `9` or above, whose key would climb past the ten
+octaves the model numbers. Both are reported once for a whole pattern.
 
 ### The instrument column
 
@@ -125,9 +130,21 @@ channel table holds. See [`volume.md`](../volume.md).
 ## Samples
 
 An 80-byte `SCRS` record states what it holds in the byte it opens with: `0` an empty slot, `1` a
-waveform, and `2` through `7` an OPL patch. Then a 12-byte DOS filename, three bytes pointing at the
-frames, a 32-bit length, two loop ends, a volume, a packing byte, a flag byte, a 32-bit rate, a 28-byte
-name and the tag `SCRS`. **The length counts frames**, per channel, whatever the depth.
+waveform, and `2` through `7` an OPL patch. **The length counts frames**, per channel, whatever the depth.
+
+```
+ 0  what the record holds        28  volume
+ 1  12-byte DOS filename         29  one reserved byte
+13  the frames' paragraph, high  30  packing byte
+14  the same, low word           31  storage and looping flags
+16  length in frames, 4 bytes    32  C2Spd, 4 bytes
+20  loop begin, 4 bytes          36  twelve reserved bytes
+24  loop end, 4 bytes            48  28-byte name
+                                 76  the tag `SCRS`
+```
+
+Two runs of the record carry no field a reader here reads — one byte after the volume and twelve after
+the rate — and a writer leaves both as zeroes.
 
 The flag byte carries storage and looping together: `0x01` a forward loop, `0x02` stereo, `0x04`
 sixteen-bit. **Frames sit in the positive half of their range**, shifted a full scale up from where they
@@ -163,10 +180,15 @@ spend the room its record left. Three things reach a reader:
 - **The word at offset 40** states the program and the version that wrote the module, `0x1320` being
   Scream Tracker 3.20 itself. A file read here and written back states the origin it arrived with.
 
-The switches at offset 38 name older readings a module asks for — Scream Tracker 2's vibrato and tempo,
-Amiga slides and Amiga period limits, the zero-volume optimisation, the filter, and Scream Tracker 3's own
-volume slides — and the highest of them says a writer attached a block of its own, which the word at
-offset 62 points at.
+The word at offset 38 carries eight switches, most of them naming an older tracker's reading. The highest
+says a writer attached a block of its own, which the word at offset 62 points at.
+
+| Bit | Asks for | Bit | Asks for |
+|---|---|---|---|
+| `0x01` | Scream Tracker 2's vibrato | `0x10` | Amiga period limits |
+| `0x02` | Scream Tracker 2's tempo | `0x20` | the filter |
+| `0x04` | Amiga slides | `0x40` | Scream Tracker 3's own volume slides |
+| `0x08` | the zero-volume optimisation | `0x80` | a block of the writer's own |
 
 ## Timing
 

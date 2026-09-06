@@ -4,7 +4,7 @@ from trackmod.spec.clock import MIN_SPEED, MIN_TEMPO, TICK_DENOMINATOR, TICK_NUM
 def tick_seconds(tempo: int) -> float:
     """How long one tick lasts at ``tempo``: ``5 / (2 * tempo)`` seconds.
 
-    The tick is the unit both formats count envelope breakpoints and note fades in, so a curve written
+    The tick is the unit a tracker counts envelope breakpoints and note fades in, so a curve written
     for one tempo runs at another rate under a different one. Everything stating an instrument's
     behaviour in time reads a tick's length from here, which is what lets the tempo a curve was fitted at
     be named once and travel with it.

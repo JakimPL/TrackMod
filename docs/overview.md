@@ -26,6 +26,7 @@ The library is layered downward: every package depends only on the ones above it
 | Package | Owns |
 |---|---|
 | `trackmod/spec` | Constants every layer shares: the pitch numbering, level ranges, the grid sentinel, integer widths, the tracker clock |
+| `trackmod/utils` | Arithmetic the timing lattice leans on: the divisors of a number, and the two of them nearest a candidate |
 | `trackmod/schema` | Pydantic plumbing: the frozen model config, the constrained scalar aliases, the numpy array annotations |
 | `trackmod/limits` | The capability vocabulary, bounds, compliance levels, violations |
 | `trackmod/core` | The format-agnostic music: notes, patterns, samples, instruments, envelopes, voices, songs, timing |
@@ -46,9 +47,9 @@ Each format package repeats the same internal shape, so knowing one is knowing t
   note limits timing fade settings checks sizing writer parser module instrument_file
 ```
 
-A package holds the parts its own format keeps records for: the three whose cells name a sample directly
-have no `instruments/` and no envelopes, and each format adds the files its layout calls for — a table of
-dialects for Amiga ProTracker, the paragraph arithmetic for Scream Tracker 3.
+A package holds the parts its own format keeps records for: the two that keep no instrument records —
+Amiga ProTracker and Scream Tracker 3 — have no `instruments/` and no envelopes, and each format adds the
+files its layout calls for, a table of dialects for the one and the paragraph arithmetic for the other.
 
 Every `__init__.py` is empty. A name is imported from the module that defines it:
 
@@ -62,7 +63,8 @@ from trackmod.trackers.xm.module import XMModule
 ## Writing a module
 
 A `Song` is format-agnostic. Binding it to a format adds that format's own settings and a compliance
-level, and produces bytes:
+level, and produces bytes. A song built from nothing leaves the settings at what its format's own tracker
+wrote, so naming them is only for a caller who wants one of them stated:
 
 ```python
 from pathlib import Path
@@ -82,6 +84,19 @@ The same song goes to another format by naming that format's class:
 from trackmod.trackers.xm.module import XMModule
 
 XMModule.from_song(song, compliance=Compliance.EXTENDED).save(Path("song.xm"))
+```
+
+Each format keeps a frozen settings model beside its module class — `ITSettings`, `XMSettings`,
+`MODSettings` and `S3MSettings`, each in its package's `settings` module. They hold what belongs to a
+format rather than to the music: the tag an Amiga ProTracker module is written under, a channel panning
+table, a mix volume, a song message, the version a file claims to have been written by. A module read
+from a file carries the ones it arrived with, so writing it again states them unchanged.
+
+```python
+from trackmod.trackers.s3m.module import S3MModule
+from trackmod.trackers.s3m.settings import S3MSettings
+
+S3MModule.from_song(song, compliance=Compliance.CANONICAL, settings=S3MSettings(mix_volume=48))
 ```
 
 A format states which kind of voice table it writes — samples a cell names directly, or instruments that

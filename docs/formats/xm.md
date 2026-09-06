@@ -212,7 +212,7 @@ format's own starting speed of 6, and reported.
 | Fadeout | `0..4095` canonical, counter 32768 |
 | New note action | — |
 | Sample volume | `0..64` |
-| Sample gain | — |
+| Sample gain | `64..64` |
 | Sample panning | `0..255` |
 | Sample auto-vibrato | type, sweep, depth, rate |
 | Sample loop | forward, ping-pong |

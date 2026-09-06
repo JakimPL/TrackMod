@@ -4,7 +4,7 @@ from trackmod.core.effects.effect import Effect
 
 
 class EffectCatalog(Protocol):
-    """The effects both tracker formats express, so a caller can author them without picking a format.
+    """The effects every format here expresses, so a caller can author them without picking a format.
 
     Every method returns the :class:`Effect` its format uses for that intent and validates the argument
     against the room the format's parameter byte leaves for it.

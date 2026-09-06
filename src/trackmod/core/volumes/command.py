@@ -11,9 +11,9 @@ from trackmod.schema.scalars import Volume, VolumeAmount
 class VolumeEffect(IntEnum):
     """A volume-column entry that acts on the playing voice instead of setting its level.
 
-    Both formats divide their volume byte into runs, one run per effect, and the shared numbering does
-    the same past the level range -- so a volume column holds either a level or a command with its
-    amount in one integer. The value here is the run each effect occupies.
+    A format carrying a volume column divides its byte into runs, one run per effect, and the shared
+    numbering does the same past the level range -- so a volume column holds either a level or a command
+    with its amount in one integer. The value here is the run each effect occupies.
     """
 
     FINE_VOLUME_UP = 0

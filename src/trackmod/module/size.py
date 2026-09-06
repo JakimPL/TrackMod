@@ -12,8 +12,9 @@ class SizeReport(BaseModel):
     ``patterns`` and ``pcm`` are what no table predicts: the packed cell streams and the waveforms.
 
     Callers working under a size budget need to know where the bytes go, and ``largest_pattern`` answers
-    a separate question: both formats store a packed pattern's length in a 16-bit field, so the biggest
-    single pattern decides whether a song can be written at all.
+    a separate question: three of the four formats store a packed pattern's length in a 16-bit field, so
+    the biggest single pattern decides whether a song can be written at all. Amiga ProTracker sizes every
+    pattern alike, so its files carry the count and leave the length to arithmetic.
 
     A file holding one instrument on its own spends its every byte on records and waveforms, so both
     pattern counts read zero there.

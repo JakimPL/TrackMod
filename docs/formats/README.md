@@ -44,8 +44,8 @@ same story from the other side — two of the four keep records for one.
 
 **A key travels as far as the deepest column reaches.** Impulse Tracker numbers ten octaves and stores a
 key as its own number. FastTracker 2 numbers eight of them from one. Scream Tracker 3 counts its octaves
-from the model's second, so the twelve deepest keys move up an octave to be stored, and Amiga ProTracker
-stores the period a pitch sounds at, whose twelve bits reach shared keys 21 to 119.
+from the model's second, so a cell asking for one of the twelve deepest keys is refused by name, and Amiga
+ProTracker stores the period a pitch sounds at, whose twelve bits reach shared keys 21 to 119.
 
 **A fade is not portable.** The two counters differ by a factor of 32, so the same number means two
 lengths, and the two starting points differ by however long the volume envelope runs. A voice worth

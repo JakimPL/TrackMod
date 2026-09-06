@@ -59,11 +59,11 @@ follows is which intents each column names, and the amount it counts them in.
 | Panning slide left | — | `0..15` | — | — |
 | Panning slide right | — | `0..15` | — | — |
 
-Seven of the twelve are shared by the two columns that state an effect at all. A song using only those
-carries its volume column into either of those two, at an amount both columns count — one counts a rate in ten
-steps and the other in sixteen, so nine is as far as a portable amount reaches. Panning is coarser still
-in one direction than the other, and [`formats/README.md`](formats/README.md) collects that with the other
-places the formats disagree.
+Seven of the twelve are shared by Impulse Tracker's column and FastTracker 2's, the two that spell more
+than one effect between them. A song using only those seven carries its volume column into either, at an
+amount both columns count — one counts a rate in ten steps and the other in sixteen, so nine is as far
+as a portable amount reaches. Panning is coarser still in one direction than the other, and
+[`formats/README.md`](formats/README.md) collects that with the other places the formats disagree.
 
 Scream Tracker 3 spends its column on a level and a panning position, both counted to `0..64`, which is
 the full grid a level travels on. Amiga ProTracker's cells carry a note, a sample and an effect, so a

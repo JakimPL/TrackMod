@@ -48,8 +48,10 @@ The header states how many positions play in one byte at offset 950, and a resta
 The table occupies its full 128 bytes whatever the count, one byte to a position naming a pattern.
 
 A count past the 128 the table holds is drawn back to it, and a position naming a pattern the file leaves
-out is dropped; both are reported. Trackers of this lineage write a marker into the restart byte — most
-often the full width of the table — so the byte a file stated is kept and written back as it stood.
+out is dropped; both are reported. Trackers of this lineage write a marker into the restart byte rather
+than a position — most often the full width of the table — so the byte has two homes: a file's own byte is
+kept in this format's settings and written back as it stood, and a song built from nothing states the
+restart its order list holds.
 
 ## Patterns
 
@@ -110,17 +112,17 @@ anything at all — a waveform, a name, or a cell naming it.
 ### Tuning
 
 A record states its tuning as a **finetune**: one of sixteen rows of periods an eighth of a semitone
-apart, and the row is what says the rate a sample plays its own key at. The rows run from 7893 Hz through
-the untrimmed 8363 Hz to 8795 Hz, and the sixteen of them are the whole reach this format has — so a
-sample recorded anywhere else is graded against that lattice, which asks a caller to resample it onto a
-row.
+apart, and the row is what says the rate a sample plays its own key at. The value is a **signed nibble**:
+`0` is the untrimmed 8363 Hz, `1` through `7` sharpen to 8795, and `8` through `15` are the negative rows,
+running 7893 Hz up to 8305. Those sixteen are the whole reach this format has, so a sample recorded
+anywhere else is graded against that lattice, which asks a caller to resample it onto a row.
 
 ## Later additions
 
 Four bytes at offset 1080 carry a **tag**, and it is the whole of what a reader has: this format states a
 version nowhere, and two files of the same length hold different music depending on the tag they carry.
-ProTracker's own is `M.K.`, joined by `M!K!` once a song holds more patterns than the plain tag was first
-read with.
+ProTracker's own is `M.K.`, joined by `M!K!` once a song holds more than the sixty-four patterns the plain
+tag was first read with.
 
 Every tracker that widened the format past four channels wrote a tag of its own, so the width is settled
 before a single pattern byte is read:
@@ -147,9 +149,9 @@ ticks a row at 125 beats per minute — and a song reaches another by setting it
 it. A row lasts `speed × 5 / (2 × tempo)` seconds, so at 44100 Hz and speed 1 the shortest whole-frame row
 this format reaches is 441 frames.
 
-The header holds those two values at 6 and 125, so a song asking to start anywhere else is told so, which
-keeps the clock it asked for visible. What a mid-song change may reach is the effect's own range, which is
-one parameter byte.
+This format's capacities pin those two values at 6 and 125, so a song asking to start anywhere else is
+told so, which keeps the clock it asked for visible. What a mid-song change may reach is the effect's
+own range, which is one parameter byte.
 
 ## What this format carries
 
@@ -191,8 +193,9 @@ one parameter byte.
 | A song whose cells name instruments | `ValueError` |
 | A quantity past a bound | `LimitError` |
 
-Eleven rows against Impulse Tracker's two: this is the plainest of the formats here, and what it carries
-every other one carries too. [`limits.md`](../limits.md) states the bounds behind the last of them.
+Eleven rows against Impulse Tracker's two: this is the plainest of the formats here. Every field it fills
+the other three fill as well, the shared sample table apart, which FastTracker 2 keeps per instrument.
+[`limits.md`](../limits.md) states the bounds behind the last of them.
 
 ## Effect commands
 

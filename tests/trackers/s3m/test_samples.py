@@ -36,8 +36,8 @@ def restored(sample: Sample) -> Sample:
 
 @pytest.mark.parametrize("depth", list(BitDepth))
 def test_frames_are_stored_in_the_positive_half_of_their_range(depth: BitDepth) -> None:
-    # Silence sits at the middle of the stored range at either depth, which is what reading a corpus
-    # waveform back as unsigned shows: the frames centre on the midpoint and stay well inside full scale.
+    # Frames are shifted a full scale up from where they sound, so silence is the middle of the stored
+    # range at either depth rather than zero, and a reader that took them signed would hear them inverted.
     silent = Sample(name="silent", pcm=np.zeros(4), rate=REFERENCE_RATE, depth=depth)
     stored = np.frombuffer(sample_bytes(silent), dtype=f"<u{depth.bytes_per_frame}")
     assert set(stored.tolist()) == {int(depth.scale)}

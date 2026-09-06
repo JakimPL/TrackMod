@@ -3,7 +3,7 @@ from trackmod.binary.records.values import ArrayValue, FieldValue
 
 
 class Cursor:
-    """Walks a module's bytes from front to back, which is how both formats are laid out.
+    """Walks a module's bytes from front to back, which is how every format here is laid out.
 
     A parser reads sections in the order the file stores them, so a cursor that remembers where it is
     keeps every offset out of the parsing code.
