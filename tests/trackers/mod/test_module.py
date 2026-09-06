@@ -2,13 +2,8 @@ import numpy as np
 import pytest
 
 from tests.conftest import lattice
-from tests.trackers.mod.conftest import (
-    cell_bytes,
-    mod_pattern,
-    raw_module,
-    sample_record,
-    silent_pattern,
-)
+from tests.trackers.amiga.conftest import amiga_pattern, cell_bytes, sample_record, silent_pattern
+from tests.trackers.mod.conftest import raw_module
 from trackmod.core.repairs.report import RepairWarning
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.sample import Sample
@@ -116,7 +111,9 @@ def test_a_song_whose_cells_name_instruments_is_refused(song: Song) -> None:
 
 
 def test_an_order_longer_than_its_table_is_drawn_back_inside_it() -> None:
-    data = raw_module(order_count=MAX_ORDERS + 1, orders=bytes(MAX_ORDERS), patterns=silent_pattern())
+    data = raw_module(
+        order_count=MAX_ORDERS + 1, orders=bytes(MAX_ORDERS), patterns=silent_pattern(channels=CANONICAL_CHANNELS)
+    )
     with pytest.warns(RepairWarning, match=f"read as the {MAX_ORDERS}"):
         song = MODModule.parse(data).song
 
@@ -124,7 +121,7 @@ def test_an_order_longer_than_its_table_is_drawn_back_inside_it() -> None:
 
 
 def test_a_restart_past_the_order_is_drawn_back_onto_it() -> None:
-    data = raw_module(order_count=2, restart=127, orders=bytes(2), patterns=silent_pattern())
+    data = raw_module(order_count=2, restart=127, orders=bytes(2), patterns=silent_pattern(channels=CANONICAL_CHANNELS))
     assert MODModule.parse(data).song.order.restart == 1
 
 
@@ -134,7 +131,7 @@ def test_a_pattern_the_order_never_reaches_is_kept() -> None:
     data = raw_module(
         order_count=1,
         orders=bytes(1),
-        patterns=silent_pattern() * 3,
+        patterns=silent_pattern(channels=CANONICAL_CHANNELS) * 3,
         waveforms=b"",
     )
     song = MODModule.parse(data).song
@@ -142,7 +139,7 @@ def test_a_pattern_the_order_never_reaches_is_kept() -> None:
 
 
 def test_a_file_stopping_inside_its_patterns_reads_the_rest_as_silence() -> None:
-    data = raw_module(order_count=1, orders=bytes(1), patterns=silent_pattern()[:64])
+    data = raw_module(order_count=1, orders=bytes(1), patterns=silent_pattern(channels=CANONICAL_CHANNELS)[:64])
     with pytest.warns(RepairWarning, match="read as silence"):
         song = MODModule.parse(data).song
 
@@ -161,7 +158,7 @@ def test_the_slots_a_song_keeps_run_up_to_the_last_one_it_uses() -> None:
         records=records,
         order_count=1,
         orders=bytes(1),
-        patterns=silent_pattern(),
+        patterns=silent_pattern(channels=CANONICAL_CHANNELS),
         waveforms=bytes(16),
     )
     samples = MODModule.parse(data).song.voices.samples
@@ -174,7 +171,7 @@ def test_a_slot_a_cell_names_is_kept_even_with_no_waveform_in_it() -> None:
         records=(sample_record(name=b"first", length=4, volume=64),),
         order_count=1,
         orders=bytes(1),
-        patterns=played + silent_pattern()[len(played) :],
+        patterns=played + silent_pattern(channels=CANONICAL_CHANNELS)[len(played) :],
         waveforms=bytes(8),
     )
     song = MODModule.parse(data).song
@@ -204,7 +201,7 @@ def test_a_song_of_one_sample_and_no_patterns_still_writes_the_whole_header() ->
     lone = Song(
         name="lone",
         channels=CANONICAL_CHANNELS,
-        patterns=(mod_pattern(channels=CANONICAL_CHANNELS, samples=1, seed=1),),
+        patterns=(amiga_pattern(channels=CANONICAL_CHANNELS, samples=1, seed=1),),
         order=OrderList(entries=(0,)),
         voices=SampleVoices(
             samples=(
@@ -227,7 +224,7 @@ def test_the_restart_byte_a_file_held_is_written_back_as_it_stood() -> None:
     # Trackers of this lineage write a marker here rather than a position, so the order list holds the
     # position it can and the byte itself is kept beside it — otherwise every such file would come back
     # a byte different from the one it went in as.
-    data = raw_module(order_count=2, restart=127, orders=bytes(2), patterns=silent_pattern())
+    data = raw_module(order_count=2, restart=127, orders=bytes(2), patterns=silent_pattern(channels=CANONICAL_CHANNELS))
     module = MODModule.parse(data)
     assert module.settings.restart == 127
     assert module.song.order.restart == 1
@@ -251,7 +248,7 @@ def test_a_slot_carrying_only_a_name_is_kept_for_the_text_it_holds() -> None:
         records=records,
         order_count=1,
         orders=bytes(1),
-        patterns=silent_pattern(),
+        patterns=silent_pattern(channels=CANONICAL_CHANNELS),
         waveforms=bytes(8),
     )
     samples = MODModule.parse(data).song.voices.samples
@@ -268,7 +265,7 @@ def test_a_stale_entry_past_the_positions_a_song_plays_names_no_pattern() -> Non
         records=(sample_record(name=b"kept", length=4, volume=64),),
         order_count=1,
         orders=bytes(orders),
-        patterns=silent_pattern(),
+        patterns=silent_pattern(channels=CANONICAL_CHANNELS),
         waveforms=bytes(8),
     )
     module = MODModule.parse(data)
@@ -295,7 +292,7 @@ def test_a_song_holding_no_patterns_keeps_the_waveforms_it_carries(mod_samples: 
 
 
 def test_an_order_naming_more_patterns_than_the_file_holds_reads_the_ones_it_holds() -> None:
-    data = raw_module(order_count=2, orders=bytes((0, 3)), patterns=silent_pattern())
+    data = raw_module(order_count=2, orders=bytes((0, 3)), patterns=silent_pattern(channels=CANONICAL_CHANNELS))
     with pytest.warns(RepairWarning, match="an order naming 4 patterns read as the 1 the file holds"):
         song = MODModule.parse(data).song
 

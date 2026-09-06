@@ -23,6 +23,16 @@ def stated_tag(data: bytes) -> bytes:
     return data[TAG_OFFSET:end]
 
 
+def tagged(data: bytes) -> bool:
+    """Whether a module carries a tag this format reads patterns under.
+
+    The tag is what a file of this format states about itself, so carrying one is what tells it apart
+    from the layout written before any tag existed, whose header is shorter and whose bytes at this
+    offset are whatever the music put there.
+    """
+    return len(data) >= TAG_OFFSET + TAG_BYTES and stated_tag(data) in DIALECTS
+
+
 def detected(data: bytes) -> Dialect:
     """The dialect a module's tag names, which settles how many channels its patterns are wide.
 
@@ -40,7 +50,10 @@ def detected(data: bytes) -> Dialect:
     if split is not None:
         raise ValueError(f"the tag {tag!r} names a layout that {split}")
 
-    raise ValueError(f"the tag {tag!r} names none of the dialects this format reads")
+    raise ValueError(
+        f"the tag {tag!r} names none of the dialects this format reads, "
+        "which is what the fifteen-sample layout written before any tag existed reads as"
+    )
 
 
 def chosen(*, channels: int, patterns: int) -> Dialect:

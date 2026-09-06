@@ -138,9 +138,10 @@ before a single pattern byte is read:
 | `TDZ1` through `TDZ4` | 1..4 | TakeTracker |
 | `1CHN` through `9CHN`, `10CH` through `99CH` | 1..99 | the multichannel families |
 
-A tag naming a layout that stores its patterns another way is refused by name — `FLT8` writes each
-eight-channel pattern as two four-channel ones — and so is the fifteen-sample layout written before any
-tag existed, which reaches the same refusal by carrying no tag at all.
+A tag naming a layout that stores its patterns another way is refused by name: `FLT8` writes each
+eight-channel pattern as two four-channel ones. The fifteen-sample layout written before any tag existed
+carries none at all, and is read as [Soundtracker](st.md), whose header is shorter by half a sample
+table.
 
 ## Timing
 

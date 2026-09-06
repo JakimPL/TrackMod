@@ -122,49 +122,54 @@ smaller number*; a `ValueError` says *this idea has no home in this format, expr
 One column per format, and one row per capability. Three bounds separated by `/` are canonical, extended
 and structural; a single bound is a field with no headroom at any level.
 
-| Capability | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 |
-|---|---|---|---|---|
-| `channels` | 1..64 / 1..127 / 1..127 | 1..32 / 1..127 / 1..65535 | 4..4 / 1..32 / 1..99 | 1..16 / 1..32 / 1..32 |
-| `patterns` | 0..200 / 0..240 / 0..254 | 0..256 / 0..256 / 0..65535 | 0..64 / 0..256 / 0..256 | 0..100 / 0..254 / 0..254 |
-| `orders` | 0..256 / 0..65535 / 0..65535 | 0..256 / 0..256 / 0..65535 | 0..128 | 0..255 / 0..65535 / 0..65535 |
-| `pattern_rows` | 32..200 / 1..1024 / 1..65535 | 1..256 / 1..1024 / 1..65535 | 64..64 | 64..64 |
-| `pattern_bytes` | 0..65535 | 0..65535 | — | 0..65535 |
-| `block_offset` | — | — | — | 0..1048560 |
-| `instruments` | 0..99 / 0..255 / 0..255 | 0..128 / 0..255 / 0..255 | — | — |
-| `samples` | 0..99 / 0..255 / 0..255 | 0..2048 / 0..65025 / 0..65025 | 0..31 | 0..99 / 0..255 / 0..255 |
-| `samples_per_instrument` | 0..255 | 0..16 / 0..255 / 0..255 | — | — |
-| `sample_frames` | 0..4294967295 | 0..4294967295 | 0..131070 | 0..64000 / 0..4294967295 / 0..4294967295 |
-| `sample_bytes` | — | 0..4294967295 | 0..131070 | 0..64000 / 0..17179869180 / 0..17179869180 |
-| `sample_offset` | — | — | — | 0..268435440 |
-| `sample_rate` | 1..9999999 / 1..4294967295 / 1..4294967295 | 10..25662141 | 7893..8795 | 1..65535 / 1..4294967295 / 1..4294967295 |
-| `sample_volume` | 0..64 | 0..64 | 0..64 | 0..64 |
-| `sample_gain` | 0..64 | 64..64 | 64..64 | 64..64 |
-| `instrument_volume` | 0..128 | 128..128 | — | — |
-| `envelope_points` | 1..25 | 1..12 | — | — |
-| `envelope_value` | -128..127 | 0..64 | — | — |
-| `envelope_tick` | 0..65535 | 0..65535 | — | — |
-| `fadeout` | 0..128 / 0..65535 / 0..65535 | 0..4095 / 0..65535 / 0..65535 | — | — |
-| `note` | 0..119 | 0..95 | 48..83 / 21..119 / 21..119 | 12..107 / 12..119 / 12..119 |
-| `tempo` | 32..255 | 32..255 / 32..1000 / 1..65535 | 125..125 | 32..255 |
-| `speed` | 1..255 | 1..31 / 1..65535 / 1..65535 | 6..6 | 1..255 |
-| `volume_command` | 0..9 | 0..15 | — | — |
-| `volume_panning` | 0..64 | 0..15 | — | 0..64 |
-| `song_volume` | 0..128 / 0..128 / 0..255 | — | — | 0..64 / 0..64 / 0..255 |
-| `mix_volume` | 0..128 / 0..128 / 0..255 | — | — | 0..127 |
-| `message_bytes` | 0..8000 / 0..65535 / 0..65535 | — | — | — |
+| Capability | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 | Soundtracker |
+|---|---|---|---|---|---|
+| `channels` | 1..64 / 1..127 / 1..127 | 1..32 / 1..127 / 1..65535 | 4..4 / 1..32 / 1..99 | 1..16 / 1..32 / 1..32 | 4..4 |
+| `patterns` | 0..200 / 0..240 / 0..254 | 0..256 / 0..256 / 0..65535 | 0..64 / 0..256 / 0..256 | 0..100 / 0..254 / 0..254 | 0..256 |
+| `orders` | 0..256 / 0..65535 / 0..65535 | 0..256 / 0..256 / 0..65535 | 0..128 | 0..255 / 0..65535 / 0..65535 | 0..128 |
+| `pattern_rows` | 32..200 / 1..1024 / 1..65535 | 1..256 / 1..1024 / 1..65535 | 64..64 | 64..64 | 64..64 |
+| `pattern_bytes` | 0..65535 | 0..65535 | — | 0..65535 | — |
+| `block_offset` | — | — | — | 0..1048560 | — |
+| `instruments` | 0..99 / 0..255 / 0..255 | 0..128 / 0..255 / 0..255 | — | — | — |
+| `samples` | 0..99 / 0..255 / 0..255 | 0..2048 / 0..65025 / 0..65025 | 0..31 | 0..99 / 0..255 / 0..255 | 0..15 |
+| `samples_per_instrument` | 0..255 | 0..16 / 0..255 / 0..255 | — | — | — |
+| `sample_frames` | 0..4294967295 | 0..4294967295 | 0..131070 | 0..64000 / 0..4294967295 / 0..4294967295 | 0..131070 |
+| `sample_bytes` | — | 0..4294967295 | 0..131070 | 0..64000 / 0..17179869180 / 0..17179869180 | 0..131070 |
+| `sample_offset` | — | — | — | 0..268435440 | — |
+| `sample_rate` | 1..9999999 / 1..4294967295 / 1..4294967295 | 10..25662141 | 7893..8795 | 1..65535 / 1..4294967295 / 1..4294967295 | 7893..8795 |
+| `sample_volume` | 0..64 | 0..64 | 0..64 | 0..64 | 0..64 |
+| `sample_gain` | 0..64 | 64..64 | 64..64 | 64..64 | 64..64 |
+| `instrument_volume` | 0..128 | 128..128 | — | — | — |
+| `envelope_points` | 1..25 | 1..12 | — | — | — |
+| `envelope_value` | -128..127 | 0..64 | — | — | — |
+| `envelope_tick` | 0..65535 | 0..65535 | — | — | — |
+| `fadeout` | 0..128 / 0..65535 / 0..65535 | 0..4095 / 0..65535 / 0..65535 | — | — | — |
+| `note` | 0..119 | 0..95 | 48..83 / 21..119 / 21..119 | 12..107 / 12..119 / 12..119 | 48..83 / 21..119 / 21..119 |
+| `tempo` | 32..255 | 32..255 / 32..1000 / 1..65535 | 125..125 | 32..255 | 125..125 |
+| `speed` | 1..255 | 1..31 / 1..65535 / 1..65535 | 6..6 | 1..255 | 6..6 |
+| `volume_command` | 0..9 | 0..15 | — | — | — |
+| `volume_panning` | 0..64 | 0..15 | — | 0..64 | — |
+| `song_volume` | 0..128 / 0..128 / 0..255 | — | — | 0..64 / 0..64 / 0..255 | — |
+| `mix_volume` | 0..128 / 0..128 / 0..255 | — | — | 0..127 | — |
+| `message_bytes` | 0..8000 / 0..65535 / 0..65535 | — | — | — | — |
 
 A dash means the format keeps no such field, so it states no capacity and `limits.bound(...)` and
 `limits.check(...)` both refuse it by name; `limits.declares(...)` is the question to ask first.
 FastTracker 2 has no song-wide volume, no mix volume and no song message; Scream Tracker 3 keeps one
-table of samples, so it has neither instrument records nor envelopes; Amiga ProTracker keeps none of
+table of samples, so it has neither instrument records nor envelopes; the two Amiga formats keep none of
 those and no volume column either. Impulse Tracker states a waveform's length in frames, which is why
-`sample_bytes` is the one row it leaves empty and the other three fill. A caller reaching for a dash is
+`sample_bytes` is the one row it leaves empty and the other four fill. A caller reaching for a dash is
 asking about a field that does not exist, which is a different mistake from asking for a value out of
 range.
 
+Soundtracker states a single bound in every row it fills but one. Its header names no width, no clock and
+no pattern height, so those are settled at the four channels its machine played and the clock it opened
+on, and the one row with headroom is `note`: the twelve bits the period field holds reach further than
+the three octaves its own trackers tabulated.
+
 The two offsets are the reach of a format's own pointers: Scream Tracker 3 finds every block by the
 paragraph it opens on, so a two-byte entry sees 1048560 bytes into a file and the third byte an
-instrument record spends on its waveform sees 268435440. The other three walk their files front to back
+instrument record spends on its waveform sees 268435440. The other four walk their files front to back
 and address nothing, so no distance bounds them. A module packing more patterns than the two-byte table
 reaches is told so as a quantity, where a writer would otherwise meet it as an overflow.
 

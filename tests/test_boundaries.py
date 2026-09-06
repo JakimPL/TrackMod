@@ -4,8 +4,11 @@ from typing import Final
 
 SOURCE: Final = Path("src/trackmod")
 
-FORMATS: Final = frozenset({"it", "xm", "mod", "s3m"})
-LINEAGES: Final = frozenset({"amiga"})
+TRACKERS: Final = SOURCE / "trackers"
+
+PACKAGES: Final = frozenset(path.name for path in TRACKERS.iterdir() if (path / "__init__.py").exists())
+FORMATS: Final = frozenset(name for name in PACKAGES if (TRACKERS / name / "module.py").exists())
+LINEAGES: Final = PACKAGES - FORMATS
 
 LAYERS: Final = ("spec", "utils", "schema", "limits", "core", "binary", "module", "trackers")
 
@@ -48,6 +51,13 @@ def crossings(owners: frozenset[str], forbidden: frozenset[str]) -> tuple[str, .
         for module in imported(path)
         if reached(module) in forbidden - {holder(path)}
     )
+
+
+def test_every_package_under_trackers_is_a_format_or_a_lineage() -> None:
+    # A format package binds a module, so the file that binds it is what tells the two apart and no
+    # package can be added to either side by accident.
+    assert FORMATS == {"it", "xm", "mod", "s3m", "st"}
+    assert LINEAGES == {"amiga"}
 
 
 def test_a_format_package_reads_no_other_format_package() -> None:

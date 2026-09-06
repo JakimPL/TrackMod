@@ -44,20 +44,20 @@ Each format states its own column once, as data, and its parser, its packer and 
 that one statement. The byte runs live in the format documents, beside the cell that carries them; what
 follows is which intents each column names, and the amount it counts them in.
 
-| Intent | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 |
-|---|---|---|---|---|
-| Fine volume up | `0..9` | `0..15` | — | — |
-| Fine volume down | `0..9` | `0..15` | — | — |
-| Volume slide up | `0..9` | `0..15` | — | — |
-| Volume slide down | `0..9` | `0..15` | — | — |
-| Pitch slide up | `0..9` | — | — | — |
-| Pitch slide down | `0..9` | — | — | — |
-| Portamento | `0..9` | `0..15` | — | — |
-| Vibrato depth | `0..9` | `0..15` | — | — |
-| Vibrato speed | — | `0..15` | — | — |
-| Panning | `0..64` | `0..15` | — | `0..64` |
-| Panning slide left | — | `0..15` | — | — |
-| Panning slide right | — | `0..15` | — | — |
+| Intent | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 | Soundtracker |
+|---|---|---|---|---|---|
+| Fine volume up | `0..9` | `0..15` | — | — | — |
+| Fine volume down | `0..9` | `0..15` | — | — | — |
+| Volume slide up | `0..9` | `0..15` | — | — | — |
+| Volume slide down | `0..9` | `0..15` | — | — | — |
+| Pitch slide up | `0..9` | — | — | — | — |
+| Pitch slide down | `0..9` | — | — | — | — |
+| Portamento | `0..9` | `0..15` | — | — | — |
+| Vibrato depth | `0..9` | `0..15` | — | — | — |
+| Vibrato speed | — | `0..15` | — | — | — |
+| Panning | `0..64` | `0..15` | — | `0..64` | — |
+| Panning slide left | — | `0..15` | — | — | — |
+| Panning slide right | — | `0..15` | — | — | — |
 
 Seven of the twelve are shared by Impulse Tracker's column and FastTracker 2's, the two that spell more
 than one effect between them. A song using only those seven carries its volume column into either, at an

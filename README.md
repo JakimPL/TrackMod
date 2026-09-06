@@ -10,6 +10,7 @@ of a song and binds it to each format, so a piece read from one can be written t
 | FastTracker 2 | `.xm` | `.xi` |
 | Amiga ProTracker | `.mod` | — |
 | Scream Tracker 3 | `.s3m` | — |
+| Soundtracker | `.mod` | — |
 
 Each format is also described in data: what it can hold, and how much room its fields leave beyond what
 the tracker it was written for ever read. A caller can therefore ask what will fit before writing it.

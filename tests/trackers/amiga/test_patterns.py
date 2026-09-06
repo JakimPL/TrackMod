@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from tests.trackers.mod.conftest import cell_bytes, mod_pattern
+from tests.trackers.amiga.conftest import amiga_pattern, cell_bytes
 from trackmod.binary.cursor import Cursor
 from trackmod.binary.warnings import UnnamedByteWarning
 from trackmod.core.notes.command import NoteCommand
@@ -44,12 +44,12 @@ def rebuilt(pattern: Pattern) -> Pattern:
 
 
 def test_a_pattern_reads_back_as_it_was_written() -> None:
-    pattern = mod_pattern(channels=CANONICAL_CHANNELS, samples=SAMPLES, seed=3)
+    pattern = amiga_pattern(channels=CANONICAL_CHANNELS, samples=SAMPLES, seed=3)
     assert rebuilt(pattern) == pattern
 
 
 def test_the_size_model_is_the_packer_counted_rather_than_run() -> None:
-    pattern = mod_pattern(channels=CANONICAL_CHANNELS, samples=SAMPLES, seed=4)
+    pattern = amiga_pattern(channels=CANONICAL_CHANNELS, samples=SAMPLES, seed=4)
     assert packed_bytes(pattern) == len(pack_pattern(pattern))
 
 
@@ -57,7 +57,7 @@ def test_silence_costs_exactly_what_music_costs() -> None:
     # Nothing here is packed, so a pattern's length says nothing about what it holds — which is why the
     # format needs no length field anywhere and a reader can seek to any pattern by multiplying.
     empty = Pattern.empty(rows=PATTERN_ROWS, channels=CANONICAL_CHANNELS)
-    played = mod_pattern(channels=CANONICAL_CHANNELS, samples=SAMPLES, seed=5)
+    played = amiga_pattern(channels=CANONICAL_CHANNELS, samples=SAMPLES, seed=5)
     assert packed_bytes(empty) == packed_bytes(played)
     assert packed_bytes(empty) == PATTERN_ROWS * CANONICAL_CHANNELS * CELL_BYTES
 

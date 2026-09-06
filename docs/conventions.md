@@ -1,8 +1,8 @@
 # Conventions
 
 The rules these documents are written to. They exist so a reader can predict what a document will tell
-them, and so that adding a fifth format touches one new file, one column in four shared tables, and one
-row in each of the three indexes.
+them, and so that adding a format touches one new file, one column in four shared tables, and one row
+in each of the three indexes.
 
 ## Three tiers
 
@@ -101,7 +101,7 @@ tables, and the prose budget is what keeps a document readable.
 ### The two fixed tables
 
 `At a glance` and `What this format carries` carry the **same rows in the same order** in every format
-document. That is what makes the four diffable, and what lets an absence be a `—` rather than a sentence.
+document. That is what makes the set diffable, and what lets an absence be a `—` rather than a sentence.
 
 `At a glance` orients, in these rows:
 

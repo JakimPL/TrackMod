@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from tests.conftest import lattice
-from tests.trackers.mod.conftest import sample_record
+from tests.trackers.amiga.conftest import sample_record
 from trackmod.binary.cursor import Cursor
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
@@ -31,8 +31,8 @@ def written(sample: Sample) -> Sample:
     return parse_sample(values, sample_bytes(sample), begin_unit=LOOP_BEGIN_UNIT, subject="sample 0", repairs=Repairs())
 
 
-def test_a_sample_reads_back_as_it_was_written(mod_samples: tuple[Sample, ...]) -> None:
-    for sample in mod_samples:
+def test_a_sample_reads_back_as_it_was_written(amiga_samples: tuple[Sample, ...]) -> None:
+    for sample in amiga_samples:
         assert written(sample) == sample
 
 

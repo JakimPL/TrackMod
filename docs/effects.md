@@ -26,19 +26,21 @@ from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
 builder.place(row, channel, Cell(effect=XM_EFFECTS.note_delay(3)))
 ```
 
-| Intent | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 |
-|---|---|---|---|---|
-| `set_speed(ticks)` | `Axx`, `1..255` | `Fxx`, below `0x20` | `Fxx`, below `0x20` | `Axx`, `1..255` |
-| `set_tempo(beats_per_minute)` | `Txx`, `32..255` | `Fxx`, at `0x20` and above | `Fxx`, at `0x20` and above | `Txx`, `32..255` |
-| `position_jump(order)` | `Bxx` | `Bxx` | `Bxx` | `Bxx` |
-| `pattern_break(row)` | `Cxx`, the row itself | `Dxx`, decimal digits | `Dxx`, decimal digits | `Cxx`, decimal digits |
-| `note_delay(ticks)` | `SDx` | `EDx` | `EDx` | `SDx` |
-| `note_cut(ticks)` | `SCx` | `ECx` | `ECx` | `SCx` |
-| `volume_slide(up=…, down=…)` | `Dxy` | `Axy` | `Axy` | `Dxy` |
-| `set_panning(position)` | `Xxx`, `0..255` | `8xx`, `0..255` | `8xx`, `0..255` | `Xxx`, `0..255` onto 129 steps |
+| Intent | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 | Soundtracker |
+|---|---|---|---|---|---|
+| `set_speed(ticks)` | `Axx`, `1..255` | `Fxx`, below `0x20` | `Fxx`, below `0x20` | `Axx`, `1..255` | `Fxx`, `1..0x1F` |
+| `set_tempo(beats_per_minute)` | `Txx`, `32..255` | `Fxx`, at `0x20` and above | `Fxx`, at `0x20` and above | `Txx`, `32..255` | — |
+| `position_jump(order)` | `Bxx` | `Bxx` | `Bxx` | `Bxx` | `Bxx` |
+| `pattern_break(row)` | `Cxx`, the row itself | `Dxx`, decimal digits | `Dxx`, decimal digits | `Cxx`, decimal digits | `Dxx`, decimal digits |
+| `note_delay(ticks)` | `SDx` | `EDx` | `EDx` | `SDx` | — |
+| `note_cut(ticks)` | `SCx` | `ECx` | `ECx` | `SCx` | — |
+| `volume_slide(up=…, down=…)` | `Dxy` | `Axy` | `Axy` | `Dxy` | — |
+| `set_panning(position)` | `Xxx`, `0..255` | `8xx`, `0..255` | `8xx`, `0..255` | `Xxx`, `0..255` onto 129 steps | — |
 
 Every method validates its argument against the room its format's parameter byte leaves, so a delay of 16
-raises — which is the class of bug that packing `0xD0 | ticks` by hand invites.
+raises — which is the class of bug that packing `0xD0 | ticks` by hand invites. A dash is an intent its
+format numbers no command for, and asking for one raises where it is asked, naming the command that would
+carry it in the format that has one.
 
 Three rows of that table are worth reading twice.
 
@@ -48,7 +50,7 @@ parameters drawn from disjoint ranges. Amiga ProTracker is where that arrangemen
 kept it whole; Scream Tracker 3 gave each clock a command of its own, `Axx` and `Txx`, which is what
 Impulse Tracker inherited.
 
-**Three of the four read a pattern break as decimal digits**, inherited from Amiga ProTracker, which
+**Four of the five read a pattern break as decimal digits**, inherited from Amiga ProTracker, which
 printed the parameter rather than counting it. Impulse Tracker reads the row itself. The catalogue
 converts, so a caller says the row it means:
 

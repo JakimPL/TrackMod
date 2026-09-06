@@ -150,7 +150,7 @@ A fading voice loses `fadeout` from a counter of **1024** every tick, so it fall
 quickest fade it states.
 
 The fade begins where the volume envelope **ends**, so an instrument whose curve runs on fades that much
-later. See [`README.md`](README.md) for where the four formats disagree about a shared field.
+later. See [`README.md`](README.md) for where the formats disagree about a shared field.
 
 ## Samples
 

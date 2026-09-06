@@ -17,6 +17,7 @@ what the model holds, what each format can carry, and how the two are joined.
 | [`formats/xm.md`](formats/xm.md) | What FastTracker 2 stores, and how |
 | [`formats/mod.md`](formats/mod.md) | What Amiga ProTracker stores, and how |
 | [`formats/s3m.md`](formats/s3m.md) | What Scream Tracker 3 stores, and how |
+| [`formats/st.md`](formats/st.md) | What the fifteen-sample Soundtracker layout stores, and how |
 | [`conventions.md`](conventions.md) | How these documents and this library are written |
 
 ## Shape
@@ -169,6 +170,12 @@ The result is the voice table the format that wrote the bytes addresses, so the 
 mattering at the point the bytes are read. The extension is matched in either capitalisation, and one that
 no format here writes is refused by name. `EXTENSIONS`, `MODULE_EXTENSIONS` and `INSTRUMENT_EXTENSIONS`
 state which suffixes are read, so the suffix table lives here, once.
+
+Two formats share `.mod`, because the older of them was written before a name carried an extension at
+all, so that suffix is read from the bytes rather than the name: a file carrying a tag states which
+tracker wrote it and is read as Amiga ProTracker, and a file whose own records add up to its length
+behind a 600-byte header is read as Soundtracker. This is the one place that knows both, which is what
+keeps either format free of the other.
 
 ## Budgeting
 

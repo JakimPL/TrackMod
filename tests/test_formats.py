@@ -9,6 +9,7 @@ from numpy.typing import NDArray
 
 from tests.conftest import FADEOUT, keyed, lattice, rescaled, voices_of
 from trackmod.core.effects.catalog import EffectCatalog
+from trackmod.core.effects.effect import Effect
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.transfer import combine, extract, held
@@ -65,6 +66,10 @@ from trackmod.trackers.s3m.module import S3MModule
 from trackmod.trackers.s3m.patterns.sizing import packed_bytes as s3m_packed_bytes
 from trackmod.trackers.s3m.spec.sizes import PARAGRAPH_BYTES
 from trackmod.trackers.s3m.timing import TIMINGS as S3M_TIMINGS
+from trackmod.trackers.st.effects.catalog import ST_EFFECTS
+from trackmod.trackers.st.limits import st_limits
+from trackmod.trackers.st.module import STModule
+from trackmod.trackers.st.timing import TIMINGS as ST_TIMINGS
 from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
 from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.limits import xm_limits
@@ -206,7 +211,7 @@ def portable_song(catalog: EffectCatalog, envelope: Envelope, *, seed: int) -> S
     )
 
 
-def sampled_pattern(catalog: EffectCatalog, *, seed: int) -> Pattern:
+def sampled_pattern(effect: Callable[[int], Effect], *, seed: int) -> Pattern:
     """A grid every format stores, whose keys stay inside the three octaves the narrowest of them tabulates.
 
     The volume column is left out and so are the note commands: the format that names a sample from every
@@ -230,7 +235,7 @@ def sampled_pattern(catalog: EffectCatalog, *, seed: int) -> Pattern:
                 Cell(
                     note=Note(int(rng.integers(CANONICAL_MIN_NOTE, CANONICAL_MAX_NOTE + 1))),
                     instrument=int(rng.integers(0, PORTABLE_INSTRUMENTS)) if draw < 0.8 else None,
-                    effect=catalog.note_delay(int(rng.integers(0, NIBBLE_MAX + 1))) if draw > 0.9 else None,
+                    effect=effect(int(rng.integers(0, NIBBLE_MAX + 1))) if draw > 0.9 else None,
                 ),
             )
 
@@ -251,7 +256,7 @@ def sampled_samples() -> tuple[Sample, ...]:
     )
 
 
-def sampled_song(catalog: EffectCatalog, *, seed: int) -> Song:
+def sampled_song(effect: Callable[[int], Effect], *, seed: int) -> Song:
     """A song whose cells name samples, in the quantities every format here writes at canonical compliance.
 
     This is the narrower of the two shared songs. Where the instrument-addressed one lives in the
@@ -262,7 +267,7 @@ def sampled_song(catalog: EffectCatalog, *, seed: int) -> Song:
     return Song(
         name="sampled",
         channels=PORTABLE_CHANNELS,
-        patterns=tuple(sampled_pattern(catalog, seed=seed + index) for index in range(len(PORTABLE_ROWS))),
+        patterns=tuple(sampled_pattern(effect, seed=seed + index) for index in range(len(PORTABLE_ROWS))),
         order=OrderList(entries=(0, 1, 0)),
         voices=SampleVoices(samples=sampled_samples()),
         playback=Playback(speed=PORTABLE_SPEED, tempo=PORTABLE_TEMPO),
@@ -311,12 +316,25 @@ def xm_song(envelope: Envelope, seed: int) -> Song:
 
 def mod_song(envelope: Envelope, seed: int) -> Song:
     del envelope
-    return sampled_song(MOD_EFFECTS, seed=seed)
+    return sampled_song(MOD_EFFECTS.note_delay, seed=seed)
 
 
 def s3m_song(envelope: Envelope, seed: int) -> Song:
     del envelope
-    return sampled_song(S3M_EFFECTS, seed=seed)
+    return sampled_song(S3M_EFFECTS.note_delay, seed=seed)
+
+
+def st_binding(song: Song, compliance: Compliance) -> TrackerModule:
+    return STModule.from_song(song, compliance=compliance)
+
+
+def parse_st(data: bytes) -> TrackerModule:
+    return STModule.parse(data)
+
+
+def st_song(envelope: Envelope, seed: int) -> Song:
+    del envelope
+    return sampled_song(ST_EFFECTS.pattern_break, seed=seed)
 
 
 def it_instrument(unit: InstrumentUnit, compliance: Compliance) -> InstrumentFile:
@@ -350,6 +368,7 @@ class Binding:
     bind: Callable[[Song, Compliance], TrackerModule]
     parse: Callable[[bytes], TrackerModule]
     song: Callable[[Envelope, int], Song]
+    limits: Callable[[Compliance], Limits]
 
 
 @dataclass(frozen=True)
@@ -365,14 +384,39 @@ class InstrumentBinding:
     parse_unit: Callable[[bytes], InstrumentFile]
 
 
-IT_BINDING: Final = Binding(name="it", catalog=IT_EFFECTS, bind=it_binding, parse=parse_it, song=it_song)
-XM_BINDING: Final = Binding(name="xm", catalog=XM_EFFECTS, bind=xm_binding, parse=parse_xm, song=xm_song)
-MOD_BINDING: Final = Binding(name="mod", catalog=MOD_EFFECTS, bind=mod_binding, parse=parse_mod, song=mod_song)
-S3M_BINDING: Final = Binding(name="s3m", catalog=S3M_EFFECTS, bind=s3m_binding, parse=parse_s3m, song=s3m_song)
+IT_BINDING: Final = Binding(
+    name="it", catalog=IT_EFFECTS, bind=it_binding, parse=parse_it, song=it_song, limits=it_limits
+)
+XM_BINDING: Final = Binding(
+    name="xm", catalog=XM_EFFECTS, bind=xm_binding, parse=parse_xm, song=xm_song, limits=xm_limits
+)
+MOD_BINDING: Final = Binding(
+    name="mod", catalog=MOD_EFFECTS, bind=mod_binding, parse=parse_mod, song=mod_song, limits=mod_limits
+)
+S3M_BINDING: Final = Binding(
+    name="s3m", catalog=S3M_EFFECTS, bind=s3m_binding, parse=parse_s3m, song=s3m_song, limits=s3m_limits
+)
+ST_BINDING: Final = Binding(
+    name="st", catalog=ST_EFFECTS, bind=st_binding, parse=parse_st, song=st_song, limits=st_limits
+)
 
-BINDINGS: Final = (IT_BINDING, XM_BINDING, MOD_BINDING, S3M_BINDING)
+BINDINGS: Final = (IT_BINDING, XM_BINDING, MOD_BINDING, S3M_BINDING, ST_BINDING)
 VOICED_BINDINGS: Final = (IT_BINDING, XM_BINDING)
 SAMPLED_BINDINGS: Final = (MOD_BINDING, S3M_BINDING)
+
+
+def widens(binding: Binding) -> bool:
+    """Whether a format's records leave room for more channels than the tracker that wrote it read.
+
+    Four of the five do, because each states its width in a field a later player read further. The one
+    that states no width anywhere plays what its machine had and nothing else, so the question a wider
+    reading answers never arises for it.
+    """
+    canonical = binding.limits(Compliance.CANONICAL).bound(Capability.CHANNELS).maximum
+    return canonical < binding.limits(Compliance.EXTENDED).bound(Capability.CHANNELS).maximum
+
+
+WIDENING_BINDINGS: Final = tuple(binding for binding in BINDINGS if widens(binding))
 
 INSTRUMENT_BINDINGS: Final = (
     InstrumentBinding(module=IT_BINDING, bind_unit=it_instrument, parse_unit=parse_it_instrument),
@@ -384,6 +428,18 @@ INSTRUMENT_BINDINGS: Final = (
 def binding(request: pytest.FixtureRequest) -> Binding:
     """Each format binding in turn, so one test body covers every format."""
     return request.param
+
+
+@pytest.fixture(params=WIDENING_BINDINGS, ids=[binding.name for binding in WIDENING_BINDINGS])
+def widening(request: pytest.FixtureRequest) -> Binding:
+    """Each format that states a width a later player read further, which is every one that states it."""
+    return request.param
+
+
+@pytest.fixture
+def widened(widening: Binding, fade_envelope: Envelope) -> Song:
+    """The shared song, in the shape and the effects of the widening binding under test."""
+    return widening.song(fade_envelope, PORTABLE_SEED)
 
 
 @pytest.fixture(params=INSTRUMENT_BINDINGS, ids=[binding.module.name for binding in INSTRUMENT_BINDINGS])
@@ -482,9 +538,10 @@ def test_a_song_inside_its_tracker_reaches_no_further(binding: Binding, portable
     module.require_reach(Compliance.CANONICAL)
 
 
-def test_a_song_past_its_tracker_reaches_the_level_above_it(binding: Binding, portable: Song) -> None:
-    # Widening to what the players descended from the tracker read is the one change every format has
-    # room for, so one body covers all of them: the module still writes, and says what it cost.
+def test_a_song_past_its_tracker_reaches_the_level_above_it(widening: Binding, widened: Song) -> None:
+    # Widening to what the players descended from the tracker read is the one change a format stating
+    # its width has room for, so one body covers all of them: it still writes, and says what it cost.
+    binding, portable = widening, widened
     widest = binding.bind(portable, Compliance.EXTENDED).limits.bound(Capability.CHANNELS).maximum
     wide = binding.bind(rescaled(portable, widest), Compliance.EXTENDED)
 
@@ -498,10 +555,10 @@ def test_a_song_past_its_tracker_reaches_the_level_above_it(binding: Binding, po
         wide.require_reach(Compliance.CANONICAL)
 
 
-def test_what_a_file_reaches_survives_being_written_and_read_back(binding: Binding, portable: Song) -> None:
-    widest = binding.bind(portable, Compliance.EXTENDED).limits.bound(Capability.CHANNELS).maximum
-    written = binding.bind(rescaled(portable, widest), Compliance.EXTENDED).to_bytes()
-    assert binding.parse(written).reach is Compliance.EXTENDED
+def test_what_a_file_reaches_survives_being_written_and_read_back(widening: Binding, widened: Song) -> None:
+    widest = widening.bind(widened, Compliance.EXTENDED).limits.bound(Capability.CHANNELS).maximum
+    written = widening.bind(rescaled(widened, widest), Compliance.EXTENDED).to_bytes()
+    assert widening.parse(written).reach is Compliance.EXTENDED
 
 
 def test_a_file_is_read_at_the_level_that_says_its_values_were_storable(binding: Binding, portable: Song) -> None:
@@ -745,7 +802,13 @@ def test_silence_costs_each_format_something_different() -> None:
 def test_every_format_reads_the_same_clock() -> None:
     frames = {
         row_frames(PORTABLE_SPEED, PORTABLE_TEMPO, frame_rate=FRAME_RATE)
-        for row_frames in (IT_TIMINGS.row_frames, XM_TIMINGS.row_frames, MOD_TIMINGS.row_frames, S3M_TIMINGS.row_frames)
+        for row_frames in (
+            IT_TIMINGS.row_frames,
+            XM_TIMINGS.row_frames,
+            MOD_TIMINGS.row_frames,
+            S3M_TIMINGS.row_frames,
+            ST_TIMINGS.row_frames,
+        )
     }
     assert len(frames) == 1
 
@@ -760,7 +823,9 @@ def test_a_format_declares_a_capacity_only_for_a_field_it_has() -> None:
     impulse = it_limits(Compliance.EXTENDED)
     fast_tracker = xm_limits(Compliance.EXTENDED)
     protracker = mod_limits(Compliance.EXTENDED)
+    soundtracker = st_limits(Compliance.EXTENDED)
     addressed = {Capability.BLOCK_OFFSET, Capability.SAMPLE_OFFSET}
+    assert set(protracker.capacities) == set(soundtracker.capacities)
     assert set(Capability) - set(impulse.capacities) == addressed | {Capability.SAMPLE_BYTES}
     assert set(Capability) - set(fast_tracker.capacities) == addressed | {
         Capability.SONG_VOLUME,
@@ -843,13 +908,18 @@ def graded(module: TrackerModule) -> set[Capability]:
 def declaring(envelope: Envelope) -> tuple[tuple[TrackerModule, Limits], ...]:
     """Each format's module over a song stating every quantity that format declares a capacity for."""
     instrumented = (panning_stated(it_song(envelope, PORTABLE_SEED)), panning_stated(xm_song(envelope, PORTABLE_SEED)))
-    sampled = (mod_song(envelope, PORTABLE_SEED), panning_stated(s3m_song(envelope, PORTABLE_SEED)))
+    sampled = (
+        mod_song(envelope, PORTABLE_SEED),
+        panning_stated(s3m_song(envelope, PORTABLE_SEED)),
+        st_song(envelope, PORTABLE_SEED),
+    )
     compliance = Compliance.EXTENDED
     return (
         (it_binding(instrumented[0], compliance), it_limits(compliance)),
         (xm_binding(instrumented[1], compliance), xm_limits(compliance)),
         (mod_binding(sampled[0], compliance), mod_limits(compliance)),
         (s3m_binding(sampled[1], compliance), s3m_limits(compliance)),
+        (st_binding(sampled[2], compliance), st_limits(compliance)),
     )
 
 
@@ -895,18 +965,31 @@ def test_a_structural_violation_is_refused_at_every_compliance_level(instrumente
         assert raised.value.violations[0].level is Compliance.STRUCTURAL
 
 
-def test_every_format_carries_more_channels_than_its_tracker_reads(binding: Binding, portable: Song) -> None:
-    # Each format reaches a different width past what its own tracker read, so the width to widen to is
+def test_a_format_stating_its_width_carries_more_channels_than_its_tracker_read(
+    widening: Binding,
+    widened: Song,
+) -> None:
+    # Each of them reaches a different width past what its own tracker read, so the width to widen to is
     # the one the format itself declares: whatever its record layout holds, above what the tracker used.
-    widest = binding.bind(portable, Compliance.EXTENDED).limits.bound(Capability.CHANNELS).maximum
-    wide = rescaled(portable, widest)
-    assert binding.bind(wide, Compliance.EXTENDED).violations() == ()
+    widest = widening.bind(widened, Compliance.EXTENDED).limits.bound(Capability.CHANNELS).maximum
+    wide = rescaled(widened, widest)
+    assert widening.bind(wide, Compliance.EXTENDED).violations() == ()
     (reported,) = [
         violation
-        for violation in binding.bind(wide, Compliance.CANONICAL).violations()
+        for violation in widening.bind(wide, Compliance.CANONICAL).violations()
         if violation.capability is Capability.CHANNELS
     ]
     assert reported.level is Compliance.CANONICAL
+
+
+def test_the_format_stating_no_width_holds_the_one_its_machine_played() -> None:
+    # Four of the five state their width in a field a later player read further. The fifth states it
+    # nowhere, so its records leave no wider reading to reach and the width is settled for good.
+    settled = [binding.name for binding in BINDINGS if binding not in WIDENING_BINDINGS]
+    assert settled == ["st"]
+    for compliance in Compliance:
+        bound = ST_BINDING.limits(compliance).bound(Capability.CHANNELS)
+        assert bound.minimum == bound.maximum
 
 
 def test_each_catalogue_spells_one_intent_in_its_own_bytes() -> None:
@@ -957,12 +1040,13 @@ def test_raising_a_sample_table_writes_it_to_a_format_that_numbers_instruments(i
 def test_a_sample_table_reaches_every_format() -> None:
     # The narrower shared song is the one Amiga ProTracker writes as it stands, and the two formats that
     # number instruments take it through the conversion giving each sample the instrument sounding it.
-    flat = sampled_song(MOD_EFFECTS, seed=PORTABLE_SEED)
+    flat = sampled_song(MOD_EFFECTS.note_delay, seed=PORTABLE_SEED)
     samples = flat.voices.samples
     lifted = flat.model_copy(update={"voices": raised(SampleVoices(samples=samples))})
 
     assert MOD_BINDING.bind(flat, Compliance.CANONICAL).violations() == ()
     assert S3M_BINDING.bind(flat, Compliance.CANONICAL).violations() == ()
+    assert ST_BINDING.bind(flat, Compliance.CANONICAL).violations() == ()
     for binding in VOICED_BINDINGS:
         recovered = binding.parse(binding.bind(lifted, Compliance.CANONICAL).to_bytes()).song
         assert [sample.name for sample in recovered.voices.samples] == [sample.name for sample in samples]

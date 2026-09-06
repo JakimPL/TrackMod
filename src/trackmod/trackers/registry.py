@@ -8,8 +8,11 @@ from trackmod.trackers.it.spec.identity import EXTENSION as IT_EXTENSION
 from trackmod.trackers.it.spec.identity import INSTRUMENT_EXTENSION as ITI_EXTENSION
 from trackmod.trackers.mod.module import MODModule
 from trackmod.trackers.mod.spec.identity import EXTENSION as MOD_EXTENSION
+from trackmod.trackers.mod.tag import tagged
 from trackmod.trackers.s3m.module import S3MModule
 from trackmod.trackers.s3m.spec.identity import EXTENSION as S3M_EXTENSION
+from trackmod.trackers.st.detection import written_here
+from trackmod.trackers.st.module import STModule
 from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.module import XMModule
 from trackmod.trackers.xm.spec.identity import EXTENSION as XM_EXTENSION
@@ -24,8 +27,17 @@ def _fast_tracker_module(data: bytes) -> Voices:
     return XMModule.parse(data).song.voices
 
 
-def _amiga_protracker_module(data: bytes) -> Voices:
-    return MODModule.parse(data).song.voices
+def _amiga_module(data: bytes) -> Voices:
+    """The voices of an Amiga module, whichever of the two layouts written on that machine holds them.
+
+    Both are named with the same extension, because the older one was written before a name carried an
+    extension at all. Which layout a file holds is therefore read from the bytes, and the tag decides it:
+    a file carrying one states which tracker wrote it and is read as that, and the fifteen-sample layout
+    is the one that states no tag and whose own records add up to the length of the file.
+    """
+    older = written_here(data) and not tagged(data)
+    binding = STModule if older else MODModule
+    return binding.parse(data).song.voices
 
 
 def _scream_tracker_module(data: bytes) -> Voices:
@@ -45,7 +57,7 @@ def _fast_tracker_instrument(data: bytes) -> Voices:
 READERS: Final[Mapping[str, Callable[[bytes], Voices]]] = {
     IT_EXTENSION: _impulse_tracker_module,
     XM_EXTENSION: _fast_tracker_module,
-    MOD_EXTENSION: _amiga_protracker_module,
+    MOD_EXTENSION: _amiga_module,
     S3M_EXTENSION: _scream_tracker_module,
     ITI_EXTENSION: _impulse_tracker_instrument,
     XI_EXTENSION: _fast_tracker_instrument,
