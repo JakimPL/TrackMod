@@ -16,6 +16,7 @@ from trackmod.spec.levels import (
     MIN_VOLUME,
 )
 from trackmod.spec.volumes import MAX_AMOUNT
+from trackmod.spec.width import SIGNED_BYTE_MAX, SIGNED_BYTE_MIN
 
 Index = Annotated[int, Field(ge=0)]
 Count = Annotated[int, Field(ge=0)]
@@ -30,6 +31,7 @@ Panning = Annotated[int, Field(ge=MIN_PANNING, le=MAX_PANNING)]
 InstrumentVolume = Annotated[int, Field(ge=MIN_INSTRUMENT_VOLUME, le=MAX_INSTRUMENT_VOLUME)]
 Fadeout = Annotated[int, Field(ge=MIN_FADEOUT)]
 VibratoUnit = Annotated[int, Field(ge=MIN_VIBRATO_UNIT, le=MAX_VIBRATO_UNIT)]
+Transposition = Annotated[int, Field(ge=SIGNED_BYTE_MIN, le=SIGNED_BYTE_MAX)]
 
 Speed = Annotated[int, Field(ge=MIN_SPEED)]
 Tempo = Annotated[int, Field(ge=MIN_TEMPO)]

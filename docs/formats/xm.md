@@ -112,6 +112,10 @@ sample, and is refused.
 An instrument owning no samples is written in the **29-byte** short header, which stops after the sample
 count. Those 29 bytes are the opening of the long form, which is what makes a placeholder slot cheap.
 
+A key is what reaches a sample here, so an instrument counting a sample no key names holds it in the
+song's own table instead, and how many is reported. Writing that song back gives each instrument the
+samples its keys play.
+
 ### Envelopes
 
 Two envelopes, volume and panning, of at most 12 points each, values `0..64`. Their point tables sit at
@@ -166,10 +170,11 @@ inaudible as pitch, and real for a caller reconstructing a signal frame by frame
 
 ## Later additions
 
-The `header_size` field is this format's extension point, and later writers spend it: files state 27,
-43, 57 and 81 there beside FastTracker 2's own 276, so seeking to `60 + header_size` is what reads them
-all. Instrument headers state their own length the same way, and one shorter than the long form is read
-as the short form. Version `0x0104` at offset 58 is what a reader expects.
+The `header_size` field is this format's extension point, and writers after FastTracker 2 spend it their
+own way, so seeking to `60 + header_size` is what reads a module from any of them. Instrument headers
+state their own length the same way: the record carries the fields this format defines at the offsets it
+defines them, whatever length it states, and the length says how far to step to the samples behind it.
+Version `0x0104` at offset 58 is what a reader expects.
 
 ## One instrument on its own (`.xi`)
 

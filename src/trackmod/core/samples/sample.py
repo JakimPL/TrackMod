@@ -10,8 +10,9 @@ from trackmod.core.samples.loop import Loop
 from trackmod.core.samples.vibrato import NO_VIBRATO, Vibrato
 from trackmod.schema.array import Waveform
 from trackmod.schema.config import FROZEN
-from trackmod.schema.scalars import Panning, Rate, Volume
+from trackmod.schema.scalars import Panning, Rate, Transposition, Volume
 from trackmod.spec.levels import MAX_VOLUME
+from trackmod.spec.pitch import NO_TRANSPOSITION
 
 MONO_CHANNELS: Final[int] = 1
 STEREO_CHANNELS: Final[int] = 2
@@ -57,8 +58,8 @@ class Sample(BaseModel):
     sustain_loop: Loop | None = None
     filename: str = ""
     vibrato: Vibrato = NO_VIBRATO
-    relative_note: int = 0
-    finetune: int = 0
+    relative_note: Transposition = NO_TRANSPOSITION
+    finetune: Transposition = NO_TRANSPOSITION
 
     @model_validator(mode="after")
     def _loops_fit(self) -> Sample:

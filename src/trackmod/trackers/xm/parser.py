@@ -104,10 +104,16 @@ class ModuleReader:
         return tuple(instruments)
 
     def _read_instrument(self, cursor: Cursor, *, index: int) -> Instrument:
+        """One instrument: the header it states the length of, and the samples that follow it.
+
+        An instrument owning samples carries the keymap and envelopes that reach them, whatever length
+        its header states. Writers after FastTracker 2 spend that field their own way, so the fields are
+        read from the width this format defines and the stated length says only how far to step.
+        """
         identity = EMPTY_INSTRUMENT_HEADER.unpack(cursor.peek_padded(EMPTY_INSTRUMENT_HEADER_BYTES))
         size = read_int(identity, "header_size")
         length = read_int(identity, "sample_count")
-        extended = length > 0 and size >= INSTRUMENT_HEADER_BYTES
+        extended = length > 0
         values = INSTRUMENT_HEADER.unpack(cursor.peek_padded(INSTRUMENT_HEADER_BYTES)) if extended else identity
 
         cursor.take_at_most(size)
@@ -116,10 +122,16 @@ class ModuleReader:
         if not extended:
             return parse_stub(values)
 
-        return parse_instrument(
+        subject = f"instrument {index}"
+        instrument = parse_instrument(
             values,
             offset=offset,
             length=length,
-            subject=f"instrument {index}",
+            subject=subject,
             repairs=self._repairs,
         )
+        unreached = length - len(instrument.samples)
+        if unreached:
+            self._repairs.made(f"{unreached} samples no key reaches are held outside this instrument", subject=subject)
+
+        return instrument
