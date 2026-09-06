@@ -1,0 +1,11 @@
+from typing import Final
+
+MODULE_NAME_BYTES: Final = 20
+NAME_BYTES: Final = 22
+
+SAMPLE_RECORD_BYTES: Final = 30
+SAMPLE_TABLE_OFFSET: Final = MODULE_NAME_BYTES
+
+ORDER_TABLE_BYTES: Final = 128
+
+WORD_BYTES: Final = 2

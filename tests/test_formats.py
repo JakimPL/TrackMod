@@ -38,6 +38,10 @@ from trackmod.module.storage import NO_PADDING, Storage
 from trackmod.spec.levels import CENTRE_PANNING, MAX_VOLUME
 from trackmod.spec.pitch import RATE_NOTE, REFERENCE_RATE
 from trackmod.spec.width import NIBBLE_MAX
+from trackmod.trackers.amiga.patterns.sizing import packed_bytes as mod_packed_bytes
+from trackmod.trackers.amiga.spec.cells import CELL_BYTES as MOD_CELL_BYTES
+from trackmod.trackers.amiga.spec.periods import CANONICAL_MAX_NOTE, CANONICAL_MIN_NOTE
+from trackmod.trackers.amiga.spec.ranges import PATTERN_ROWS as MOD_PATTERN_ROWS
 from trackmod.trackers.it.effects.catalog import IT_EFFECTS
 from trackmod.trackers.it.instrument_file import ITInstrumentFile
 from trackmod.trackers.it.limits import it_limits
@@ -48,10 +52,6 @@ from trackmod.trackers.it.timing import TIMINGS as IT_TIMINGS
 from trackmod.trackers.mod.effects.catalog import MOD_EFFECTS
 from trackmod.trackers.mod.limits import mod_limits
 from trackmod.trackers.mod.module import MODModule
-from trackmod.trackers.mod.patterns.sizing import packed_bytes as mod_packed_bytes
-from trackmod.trackers.mod.spec.cells import CELL_BYTES as MOD_CELL_BYTES
-from trackmod.trackers.mod.spec.periods import CANONICAL_MAX_NOTE, CANONICAL_MIN_NOTE
-from trackmod.trackers.mod.spec.ranges import PATTERN_ROWS as MOD_PATTERN_ROWS
 from trackmod.trackers.mod.timing import TIMINGS as MOD_TIMINGS
 from trackmod.trackers.registry import (
     INSTRUMENT_EXTENSIONS,

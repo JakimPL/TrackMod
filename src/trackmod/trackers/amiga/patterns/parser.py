@@ -7,8 +7,8 @@ from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.column import Column
 from trackmod.core.patterns.grid import Pattern
 from trackmod.core.repairs.report import Repairs
-from trackmod.trackers.mod.note import PERIODS, decode_period
-from trackmod.trackers.mod.spec.cells import (
+from trackmod.trackers.amiga.note import PERIODS, decode_period
+from trackmod.trackers.amiga.spec.cells import (
     CELL_BYTES,
     COMMAND_MASK,
     NO_EFFECT,
@@ -34,7 +34,7 @@ class StatedPeriods:
         self._drawn = 0
 
     def stated(self, period: int, unnamed: UnnamedBytes) -> Note | None:
-        """The key a stored period sounds, recording a period that lands on no key this format holds."""
+        """The key a stored period sounds, recording a period that lands on no key this lineage holds."""
         note = decode_period(period)
         if note is None:
             unnamed.met(period, column=Column.NOTE)

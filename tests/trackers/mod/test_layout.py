@@ -1,17 +1,15 @@
 from trackmod.binary.records.record import Record
-from trackmod.trackers.mod.layout.file import MODULE_NAME, SEQUENCE
-from trackmod.trackers.mod.layout.sample import SAMPLE_HEADER
-from trackmod.trackers.mod.spec.identity import TAG_BYTES, TAG_OFFSET
-from trackmod.trackers.mod.spec.sizes import (
-    FILE_HEADER_BYTES,
+from trackmod.trackers.amiga.layout.file import MODULE_NAME
+from trackmod.trackers.amiga.layout.sample import SAMPLE_HEADER
+from trackmod.trackers.amiga.spec.sizes import (
     MODULE_NAME_BYTES,
     ORDER_TABLE_BYTES,
     SAMPLE_RECORD_BYTES,
-    SAMPLE_SLOTS,
-    SAMPLE_TABLE_BYTES,
     SAMPLE_TABLE_OFFSET,
-    SEQUENCE_BYTES,
 )
+from trackmod.trackers.mod.layout.file import SEQUENCE
+from trackmod.trackers.mod.spec.identity import TAG_BYTES, TAG_OFFSET
+from trackmod.trackers.mod.spec.sizes import FILE_HEADER_BYTES, SAMPLE_SLOTS, SAMPLE_TABLE_BYTES, SEQUENCE_BYTES
 
 RECORDS = (
     (MODULE_NAME, MODULE_NAME_BYTES),

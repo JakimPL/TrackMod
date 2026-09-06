@@ -6,16 +6,15 @@ from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.convert import sampled
 from trackmod.spec.width import BYTE_MAX
+from trackmod.trackers.amiga.layout.file import MODULE_NAME
+from trackmod.trackers.amiga.patterns.packer import pack_pattern
+from trackmod.trackers.amiga.samples.writer import empty_header, sample_bytes, sample_header
+from trackmod.trackers.amiga.spec.sizes import MODULE_NAME_BYTES, ORDER_TABLE_BYTES
 from trackmod.trackers.mod.dialect import Dialect
-from trackmod.trackers.mod.layout.file import MODULE_NAME, SEQUENCE
-from trackmod.trackers.mod.patterns.packer import pack_pattern
-from trackmod.trackers.mod.samples.writer import empty_header, sample_bytes, sample_header
+from trackmod.trackers.mod.layout.file import SEQUENCE
 from trackmod.trackers.mod.settings import MODSettings
-from trackmod.trackers.mod.spec.sizes import (
-    MODULE_NAME_BYTES,
-    ORDER_TABLE_BYTES,
-    SAMPLE_SLOTS,
-)
+from trackmod.trackers.mod.spec.ranges import LOOP_BEGIN_UNIT
+from trackmod.trackers.mod.spec.sizes import SAMPLE_SLOTS
 from trackmod.trackers.mod.tag import chosen
 
 
@@ -39,7 +38,7 @@ def written_dialect(song: Song, settings: MODSettings) -> Dialect:
 
 def sample_table(samples: Sequence[Sample]) -> bytes:
     """Every sample record a module writes, which is the same thirty-one however few a song fills."""
-    records = [sample_header(sample) for sample in samples]
+    records = [sample_header(sample, begin_unit=LOOP_BEGIN_UNIT) for sample in samples]
     return b"".join(records) + empty_header() * (SAMPLE_SLOTS - len(records))
 
 

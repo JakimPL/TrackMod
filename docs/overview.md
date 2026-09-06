@@ -32,6 +32,7 @@ The library is layered downward: every package depends only on the ones above it
 | `trackmod/core` | The format-agnostic music: notes, patterns, samples, instruments, envelopes, voices, songs, timing |
 | `trackmod/binary` | Byte-level machinery: declarative records, a cursor, fixed-width text, PCM quantisation and encoding |
 | `trackmod/module` | What a format binding offers: the size report, the storage table, how far a file's values reach, and the `TrackerModule` and `InstrumentFile` protocols |
+| `trackmod/trackers/<lineage>` | What a family of formats inherited from the one that settled it: the Amiga period tables, the fixed cell, the thirty-byte sample record |
 | `trackmod/trackers/<format>` | One format each: its constants, its record layouts, its packers, parsers, size model, module class and instrument-file class |
 
 Each format package repeats the same internal shape, so knowing one is knowing the next:
@@ -50,6 +51,13 @@ Each format package repeats the same internal shape, so knowing one is knowing t
 A package holds the parts its own format keeps records for: the two that keep no instrument records —
 Amiga ProTracker and Scream Tracker 3 — have no `instruments/` and no envelopes, and each format adds the
 files its layout calls for, a table of dialects for the one and the paragraph arithmetic for the other.
+
+A lineage package sits beside them in the same shape and holds what a family of formats shares. `amiga/`
+is the one this library has: the period tables, the four-byte cell, the thirty-byte sample record and the
+eight-bit waveform that Ultimate Soundtracker settled and every tracker on that machine kept. A format
+reads its lineage and states what it decides for itself — how many sample records its header carries, and
+which unit its loop offsets count in. Where two formats disagree, the lineage takes the answer as an
+argument, so neither of them owns the other's.
 
 Every `__init__.py` is empty. A name is imported from the module that defines it:
 

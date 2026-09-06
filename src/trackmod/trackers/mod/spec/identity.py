@@ -1,10 +1,7 @@
 from typing import Final
 
-from trackmod.trackers.mod.spec.sizes import (
-    MODULE_NAME_BYTES,
-    ORDER_TABLE_BYTES,
-    SAMPLE_TABLE_BYTES,
-)
+from trackmod.trackers.amiga.spec.sizes import MODULE_NAME_BYTES, ORDER_TABLE_BYTES
+from trackmod.trackers.mod.spec.sizes import SAMPLE_TABLE_BYTES
 
 EXTENSION: Final = ".mod"
 

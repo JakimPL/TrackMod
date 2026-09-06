@@ -2,7 +2,7 @@ from typing import Final
 
 from trackmod.binary.records.field import Field
 from trackmod.binary.records.record import Record
-from trackmod.trackers.mod.spec.sizes import NAME_BYTES, SAMPLE_RECORD_BYTES
+from trackmod.trackers.amiga.spec.sizes import NAME_BYTES, SAMPLE_RECORD_BYTES
 
 SAMPLE_HEADER: Final = Record(
     size=SAMPLE_RECORD_BYTES,

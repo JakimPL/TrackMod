@@ -6,8 +6,8 @@ from trackmod.core.notes.command import NoteCommand, NoteValue
 from trackmod.core.notes.pitch import Note
 from trackmod.spec.grid import EMPTY
 from trackmod.spec.pitch import NOTE_COUNT, NOTES_PER_OCTAVE
-from trackmod.trackers.mod.spec.cells import NO_PERIOD, UNSTORABLE
-from trackmod.trackers.mod.spec.periods import (
+from trackmod.trackers.amiga.spec.cells import NO_PERIOD, UNSTORABLE
+from trackmod.trackers.amiga.spec.periods import (
     AMIGA_PERIODS,
     BASE_NOTE,
     BASE_OCTAVES,
@@ -50,11 +50,11 @@ def nearest(period: int) -> tuple[int, int]:
 
 
 def decode_period(period: int) -> Note | None:
-    """The key a stored period sounds, or ``None`` when it lands on no key this format tabulates.
+    """The key a stored period sounds, or ``None`` when it lands on no key this lineage tabulates.
 
     A tracker writes the period its own table holds and the tables disagree in their last digit, so a
     period is read as the key it comes closest to. A period further than half a semitone from every key
-    states a pitch outside the three octaves this format tabulates and the octaves they scale to.
+    states a pitch outside the three octaves this lineage tabulates and the octaves they scale to.
     """
     if period <= NO_PERIOD:
         return None
@@ -65,7 +65,7 @@ def decode_period(period: int) -> Note | None:
 
 
 def stored_period(note: NoteValue) -> int | None:
-    """The period this format stores for ``note``, or ``None`` when its note column cannot state it.
+    """The period this lineage stores for ``note``, or ``None`` when its note column cannot state it.
 
     The column holds a period, so it states a pitch and nothing else: a command acting on a playing
     voice has a period only where it names a pitch, and so has a key deep enough to overflow the field.
@@ -79,7 +79,7 @@ def stored_period(note: NoteValue) -> int | None:
 
 
 def refusal(note: NoteValue) -> str:
-    """Why this format's note column cannot state ``note``."""
+    """Why this lineage's note column cannot state ``note``."""
     match note:
         case NoteCommand():
             return f"the note column stores a period and has none for {note.name}"
@@ -88,7 +88,7 @@ def refusal(note: NoteValue) -> str:
 
 
 def encode_note(note: NoteValue) -> int:
-    """The period this format's note column stores for a note-column entry.
+    """The period this lineage's note column stores for a note-column entry.
 
     Raises:
         ValueError: when the note column cannot state ``note``.
@@ -110,7 +110,7 @@ def stored_note(code: int) -> int:
     """The period a grid note code is written as, leaving an absent note absent.
 
     Raises:
-        ValueError: when the code names a note this format's note column cannot state.
+        ValueError: when the code names a note this lineage's note column cannot state.
     """
     if code == EMPTY:
         return EMPTY

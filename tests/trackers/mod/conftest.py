@@ -18,19 +18,16 @@ from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import SampleVoices
 from trackmod.spec.pitch import REFERENCE_RATE
 from trackmod.spec.width import BYTE_MAX
-from trackmod.trackers.mod.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
-from trackmod.trackers.mod.spec.periods import (
+from trackmod.trackers.amiga.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
+from trackmod.trackers.amiga.spec.periods import (
     CANONICAL_MAX_NOTE,
     CANONICAL_MIN_NOTE,
     FINETUNE_RATES,
 )
-from trackmod.trackers.mod.spec.ranges import CANONICAL_CHANNELS, PATTERN_ROWS
-from trackmod.trackers.mod.spec.sizes import (
-    MODULE_NAME_BYTES,
-    NAME_BYTES,
-    ORDER_TABLE_BYTES,
-    SAMPLE_SLOTS,
-)
+from trackmod.trackers.amiga.spec.ranges import PATTERN_ROWS
+from trackmod.trackers.amiga.spec.sizes import MODULE_NAME_BYTES, NAME_BYTES, ORDER_TABLE_BYTES
+from trackmod.trackers.mod.spec.ranges import CANONICAL_CHANNELS
+from trackmod.trackers.mod.spec.sizes import SAMPLE_SLOTS
 
 RECORD_FORMAT = ">HBBHH"
 

@@ -1,8 +1,8 @@
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.convert import sampled
 from trackmod.module.size import SizeReport
-from trackmod.trackers.mod.patterns.sizing import packed_bytes
-from trackmod.trackers.mod.samples.writer import stored_bytes
+from trackmod.trackers.amiga.patterns.sizing import packed_bytes
+from trackmod.trackers.amiga.samples.writer import stored_bytes
 from trackmod.trackers.mod.spec.storage import MOD_STORAGE
 
 NO_INSTRUMENTS: tuple[int, ...] = ()

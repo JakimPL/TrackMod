@@ -10,24 +10,25 @@ from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.sample import Sample
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.pitch import REFERENCE_RATE
-from trackmod.trackers.mod.layout.sample import SAMPLE_HEADER
-from trackmod.trackers.mod.samples.parser import parse_sample, stated_frames, stored_bytes
-from trackmod.trackers.mod.samples.writer import (
+from trackmod.trackers.amiga.layout.sample import SAMPLE_HEADER
+from trackmod.trackers.amiga.samples.parser import parse_sample, stated_frames, stored_bytes
+from trackmod.trackers.amiga.samples.writer import (
     empty_header,
     sample_bytes,
     sample_header,
 )
-from trackmod.trackers.mod.samples.writer import stored_frames as stored_frame_count
-from trackmod.trackers.mod.spec.defaults import NO_LOOP_LENGTH
-from trackmod.trackers.mod.spec.periods import FINETUNE_RATES
-from trackmod.trackers.mod.spec.ranges import MIN_LOOP_FRAMES
-from trackmod.trackers.mod.spec.sizes import WORD_BYTES
+from trackmod.trackers.amiga.samples.writer import stored_frames as stored_frame_count
+from trackmod.trackers.amiga.spec.defaults import NO_LOOP_LENGTH
+from trackmod.trackers.amiga.spec.periods import FINETUNE_RATES
+from trackmod.trackers.amiga.spec.ranges import MIN_LOOP_FRAMES
+from trackmod.trackers.amiga.spec.sizes import WORD_BYTES
+from trackmod.trackers.mod.spec.ranges import LOOP_BEGIN_UNIT
 
 
 def written(sample: Sample) -> Sample:
     """The sample a record and its frames read back as, which is what a round trip has to preserve."""
-    values = SAMPLE_HEADER.unpack(sample_header(sample))
-    return parse_sample(values, sample_bytes(sample), subject="sample 0", repairs=Repairs())
+    values = SAMPLE_HEADER.unpack(sample_header(sample, begin_unit=LOOP_BEGIN_UNIT))
+    return parse_sample(values, sample_bytes(sample), begin_unit=LOOP_BEGIN_UNIT, subject="sample 0", repairs=Repairs())
 
 
 def test_a_sample_reads_back_as_it_was_written(mod_samples: tuple[Sample, ...]) -> None:
@@ -43,7 +44,7 @@ def test_a_record_counts_its_lengths_in_pairs_of_frames() -> None:
         depth=BitDepth.EIGHT,
         loop=Loop(begin=8, end=40, mode=LoopMode.FORWARD),
     )
-    values = SAMPLE_HEADER.unpack(sample_header(sample))
+    values = SAMPLE_HEADER.unpack(sample_header(sample, begin_unit=LOOP_BEGIN_UNIT))
     assert values["length"] == 48 // WORD_BYTES
     assert values["loop_begin"] == 8 // WORD_BYTES
     assert values["loop_length"] == 32 // WORD_BYTES
@@ -57,7 +58,7 @@ def test_a_sample_that_plays_through_once_states_the_shortest_loop() -> None:
         rate=REFERENCE_RATE,
         depth=BitDepth.EIGHT,
     )
-    values = SAMPLE_HEADER.unpack(sample_header(sample))
+    values = SAMPLE_HEADER.unpack(sample_header(sample, begin_unit=LOOP_BEGIN_UNIT))
     assert values["loop_length"] == NO_LOOP_LENGTH
     assert written(sample).loop is None
 
@@ -94,7 +95,7 @@ def test_each_tuning_row_survives_the_record_that_states_it() -> None:
 def test_a_level_above_full_is_drawn_back_to_full() -> None:
     repairs = Repairs()
     values = SAMPLE_HEADER.unpack(sample_record(length=4, volume=200))
-    sample = parse_sample(values, bytes(8), subject="sample 0", repairs=repairs)
+    sample = parse_sample(values, bytes(8), begin_unit=LOOP_BEGIN_UNIT, subject="sample 0", repairs=repairs)
     assert sample.volume == MAX_VOLUME
     assert repairs.entries == (("sample 0", f"volume 200 read as {MAX_VOLUME}"),)
 
@@ -102,7 +103,7 @@ def test_a_level_above_full_is_drawn_back_to_full() -> None:
 def test_a_loop_past_the_waveform_is_drawn_inside_it() -> None:
     repairs = Repairs()
     values = SAMPLE_HEADER.unpack(sample_record(length=4, volume=64, loop_begin=1, loop_length=8))
-    sample = parse_sample(values, bytes(8), subject="sample 0", repairs=repairs)
+    sample = parse_sample(values, bytes(8), begin_unit=LOOP_BEGIN_UNIT, subject="sample 0", repairs=repairs)
     assert sample.loop is not None
     assert sample.loop.end == sample.frames
     assert repairs.entries[0][0] == "sample 0"
@@ -138,7 +139,7 @@ def test_a_sample_this_format_keeps_no_field_for_is_refused() -> None:
     )
     for sample, reason in refused:
         with pytest.raises(ValueError, match=reason):
-            sample_header(sample)
+            sample_header(sample, begin_unit=LOOP_BEGIN_UNIT)
 
 
 def looped(frames: int, loop: Loop) -> Sample:
@@ -150,7 +151,7 @@ def test_a_loop_shorter_than_the_shortest_a_record_states_stays_a_loop() -> None
     # A record says a sample plays through once by running its loop for a single pair of frames, so a
     # loop of one pair has to be stored as two for the sample to go on repeating.
     sample = looped(8, Loop(begin=1, end=3, mode=LoopMode.FORWARD))
-    values = SAMPLE_HEADER.unpack(sample_header(sample))
+    values = SAMPLE_HEADER.unpack(sample_header(sample, begin_unit=LOOP_BEGIN_UNIT))
     assert (values["loop_begin"], values["loop_length"]) == (0, 2)
     assert written(sample).loop == Loop(begin=0, end=4, mode=LoopMode.FORWARD)
 
@@ -159,7 +160,7 @@ def test_a_loop_between_pairs_is_stored_as_the_pairs_that_hold_its_ends() -> Non
     # Both ends count pairs, so the beginning goes back to the pair holding it and the end on to the
     # pair closing it, which keeps every frame the loop repeats inside the region the record names.
     sample = looped(8, Loop(begin=3, end=7, mode=LoopMode.FORWARD))
-    values = SAMPLE_HEADER.unpack(sample_header(sample))
+    values = SAMPLE_HEADER.unpack(sample_header(sample, begin_unit=LOOP_BEGIN_UNIT))
     assert (values["loop_begin"], values["loop_length"]) == (1, 3)
 
     recovered = written(sample).loop
@@ -169,4 +170,4 @@ def test_a_loop_between_pairs_is_stored_as_the_pairs_that_hold_its_ends() -> Non
 def test_a_loop_the_shortest_a_record_states_has_no_room_for_is_refused() -> None:
     sample = looped(2, Loop(begin=0, end=2, mode=LoopMode.FORWARD))
     with pytest.raises(ValueError, match=f"runs for {MIN_LOOP_FRAMES} frames at the least"):
-        sample_header(sample)
+        sample_header(sample, begin_unit=LOOP_BEGIN_UNIT)

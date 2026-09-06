@@ -1,6 +1,6 @@
 from typing import Final
 
-from trackmod.trackers.mod.spec.periods import FINETUNE_PERIODS, FINETUNE_RATES
+from trackmod.trackers.amiga.spec.periods import FINETUNE_PERIODS, FINETUNE_RATES
 
 FINETUNES: Final = tuple(range(len(FINETUNE_PERIODS)))
 
@@ -18,7 +18,7 @@ def finetune_rate(finetune: int) -> int:
 def finetune_for(rate: int) -> int:
     """The finetune step whose rate comes closest to ``rate`` in pitch.
 
-    The lattice is the whole reach this format has: a sample recorded outside it is graded against
+    The lattice is the whole reach this lineage has: a sample recorded outside it is graded against
     :data:`~trackmod.limits.capability.Capability.SAMPLE_RATE`, which tells a caller to resample it to
     one the sixteen rows hold before writing.
     """

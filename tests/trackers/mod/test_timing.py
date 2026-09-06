@@ -1,4 +1,4 @@
-from trackmod.trackers.mod.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
+from trackmod.trackers.amiga.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
 from trackmod.trackers.mod.spec.ranges import MAX_EFFECT_SPEED, MAX_EFFECT_TEMPO, MIN_EFFECT_TEMPO
 from trackmod.trackers.mod.timing import TIMINGS
 

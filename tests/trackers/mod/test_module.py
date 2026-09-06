@@ -18,25 +18,17 @@ from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import SampleVoices
 from trackmod.limits.compliance import Compliance
 from trackmod.spec.pitch import RATE_NOTE, REFERENCE_RATE
+from trackmod.trackers.amiga.note import PERIODS
+from trackmod.trackers.amiga.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
+from trackmod.trackers.amiga.spec.ranges import MAX_ORDERS, PATTERN_ROWS
+from trackmod.trackers.amiga.spec.sizes import ORDER_TABLE_BYTES, SAMPLE_TABLE_OFFSET
 from trackmod.trackers.mod.dialect import DIALECTS
 from trackmod.trackers.mod.layout.file import SEQUENCE
 from trackmod.trackers.mod.module import MODModule
-from trackmod.trackers.mod.note import PERIODS
 from trackmod.trackers.mod.settings import MODSettings
-from trackmod.trackers.mod.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
 from trackmod.trackers.mod.spec.identity import TAG_BYTES, TAG_OFFSET
-from trackmod.trackers.mod.spec.ranges import (
-    CANONICAL_CHANNELS,
-    MAX_ORDERS,
-    PATTERN_ROWS,
-    TAGGED_MAX_PATTERNS,
-)
-from trackmod.trackers.mod.spec.sizes import (
-    FILE_HEADER_BYTES,
-    ORDER_TABLE_BYTES,
-    SAMPLE_TABLE_BYTES,
-    SAMPLE_TABLE_OFFSET,
-)
+from trackmod.trackers.mod.spec.ranges import CANONICAL_CHANNELS, TAGGED_MAX_PATTERNS
+from trackmod.trackers.mod.spec.sizes import FILE_HEADER_BYTES, SAMPLE_TABLE_BYTES
 
 ODD_FRAMES = 25
 

@@ -4,25 +4,27 @@ from trackmod.limits.bound import Bound
 from trackmod.limits.capability import Capability
 from trackmod.limits.capacity import Capacity
 from trackmod.spec.levels import MAX_VOLUME
-from trackmod.trackers.mod.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
-from trackmod.trackers.mod.spec.periods import (
+from trackmod.trackers.amiga.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
+from trackmod.trackers.amiga.spec.periods import (
     CANONICAL_MAX_NOTE,
     CANONICAL_MIN_NOTE,
     MAX_NOTE,
     MIN_NOTE,
+)
+from trackmod.trackers.amiga.spec.ranges import (
+    MAX_ORDERS,
+    MAX_SAMPLE_BYTES,
+    MAX_SAMPLE_FRAMES,
+    MAX_SAMPLE_RATE,
+    MIN_SAMPLE_RATE,
+    PATTERN_ROWS,
 )
 from trackmod.trackers.mod.spec.ranges import (
     CANONICAL_CHANNELS,
     EXTENDED_MAX_CHANNELS,
     EXTENDED_MAX_PATTERNS,
     EXTENDED_MIN_CHANNELS,
-    MAX_ORDERS,
-    MAX_SAMPLE_BYTES,
-    MAX_SAMPLE_FRAMES,
-    MAX_SAMPLE_RATE,
     MAX_SAMPLES,
-    MIN_SAMPLE_RATE,
-    PATTERN_ROWS,
     STRUCTURAL_MAX_CHANNELS,
     TAGGED_MAX_PATTERNS,
 )

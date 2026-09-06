@@ -13,24 +13,18 @@ from trackmod.core.songs.repair import repaired_order
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import SampleVoices
 from trackmod.spec.grid import EMPTY
-from trackmod.trackers.mod.layout.file import MODULE_NAME, SEQUENCE
-from trackmod.trackers.mod.layout.sample import SAMPLE_HEADER
-from trackmod.trackers.mod.patterns.parser import unpack_pattern
-from trackmod.trackers.mod.samples.parser import parse_sample, stated_frames, stored_bytes
+from trackmod.trackers.amiga.layout.file import MODULE_NAME
+from trackmod.trackers.amiga.layout.sample import SAMPLE_HEADER
+from trackmod.trackers.amiga.patterns.parser import unpack_pattern
+from trackmod.trackers.amiga.samples.parser import parse_sample, stated_frames, stored_bytes
+from trackmod.trackers.amiga.spec.cells import CELL_BYTES
+from trackmod.trackers.amiga.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
+from trackmod.trackers.amiga.spec.ranges import MAX_ORDERS, PATTERN_ROWS
+from trackmod.trackers.amiga.spec.sizes import MODULE_NAME_BYTES, SAMPLE_TABLE_OFFSET
+from trackmod.trackers.mod.layout.file import SEQUENCE
 from trackmod.trackers.mod.settings import MODSettings
-from trackmod.trackers.mod.spec.cells import CELL_BYTES
-from trackmod.trackers.mod.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
-from trackmod.trackers.mod.spec.ranges import (
-    EXTENDED_MAX_PATTERNS,
-    MAX_ORDERS,
-    PATTERN_ROWS,
-)
-from trackmod.trackers.mod.spec.sizes import (
-    FILE_HEADER_BYTES,
-    MODULE_NAME_BYTES,
-    SAMPLE_SLOTS,
-    SAMPLE_TABLE_OFFSET,
-)
+from trackmod.trackers.mod.spec.ranges import EXTENDED_MAX_PATTERNS, LOOP_BEGIN_UNIT
+from trackmod.trackers.mod.spec.sizes import FILE_HEADER_BYTES, SAMPLE_SLOTS
 from trackmod.trackers.mod.tag import detected
 
 NO_PATTERNS: Final = 0
@@ -139,6 +133,7 @@ class ModuleReader:
             parse_sample(
                 values,
                 stated_frames(cursor, values, subject=f"sample {slot}", repairs=self._repairs),
+                begin_unit=LOOP_BEGIN_UNIT,
                 subject=f"sample {slot}",
                 repairs=self._repairs,
             )

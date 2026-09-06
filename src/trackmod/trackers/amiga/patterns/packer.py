@@ -1,8 +1,8 @@
 from trackmod.core.patterns.grid import Pattern
 from trackmod.spec.grid import EMPTY
 from trackmod.spec.width import BYTE_MAX, NIBBLE_MAX
-from trackmod.trackers.mod.note import stored_note
-from trackmod.trackers.mod.spec.cells import (
+from trackmod.trackers.amiga.note import stored_note
+from trackmod.trackers.amiga.spec.cells import (
     COMMAND_MASK,
     NO_EFFECT,
     NO_PERIOD,
@@ -36,10 +36,10 @@ def stated_effect(command: int, parameter: int) -> tuple[int, int]:
 
 
 def reject_volume(volume: int) -> None:
-    """Refuse a cell this format has no column for.
+    """Refuse a cell this lineage has no column for.
 
     Raises:
-        ValueError: when the cell states a volume, which this format's cells have no column for.
+        ValueError: when the cell states a volume, which this lineage's cells have no column for.
     """
     if volume != EMPTY:
         raise ValueError("a cell states a volume, and this format's cells carry note, sample and effect only")
@@ -67,7 +67,7 @@ def encode_cell(note: int, instrument: int, volume: int, command: int, parameter
 
 
 def pack_cells(pattern: Pattern) -> bytes:
-    """Serialise a pattern grid into this format's stream of fixed cells."""
+    """Serialise a pattern grid into this lineage's stream of fixed cells."""
     notes, instruments = pattern.note, pattern.instrument
     volumes, commands, parameters = pattern.volume, pattern.effect, pattern.parameter
 
@@ -86,5 +86,5 @@ def pack_cells(pattern: Pattern) -> bytes:
 
 
 def pack_pattern(pattern: Pattern) -> bytes:
-    """Serialise a pattern, which is its cells and nothing else — this format writes no pattern header."""
+    """Serialise a pattern, which is its cells and nothing else — this lineage writes no pattern header."""
     return pack_cells(pattern)

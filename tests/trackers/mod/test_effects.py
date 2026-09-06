@@ -2,14 +2,10 @@ import pytest
 
 from trackmod.binary.nibble import split_nibbles
 from trackmod.spec.width import NIBBLE_MAX
+from trackmod.trackers.amiga.spec.ranges import PATTERN_ROWS
 from trackmod.trackers.mod.effects.catalog import MOD_EFFECTS, extended
 from trackmod.trackers.mod.effects.command import MODEffect, MODExtended
-from trackmod.trackers.mod.spec.ranges import (
-    MAX_EFFECT_SPEED,
-    MAX_EFFECT_TEMPO,
-    MIN_EFFECT_TEMPO,
-    PATTERN_ROWS,
-)
+from trackmod.trackers.mod.spec.ranges import MAX_EFFECT_SPEED, MAX_EFFECT_TEMPO, MIN_EFFECT_TEMPO
 
 E8 = 0x8
 

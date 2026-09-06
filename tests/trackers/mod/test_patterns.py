@@ -12,13 +12,14 @@ from trackmod.core.patterns.grid import Pattern
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.spec.pitch import RATE_NOTE
+from trackmod.trackers.amiga.note import PERIODS
+from trackmod.trackers.amiga.patterns.packer import encode_cell, pack_pattern
+from trackmod.trackers.amiga.patterns.parser import unpack_cells, unpack_pattern
+from trackmod.trackers.amiga.patterns.sizing import packed_bytes
+from trackmod.trackers.amiga.spec.cells import CELL_BYTES
+from trackmod.trackers.amiga.spec.ranges import PATTERN_ROWS
 from trackmod.trackers.mod.effects.catalog import MOD_EFFECTS
-from trackmod.trackers.mod.note import PERIODS
-from trackmod.trackers.mod.patterns.packer import encode_cell, pack_pattern
-from trackmod.trackers.mod.patterns.parser import unpack_cells, unpack_pattern
-from trackmod.trackers.mod.patterns.sizing import packed_bytes
-from trackmod.trackers.mod.spec.cells import CELL_BYTES
-from trackmod.trackers.mod.spec.ranges import CANONICAL_CHANNELS, PATTERN_ROWS
+from trackmod.trackers.mod.spec.ranges import CANONICAL_CHANNELS
 
 SAMPLES = 3
 

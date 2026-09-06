@@ -1,5 +1,5 @@
 from trackmod.core.patterns.grid import Pattern
-from trackmod.trackers.mod.spec.cells import CELL_BYTES
+from trackmod.trackers.amiga.spec.cells import CELL_BYTES
 
 
 def packed_bytes(pattern: Pattern) -> int:

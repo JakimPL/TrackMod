@@ -10,23 +10,21 @@ from trackmod.core.songs.song import Song
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.spec.pitch import REFERENCE_RATE
-from trackmod.trackers.mod.limits import mod_limits
-from trackmod.trackers.mod.module import MODModule
-from trackmod.trackers.mod.spec.identity import TAG_BYTES, TAG_OFFSET
-from trackmod.trackers.mod.spec.periods import (
+from trackmod.trackers.amiga.spec.periods import (
     CANONICAL_MAX_NOTE,
     CANONICAL_MIN_NOTE,
     MAX_NOTE,
     MIN_NOTE,
 )
+from trackmod.trackers.amiga.spec.ranges import MAX_SAMPLE_RATE, MIN_SAMPLE_RATE, PATTERN_ROWS
+from trackmod.trackers.mod.limits import mod_limits
+from trackmod.trackers.mod.module import MODModule
+from trackmod.trackers.mod.spec.identity import TAG_BYTES, TAG_OFFSET
 from trackmod.trackers.mod.spec.ranges import (
     CANONICAL_CHANNELS,
     EXTENDED_MAX_CHANNELS,
     EXTENDED_MAX_PATTERNS,
-    MAX_SAMPLE_RATE,
     MAX_SAMPLES,
-    MIN_SAMPLE_RATE,
-    PATTERN_ROWS,
     STRUCTURAL_MAX_CHANNELS,
     TAGGED_MAX_PATTERNS,
 )

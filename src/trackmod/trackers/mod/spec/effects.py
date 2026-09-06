@@ -3,8 +3,8 @@ from typing import Final
 from trackmod.limits.bound import Bound
 from trackmod.spec.levels import MAX_PANNING
 from trackmod.spec.width import BYTE_MAX, NIBBLE_MAX
+from trackmod.trackers.amiga.spec.ranges import MAX_BREAK_ROW
 from trackmod.trackers.mod.spec.ranges import (
-    MAX_BREAK_ROW,
     MAX_EFFECT_SPEED,
     MAX_EFFECT_TEMPO,
     MIN_EFFECT_SPEED,

@@ -5,7 +5,7 @@ from trackmod.core.notes.command import NoteCommand
 from trackmod.core.notes.pitch import Note
 from trackmod.spec.grid import EMPTY
 from trackmod.spec.pitch import NOTES_PER_OCTAVE, RATE_NOTE, REFERENCE_RATE
-from trackmod.trackers.mod.note import (
+from trackmod.trackers.amiga.note import (
     PERIODS,
     STORED_PERIODS,
     decode_period,
@@ -13,7 +13,7 @@ from trackmod.trackers.mod.note import (
     scaled_period,
     stored_note,
 )
-from trackmod.trackers.mod.spec.periods import (
+from trackmod.trackers.amiga.spec.periods import (
     AMIGA_PERIODS,
     BASE_NOTE,
     CANONICAL_MAX_NOTE,
@@ -25,7 +25,7 @@ from trackmod.trackers.mod.spec.periods import (
     MIN_NOTE,
     TABULATED_OCTAVES,
 )
-from trackmod.trackers.mod.tuning import finetune_for, finetune_rate
+from trackmod.trackers.amiga.tuning import finetune_for, finetune_rate
 
 SOUNDED_KEYS = tuple(note for note, period in enumerate(PERIODS) if period)
 

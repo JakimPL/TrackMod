@@ -8,7 +8,7 @@ from trackmod.limits.capability import Capability
 from trackmod.limits.checklist import Checklist
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
-from trackmod.trackers.mod.samples.writer import stored_bytes
+from trackmod.trackers.amiga.samples.writer import stored_bytes
 
 
 def check_song(checklist: Checklist, song: Song) -> None:

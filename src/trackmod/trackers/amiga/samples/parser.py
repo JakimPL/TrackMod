@@ -8,10 +8,10 @@ from trackmod.core.samples.repair import repaired_loop
 from trackmod.core.samples.sample import Sample
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.width import NIBBLE_MAX
-from trackmod.trackers.mod.spec.defaults import NO_LOOP_LENGTH
-from trackmod.trackers.mod.spec.sizes import WORD_BYTES
-from trackmod.trackers.mod.spec.storage import PCM_DEPTH, PCM_ENCODING, PCM_SIGN
-from trackmod.trackers.mod.tuning import finetune_rate
+from trackmod.trackers.amiga.spec.defaults import NO_LOOP_LENGTH
+from trackmod.trackers.amiga.spec.sizes import WORD_BYTES
+from trackmod.trackers.amiga.spec.storage import PCM_DEPTH, PCM_ENCODING, PCM_SIGN
+from trackmod.trackers.amiga.tuning import finetune_rate
 
 
 def stored_bytes(values: RecordValues) -> int:
@@ -19,17 +19,18 @@ def stored_bytes(values: RecordValues) -> int:
     return read_int(values, "length") * WORD_BYTES
 
 
-def read_loop(values: RecordValues) -> Loop | None:
+def read_loop(values: RecordValues, *, begin_unit: int) -> Loop | None:
     """The loop a sample record declares, counted back into frames, or ``None`` when it runs no loop.
 
-    Both ends are stated in words, and a length of one word is what this format writes to say a sample
-    plays through once — so a loop starts at two words and up.
+    A length counts words, and a length of one word is what a record writes to say a sample plays through
+    once, so a loop runs from two words up. The beginning counts in the unit its own format states it in:
+    the first trackers of this lineage wrote a byte offset there and the ones after them wrote a word.
     """
     length = read_int(values, "loop_length")
     if length <= NO_LOOP_LENGTH:
         return None
 
-    begin = read_int(values, "loop_begin") * WORD_BYTES
+    begin = read_int(values, "loop_begin") * begin_unit
     return Loop(begin=begin, end=begin + length * WORD_BYTES, mode=LoopMode.FORWARD)
 
 
@@ -43,14 +44,14 @@ def read_volume(values: RecordValues, *, subject: str, repairs: Repairs) -> int:
     return MAX_VOLUME
 
 
-def parse_sample(values: RecordValues, data: bytes, *, subject: str, repairs: Repairs) -> Sample:
+def parse_sample(values: RecordValues, data: bytes, *, begin_unit: int, subject: str, repairs: Repairs) -> Sample:
     """Rebuild a sample from its record and the frames the file holds for it.
 
     A record states no rate, only which of the sixteen tuning rows it plays on, so the rate is read back
     from the row. Every waveform here is one channel of eight-bit frames stored as they sound.
     """
     pcm = decode_pcm(data, depth=PCM_DEPTH, encoding=PCM_ENCODING, sign=PCM_SIGN)
-    loop = read_loop(values)
+    loop = read_loop(values, begin_unit=begin_unit)
     return Sample(
         name=decode_name(read_bytes(values, "name")),
         pcm=pcm,
