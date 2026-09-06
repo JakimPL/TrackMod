@@ -18,6 +18,7 @@ from trackmod.trackers.s3m.samples.parser import (
     read_loop,
     stated_frames,
     stored_bytes,
+    waveform_start,
 )
 from trackmod.trackers.s3m.samples.writer import sample_bytes, sample_record
 from trackmod.trackers.s3m.spec.flags import RecordType, SampleFlag
@@ -224,3 +225,11 @@ def test_a_loop_whose_ends_meet_repeats_nothing_and_is_reported() -> None:
     assert read_loop(values, subject="sample 0", repairs=repairs) is None
     assert held_sample(values, bytes(8), repairs=Repairs()).loop is None
     assert [repair for _, repair in repairs.entries] == ["loop 4..4 spans no frame and reads as none"]
+
+
+def test_a_record_reaches_a_waveform_past_the_megabyte_two_pointer_bytes_see() -> None:
+    # Two bytes name a paragraph one megabyte into a file. A record spends a third byte above them on
+    # its waveform alone, which is what lets a sample sit anywhere in a file sixteen times that long.
+    paragraph = 0x012345
+    values = INSTRUMENT_RECORD.unpack(instrument_record(paragraph=paragraph, length=4))
+    assert waveform_start(values) == paragraph * PARAGRAPH_BYTES

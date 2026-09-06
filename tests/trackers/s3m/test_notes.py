@@ -1,5 +1,6 @@
 import pytest
 
+from tests.trackers.s3m.conftest import REFERENCE_BYTE
 from trackmod.core.notes.command import NoteCommand
 from trackmod.core.notes.pitch import Note
 from trackmod.spec.grid import EMPTY
@@ -7,8 +8,6 @@ from trackmod.spec.pitch import NOTE_COUNT, RATE_NOTE
 from trackmod.trackers.s3m.note import decode_note, encode_note, stored_key, stored_note
 from trackmod.trackers.s3m.spec.cells import NoteByte
 from trackmod.trackers.s3m.spec.keys import BASE_NOTE, MAX_NOTE
-
-REFERENCE_BYTE = 0x40
 
 
 def test_the_byte_a_sample_sounds_its_own_rate_at_spells_the_reference_key() -> None:

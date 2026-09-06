@@ -46,6 +46,7 @@ known_first_party = ["trackmod"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--import-mode=importlib"
+filterwarnings = ["error"]
 
 [tool.coverage.run]
 source = ["trackmod"]

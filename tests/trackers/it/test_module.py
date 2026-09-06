@@ -20,7 +20,6 @@ from trackmod.trackers.it.spec.identity import (
     MAGIC_MODULE,
     MAGIC_SAMPLE,
 )
-from trackmod.trackers.it.spec.ranges import DEFAULT_ROWS
 from trackmod.trackers.it.spec.sizes import (
     FILE_HEADER_BYTES,
     OFFSET_TABLE_ENTRY_BYTES,
@@ -31,6 +30,7 @@ from trackmod.trackers.it.version import Tracker, wrote
 
 EXTRA_FRAMES = 64
 EXTRA_CHANNELS = 5
+SILENT_ROWS = 64  # the height this format's own tracker opens a pattern at, and plays one it stores nowhere
 
 
 def module(song: Song, *, compliance: Compliance = Compliance.EXTENDED) -> ITModule:
@@ -165,7 +165,7 @@ def test_a_pattern_the_table_points_past_the_bytes_the_file_holds_plays_as_empty
         recovered = ITModule.parse(bytes(data)).song
 
     assert len(recovered.patterns) == len(song.patterns)
-    assert recovered.patterns[0].rows == DEFAULT_ROWS
+    assert recovered.patterns[0].rows == SILENT_ROWS
     assert not recovered.patterns[0].occupied.any()
 
 
@@ -178,7 +178,7 @@ def test_a_pattern_the_table_points_at_offset_zero_plays_as_empty_rows(song: Son
 
     recovered = ITModule.parse(bytes(data)).song
     assert len(recovered.patterns) == len(song.patterns)
-    assert recovered.patterns[0].rows == DEFAULT_ROWS
+    assert recovered.patterns[0].rows == SILENT_ROWS
     assert not recovered.patterns[0].occupied.any()
 
 
@@ -217,7 +217,7 @@ def test_a_file_stopping_inside_a_block_reads_its_rows_as_far_as_they_go(song: S
     with pytest.warns(RepairWarning):
         recovered = ITModule.parse(bytes(data[: offset + 1])).song
 
-    assert recovered.patterns[0].rows == DEFAULT_ROWS
+    assert recovered.patterns[0].rows == SILENT_ROWS
     assert not recovered.patterns[0].occupied.any()
 
 

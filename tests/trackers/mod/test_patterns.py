@@ -24,15 +24,22 @@ SAMPLES = 3
 
 
 def rebuilt(pattern: Pattern) -> Pattern:
-    """The grid a packed pattern reads back as, through the cursor a reader walks the file with."""
+    """The grid a packed pattern reads back as, through the cursor a reader walks the file with.
+
+    Nothing is repaired on the way, because a round trip that repaired its way to equality is one that
+    lost something and put silence in its place.
+    """
+    repairs = Repairs()
     cursor = Cursor(pack_pattern(pattern))
-    return unpack_pattern(
+    grid = unpack_pattern(
         cursor,
         rows=pattern.rows,
         channels=pattern.channels,
         subject="pattern",
-        repairs=Repairs(),
+        repairs=repairs,
     )
+    assert repairs.entries == ()
+    return grid
 
 
 def test_a_pattern_reads_back_as_it_was_written() -> None:

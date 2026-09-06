@@ -5,13 +5,11 @@ from trackmod.core.effects.catalog import EffectCatalog
 from trackmod.spec.width import NIBBLE_MAX
 from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
 from trackmod.trackers.xm.effects.command import XMEffect, XMExtended
-from trackmod.trackers.xm.spec.ranges import (
-    CANONICAL_MAX_SPEED,
-    CANONICAL_MIN_TEMPO,
-    MAX_BREAK_ROW,
-)
+from trackmod.trackers.xm.spec.effects import ROW_PARAMETER
+from trackmod.trackers.xm.spec.ranges import CANONICAL_MAX_SPEED, CANONICAL_MIN_TEMPO
 
 CATALOG: EffectCatalog = XM_EFFECTS
+LAST_BREAK_ROW = 99
 
 
 def test_the_catalog_answers_every_effect_the_protocol_declares() -> None:
@@ -51,9 +49,13 @@ def test_a_pattern_break_is_read_a_decimal_digit_to_a_nibble() -> None:
     assert effect.parameter == 0x16
 
 
-def test_a_pattern_break_past_two_decimal_digits_is_refused() -> None:
+def test_a_pattern_break_reaches_the_last_row_two_decimal_digits_spell() -> None:
+    # The parameter is read a digit to a nibble, so what it names is the two-digit numbers and 99 is
+    # the last of them.
+    assert ROW_PARAMETER.maximum == LAST_BREAK_ROW
+    assert CATALOG.pattern_break(LAST_BREAK_ROW).parameter == 0x99
     with pytest.raises(ValueError):
-        CATALOG.pattern_break(MAX_BREAK_ROW + 1)
+        CATALOG.pattern_break(LAST_BREAK_ROW + 1)
 
 
 def test_an_extended_effect_packs_its_sub_command_into_the_high_nibble() -> None:

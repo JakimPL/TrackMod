@@ -92,8 +92,12 @@ def test_the_key_range_is_bounded_at_both_ends() -> None:
 
 
 def test_a_key_below_the_tabulated_octaves_is_reported_rather_than_refused(mod_song: Song) -> None:
+    # The tabulated keyboard has a floor as well as a ceiling, so the deepest key a pattern plays is
+    # graded beside the highest -- a pattern climbing no higher than the table reaches can still open
+    # below where it starts.
     builder = PatternBuilder(rows=PATTERN_ROWS, channels=CANONICAL_CHANNELS)
     builder.place(0, 0, Cell(note=Note(CANONICAL_MIN_NOTE - 1), instrument=0))
+    builder.place(1, 0, Cell(note=Note(CANONICAL_MAX_NOTE), instrument=0))
     low = mod_song.model_copy(
         update={"patterns": (builder.build(),), "order": mod_song.order.model_copy(update={"entries": (0,)})}
     )
@@ -101,6 +105,7 @@ def test_a_key_below_the_tabulated_octaves_is_reported_rather_than_refused(mod_s
     assert MODModule.from_song(low, compliance=Compliance.EXTENDED).violations() == ()
     (reported,) = MODModule.from_song(low, compliance=Compliance.CANONICAL).violations()
     assert reported.capability is Capability.NOTE
+    assert reported.value == CANONICAL_MIN_NOTE - 1
     assert reported.level is Compliance.CANONICAL
 
 

@@ -22,11 +22,12 @@ from trackmod.trackers.it.spec.cells import (
     NO_INSTRUMENT,
     CellMask,
 )
-from trackmod.trackers.it.spec.ranges import DEFAULT_ROWS, MAX_ROWS
+from trackmod.trackers.it.spec.ranges import MAX_ROWS
 from trackmod.trackers.it.spec.volume import VOLUME_COLUMN
 from trackmod.trackers.it.volume import stored_volume
 
 SUBJECT = "pattern 0"
+SILENT_ROWS = 64  # the height this format's own tracker opens a pattern at, and reads a block stating none at
 
 GRIDS = (
     GridShape(rows=16, channels=4, instruments=2, seed=1),
@@ -262,5 +263,5 @@ def test_a_block_stating_no_rows_reads_at_the_height_a_tracker_plays() -> None:
 
     rows = stated_rows({"rows": 0}, subject=SUBJECT, repairs=repairs)
 
-    assert rows == DEFAULT_ROWS
-    assert [repair for _, repair in repairs.entries] == [f"a block stating 0 rows reads as {DEFAULT_ROWS}"]
+    assert rows == SILENT_ROWS
+    assert [repair for _, repair in repairs.entries] == ["a block stating 0 rows reads as 64"]

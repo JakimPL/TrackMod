@@ -9,6 +9,7 @@ from trackmod.trackers.mod.spec.sizes import (
     SAMPLE_RECORD_BYTES,
     SAMPLE_SLOTS,
     SAMPLE_TABLE_BYTES,
+    SAMPLE_TABLE_OFFSET,
     SEQUENCE_BYTES,
 )
 
@@ -50,10 +51,15 @@ def test_every_number_this_format_stores_is_written_high_byte_first() -> None:
 
 
 def test_the_header_is_the_name_the_sample_table_and_the_sequence() -> None:
+    # The numbers are the ones this format's header has, written out rather than imported: a title of
+    # twenty bytes, thirty-one records of thirty, and the sequence that closes it.
+    assert (MODULE_NAME_BYTES, SAMPLE_SLOTS, SAMPLE_RECORD_BYTES) == (20, 31, 30)
     assert MODULE_NAME_BYTES + SAMPLE_TABLE_BYTES + SEQUENCE_BYTES == FILE_HEADER_BYTES
     assert SAMPLE_TABLE_BYTES == SAMPLE_SLOTS * SAMPLE_RECORD_BYTES
+    assert SAMPLE_TABLE_OFFSET == 20
 
 
 def test_the_tag_closes_the_header() -> None:
+    assert (TAG_OFFSET, FILE_HEADER_BYTES) == (1080, 1084)
     assert TAG_OFFSET + TAG_BYTES == FILE_HEADER_BYTES
     assert SEQUENCE_BYTES == 2 + ORDER_TABLE_BYTES + TAG_BYTES

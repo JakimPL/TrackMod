@@ -41,6 +41,7 @@ from trackmod.trackers.s3m.spec.sizes import (
 
 S3M_CHANNELS = 4
 REFERENCE_KEY = Note(RATE_NOTE)
+REFERENCE_BYTE = 0x40  # the byte this format spells that key with: the fourth octave, its first semitone
 
 
 def s3m_pattern(*, channels: int, samples: int, seed: int) -> Pattern:
@@ -98,6 +99,12 @@ def s3m_song(s3m_samples: tuple[Sample, ...]) -> Song:
     )
 
 
+def point_at(record: bytearray, paragraph: int) -> None:
+    """Write into a record the paragraph its waveform opens on, which is a third byte above a word."""
+    record[13] = paragraph >> 16
+    struct.pack_into("<H", record, 14, paragraph & 0xFFFF)
+
+
 def instrument_record(
     *,
     kind: int = int(RecordType.SAMPLE),
@@ -117,8 +124,7 @@ def instrument_record(
     record = bytearray(INSTRUMENT_RECORD_BYTES)
     record[0] = kind
     record[1 : 1 + len(filename)] = filename
-    record[13] = paragraph >> 16
-    struct.pack_into("<H", record, 14, paragraph & 0xFFFF)
+    point_at(record, paragraph)
     struct.pack_into("<III", record, 16, length, loop_begin, loop_end)
     record[28] = volume
     record[30] = pack
@@ -188,7 +194,9 @@ def raw_module(
     """A whole module built byte by byte, so a test can state exactly what a file carries.
 
     Every block lands on the paragraph its own pointer names, which is what a reader follows, so the
-    padding is worked out here the way a writer works it out.
+    padding is worked out here the way a writer works it out. A record names its waveform the same way,
+    and where that paragraph falls is something only the whole file knows, so each record is pointed at
+    the waveform passed alongside it.
     """
     header = bytearray(FILE_HEADER_BYTES)
     header[:NAME_BYTES] = name.ljust(NAME_BYTES, b"\0")[:NAME_BYTES]
@@ -207,9 +215,6 @@ def raw_module(
     at = -(-pointers // PARAGRAPH_BYTES) * PARAGRAPH_BYTES
     blocks: list[tuple[int, bytes]] = []
     record_at = at
-    for index, record in enumerate(records):
-        blocks.append((record_at + INSTRUMENT_RECORD_BYTES * index, record))
-
     at = record_at + INSTRUMENT_RECORD_BYTES * len(records)
     pattern_at = []
     for block in patterns:
@@ -227,6 +232,14 @@ def raw_module(
         blocks.append((at, waveform))
         at = -(-(at + len(waveform)) // PARAGRAPH_BYTES) * PARAGRAPH_BYTES
 
+    slots = [bytearray(record) for record in records]
+    for slot, offset in zip(slots, waveform_at):
+        point_at(slot, offset // PARAGRAPH_BYTES)
+
+    for index, slot in enumerate(slots):
+        blocks.append((record_at + INSTRUMENT_RECORD_BYTES * index, bytes(slot)))
+
+    blocks.sort()
     for index in range(len(records)):
         tables += struct.pack("<H", (record_at + INSTRUMENT_RECORD_BYTES * index) // PARAGRAPH_BYTES)
 

@@ -16,7 +16,7 @@ from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.playback import Playback
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import SampleVoices
-from trackmod.spec.pitch import RATE_NOTE, REFERENCE_RATE
+from trackmod.spec.pitch import REFERENCE_RATE
 from trackmod.spec.width import BYTE_MAX
 from trackmod.trackers.mod.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
 from trackmod.trackers.mod.spec.periods import (
@@ -158,6 +158,3 @@ def cell_bytes(*, period: int = 0, sample: int = 0, command: int = 0, parameter:
             parameter,
         )
     )
-
-
-REFERENCE_KEY = Note(RATE_NOTE)

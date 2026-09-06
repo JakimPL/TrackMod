@@ -374,6 +374,7 @@ S3M_BINDING: Final = Binding(name="s3m", catalog=S3M_EFFECTS, bind=s3m_binding, 
 
 BINDINGS: Final = (IT_BINDING, XM_BINDING, MOD_BINDING, S3M_BINDING)
 VOICED_BINDINGS: Final = (IT_BINDING, XM_BINDING)
+SAMPLED_BINDINGS: Final = (MOD_BINDING, S3M_BINDING)
 
 INSTRUMENT_BINDINGS: Final = (
     InstrumentBinding(module=IT_BINDING, bind_unit=it_instrument, parse_unit=parse_it_instrument),
@@ -597,6 +598,14 @@ def both_recoveries(envelope: Envelope) -> tuple[Song, Song]:
     return from_it, from_xm
 
 
+def sampled_recoveries(envelope: Envelope) -> tuple[Song, Song]:
+    """One song written to both formats whose cells name samples, as each of them recovered it."""
+    from_mod, from_s3m = (
+        recovered_song(binding, binding.song(envelope, PORTABLE_SEED)) for binding in SAMPLED_BINDINGS
+    )
+    return from_mod, from_s3m
+
+
 def test_a_binding_answers_the_whole_instrument_file_surface(
     instrument_binding: InstrumentBinding,
     voiced: Song,
@@ -696,6 +705,27 @@ def test_both_formats_recover_the_same_music_from_one_song(fade_envelope: Envelo
 def test_both_formats_recover_the_same_waveforms_from_one_song(fade_envelope: Envelope) -> None:
     from_it, from_xm = both_recoveries(fade_envelope)
     for original, restored in zip(from_it.voices.samples, from_xm.voices.samples):
+        assert restored.name == original.name
+        assert restored.rate == original.rate
+        assert np.array_equal(restored.pcm, original.pcm)
+
+
+def test_both_sample_addressed_formats_recover_the_same_music_from_one_song(fade_envelope: Envelope) -> None:
+    # The song these two are given lives in the intersection of all four formats, so what the pair of
+    # them recovered differing would be the container rather than the music.
+    from_mod, from_s3m = sampled_recoveries(fade_envelope)
+    assert from_mod.name == from_s3m.name
+    assert from_mod.channels == from_s3m.channels
+    assert from_mod.playback == from_s3m.playback
+    assert from_mod.order.entries == from_s3m.order.entries
+    for mod_planes, s3m_planes in zip(music(from_mod), music(from_s3m)):
+        for mod_plane, s3m_plane in zip(mod_planes, s3m_planes):
+            assert np.array_equal(mod_plane, s3m_plane)
+
+
+def test_both_sample_addressed_formats_recover_the_same_waveforms_from_one_song(fade_envelope: Envelope) -> None:
+    from_mod, from_s3m = sampled_recoveries(fade_envelope)
+    for original, restored in zip(from_mod.voices.samples, from_s3m.voices.samples):
         assert restored.name == original.name
         assert restored.rate == original.rate
         assert np.array_equal(restored.pcm, original.pcm)

@@ -7,28 +7,30 @@ from trackmod.trackers.xm.layout.envelope import (
 from trackmod.trackers.xm.layout.file import FILE_HEADER
 from trackmod.trackers.xm.layout.instrument import (
     EMPTY_INSTRUMENT_HEADER,
+    INSTRUMENT_FILE_HEADER,
     INSTRUMENT_HEADER,
 )
 from trackmod.trackers.xm.layout.pattern import PATTERN_HEADER
 from trackmod.trackers.xm.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.xm.spec.identity import MAGIC, MAGIC_BYTES
 from trackmod.trackers.xm.spec.sizes import (
-    EMPTY_INSTRUMENT_HEADER_BYTES,
     FILE_HEADER_BYTES,
     HEADER_SIZE_FIELD,
     HEADER_SIZE_OFFSET,
-    INSTRUMENT_HEADER_BYTES,
     ORDER_TABLE_BYTES,
-    PATTERN_HEADER_BYTES,
-    SAMPLE_HEADER_BYTES,
 )
 
+# Every size here is written out as the number this format's headers have rather than imported from
+# the constant that states it, so a record laid out a byte adrift disagrees with the tracker rather
+# than agreeing with itself.
+
 RECORDS = (
-    (FILE_HEADER, FILE_HEADER_BYTES),
-    (PATTERN_HEADER, PATTERN_HEADER_BYTES),
-    (SAMPLE_HEADER, SAMPLE_HEADER_BYTES),
-    (INSTRUMENT_HEADER, INSTRUMENT_HEADER_BYTES),
-    (EMPTY_INSTRUMENT_HEADER, EMPTY_INSTRUMENT_HEADER_BYTES),
+    (FILE_HEADER, 80),
+    (PATTERN_HEADER, 9),
+    (SAMPLE_HEADER, 40),
+    (INSTRUMENT_HEADER, 263),
+    (EMPTY_INSTRUMENT_HEADER, 29),
+    (INSTRUMENT_FILE_HEADER, 298),
 )
 
 
@@ -43,7 +45,7 @@ def occupied_bytes(record: Record) -> set[int]:
     return occupied
 
 
-def test_record_sizes_match_the_format() -> None:
+def test_each_record_is_the_size_this_format_lays_it_out_at() -> None:
     assert all(record.size == size for record, size in RECORDS)
 
 

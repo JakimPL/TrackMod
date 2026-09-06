@@ -23,7 +23,7 @@ from trackmod.spec.width import BYTE_MAX
 from trackmod.trackers.s3m.limits import s3m_limits
 from trackmod.trackers.s3m.module import S3MModule
 from trackmod.trackers.s3m.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
-from trackmod.trackers.s3m.spec.keys import CANONICAL_MAX_NOTE, MAX_NOTE
+from trackmod.trackers.s3m.spec.keys import CANONICAL_MAX_NOTE, CANONICAL_MIN_NOTE, MAX_NOTE
 from trackmod.trackers.s3m.spec.ranges import (
     CANONICAL_MAX_CHANNELS,
     CANONICAL_MAX_SAMPLE_BYTES,
@@ -141,6 +141,20 @@ def keyed_song(key: int) -> Song:
         voices=SampleVoices(samples=(Sample(name="lead", pcm=lattice(np.zeros(8)), rate=REFERENCE_RATE),)),
         playback=Playback(speed=DEFAULT_SPEED, tempo=DEFAULT_TEMPO),
     )
+
+
+def test_the_deepest_key_a_pattern_plays_is_graded_beside_the_highest() -> None:
+    # This format numbers its lowest octave an octave above the model's, so its keyboard has a floor as
+    # well as a ceiling and a pattern reaching below it is reported even where its highest key sits
+    # comfortably inside.
+    builder = PatternBuilder(rows=PATTERN_ROWS, channels=1)
+    builder.place(0, 0, Cell(note=Note(CANONICAL_MIN_NOTE - 1), instrument=0))
+    builder.place(1, 0, Cell(note=Note(CANONICAL_MAX_NOTE), instrument=0))
+    deep = keyed_song(60).model_copy(update={"patterns": (builder.build(),)})
+
+    (reported,) = S3MModule.from_song(deep, compliance=Compliance.CANONICAL).violations()
+    assert reported.capability is Capability.NOTE
+    assert reported.value == CANONICAL_MIN_NOTE - 1
 
 
 def test_a_key_above_the_octaves_the_editor_spells_reaches_past_the_tracker() -> None:

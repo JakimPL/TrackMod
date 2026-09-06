@@ -1,6 +1,12 @@
 import pytest
 
-from tests.trackers.s3m.conftest import ABSENT_NOTE, cell_bytes, pattern_block, s3m_pattern
+from tests.trackers.s3m.conftest import (
+    ABSENT_NOTE,
+    REFERENCE_BYTE,
+    cell_bytes,
+    pattern_block,
+    s3m_pattern,
+)
 from trackmod.binary.cursor import Cursor
 from trackmod.core.notes.command import NoteCommand
 from trackmod.core.notes.pitch import Note
@@ -9,6 +15,7 @@ from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.grid import Pattern
 from trackmod.core.repairs.report import Repairs, RepairWarning
 from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
+from trackmod.trackers.s3m.layout.pattern import PATTERN_HEADER
 from trackmod.trackers.s3m.patterns.packer import pack_cells, pack_pattern
 from trackmod.trackers.s3m.patterns.parser import unpack_cells, unpack_pattern
 from trackmod.trackers.s3m.patterns.sizing import block_bytes, packed_bytes
@@ -16,18 +23,24 @@ from trackmod.trackers.s3m.spec.ranges import PATTERN_ROWS
 from trackmod.trackers.s3m.spec.sizes import PATTERN_LENGTH_BYTES
 
 CHANNELS = 4
-REFERENCE_BYTE = 0x40
 
 
 def rebuilt(pattern: Pattern, *, channels: int = CHANNELS) -> Pattern:
+    """The grid a packed pattern reads back as, having repaired nothing on the way.
+
+    A round trip that repaired its way to equality is a round trip that lost something and put silence
+    in its place, so the report is what says the music came back rather than was rebuilt.
+    """
     repairs = Repairs()
-    return unpack_cells(
+    grid = unpack_cells(
         pack_cells(pattern),
         rows=pattern.rows,
         channels=channels,
         subject="pattern",
         repairs=repairs,
     )
+    assert repairs.entries == ()
+    return grid
 
 
 @pytest.mark.parametrize("seed", [1, 2, 3])
@@ -47,6 +60,13 @@ def test_the_size_model_states_exactly_what_the_packer_writes(seed: int) -> None
     pattern = s3m_pattern(channels=CHANNELS, samples=3, seed=seed)
     assert packed_bytes(pattern) == len(pack_cells(pattern))
     assert block_bytes(pattern) == len(pack_pattern(pattern))
+
+
+def test_a_block_states_its_own_length_with_the_field_that_states_it_counted_in() -> None:
+    # The trackers of this lineage counted the length both ways and the reader here takes either, so
+    # which of the two a block is written with is a convention only the writer settles.
+    block = pack_pattern(s3m_pattern(channels=CHANNELS, samples=3, seed=7))
+    assert PATTERN_HEADER.unpack(block[:PATTERN_LENGTH_BYTES])["block_size"] == len(block)
 
 
 def test_a_key_and_the_sample_that_sounds_it_are_stated_together() -> None:

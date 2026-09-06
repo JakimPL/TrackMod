@@ -19,6 +19,7 @@ from trackmod.core.voices.voices import SampleVoices
 from trackmod.limits.compliance import Compliance
 from trackmod.spec.pitch import RATE_NOTE, REFERENCE_RATE
 from trackmod.trackers.mod.dialect import DIALECTS
+from trackmod.trackers.mod.layout.file import SEQUENCE
 from trackmod.trackers.mod.module import MODModule
 from trackmod.trackers.mod.note import PERIODS
 from trackmod.trackers.mod.settings import MODSettings
@@ -30,7 +31,14 @@ from trackmod.trackers.mod.spec.ranges import (
     PATTERN_ROWS,
     TAGGED_MAX_PATTERNS,
 )
-from trackmod.trackers.mod.spec.sizes import FILE_HEADER_BYTES, ORDER_TABLE_BYTES
+from trackmod.trackers.mod.spec.sizes import (
+    FILE_HEADER_BYTES,
+    ORDER_TABLE_BYTES,
+    SAMPLE_TABLE_BYTES,
+    SAMPLE_TABLE_OFFSET,
+)
+
+ODD_FRAMES = 25
 
 
 def rewritten(song: Song, settings: MODSettings | None = None) -> MODModule:
@@ -236,7 +244,8 @@ def test_the_restart_byte_a_file_held_is_written_back_as_it_stood() -> None:
 
 def test_a_song_built_from_nothing_states_the_position_its_order_holds(mod_song: Song) -> None:
     data = MODModule.from_song(mod_song, compliance=Compliance.CANONICAL).to_bytes()
-    assert data[951] == mod_song.order.restart
+    sequence = SEQUENCE.unpack_at(data, SAMPLE_TABLE_OFFSET + SAMPLE_TABLE_BYTES)
+    assert sequence["restart"] == mod_song.order.restart
 
 
 def test_a_slot_carrying_only_a_name_is_kept_for_the_text_it_holds() -> None:
@@ -299,3 +308,28 @@ def test_an_order_naming_more_patterns_than_the_file_holds_reads_the_ones_it_hol
         song = MODModule.parse(data).song
 
     assert len(song.patterns) == 1
+
+
+def test_a_waveform_of_an_odd_length_is_closed_by_the_frame_that_fills_its_pair(
+    mod_song: Song,
+    mod_samples: tuple[Sample, ...],
+) -> None:
+    # A record counts a waveform in pairs of frames, so an odd one is stored with a silent frame after
+    # it. The size model charges for that frame, the file holds it, and the length the record states is
+    # what a reader gets back.
+    odd = Sample(
+        name="odd",
+        pcm=lattice(np.linspace(-1.0, 1.0, ODD_FRAMES), BitDepth.EIGHT),
+        rate=REFERENCE_RATE,
+        depth=BitDepth.EIGHT,
+    )
+    song = mod_song.model_copy(update={"voices": SampleVoices(samples=mod_samples + (odd,))})
+    module = MODModule.from_song(song, compliance=Compliance.CANONICAL)
+
+    assert module.violations() == ()
+    assert module.size().total == len(module.to_bytes())
+
+    recovered = MODModule.parse(module.to_bytes()).song.voices.samples[-1]
+    assert recovered.frames == ODD_FRAMES + 1
+    assert np.array_equal(recovered.pcm[:ODD_FRAMES], odd.pcm)
+    assert recovered.pcm[-1] == 0.0

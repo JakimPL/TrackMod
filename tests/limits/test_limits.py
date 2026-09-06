@@ -24,6 +24,20 @@ BEYOND_CANONICAL = 441
 BEYOND_EXTENDED = 2000
 BEYOND_STRUCTURAL = 70000
 
+# The value either side of each ceiling the table above states, which is where a bound off by one
+# grades differently from one that is right. A value below the floor every level shares is outside the
+# widest of them too, so it is graded where a value no field holds is.
+BOUNDARIES = (
+    (31, Compliance.STRUCTURAL),
+    (32, None),
+    (255, None),
+    (256, Compliance.CANONICAL),
+    (1000, Compliance.CANONICAL),
+    (1001, Compliance.EXTENDED),
+    (65535, Compliance.EXTENDED),
+    (65536, Compliance.STRUCTURAL),
+)
+
 
 def limits(compliance: Compliance) -> Limits:
     return Limits(compliance=compliance, capacities=CAPACITIES)
@@ -68,6 +82,12 @@ def test_each_level_reports_the_ceilings_at_or_beyond_it() -> None:
 
 def severities_by_level() -> tuple[int, ...]:
     return (BEYOND_CANONICAL, BEYOND_EXTENDED, BEYOND_STRUCTURAL)
+
+
+@pytest.mark.parametrize(("value", "level"), BOUNDARIES)
+def test_each_ceiling_grades_the_value_on_it_apart_from_the_one_past_it(value: int, level: Compliance | None) -> None:
+    violation = graded(Compliance.CANONICAL, value)
+    assert (violation.level if violation is not None else None) is level
 
 
 @pytest.mark.parametrize("compliance", list(Compliance))
@@ -130,6 +150,24 @@ def test_a_song_no_record_layout_holds_reaches_no_level_at_all() -> None:
     assert stored is not None and unstorable is not None
     assert reached((stored,)) is Compliance.STRUCTURAL
     assert reached((unstorable,)) is None
+
+
+def test_a_song_breaking_two_ceilings_reaches_the_level_above_the_wider_of_them() -> None:
+    # A song is held by the level that holds every value in it, so the widest ceiling any of them broke
+    # is the one that decides -- reading the tightest instead would report a module as playable in a
+    # tracker that refuses it.
+    tighter = graded(Compliance.CANONICAL, BEYOND_CANONICAL)
+    wider = graded(Compliance.CANONICAL, BEYOND_EXTENDED)
+    assert tighter is not None and wider is not None
+    assert reached((tighter, wider)) is Compliance.STRUCTURAL
+    assert reached((wider, tighter)) is Compliance.STRUCTURAL
+
+
+def test_a_song_breaking_a_ceiling_no_layout_holds_reaches_no_level_whatever_else_it_breaks() -> None:
+    tighter = graded(Compliance.CANONICAL, BEYOND_CANONICAL)
+    unstorable = graded(Compliance.CANONICAL, BEYOND_STRUCTURAL)
+    assert tighter is not None and unstorable is not None
+    assert reached((tighter, unstorable)) is None
 
 
 def test_only_the_ceilings_at_or_past_a_level_are_what_holding_to_it_refuses() -> None:
