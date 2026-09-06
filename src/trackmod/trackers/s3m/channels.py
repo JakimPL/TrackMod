@@ -1,11 +1,6 @@
 from typing import Final
 
-from trackmod.trackers.s3m.spec.flags import (
-    CHANNEL_MUTED,
-    CHANNEL_RIGHT,
-    CHANNEL_SIDE_WIDTH,
-    CHANNEL_UNUSED,
-)
+from trackmod.trackers.s3m.spec.flags import CHANNEL_RIGHT, CHANNEL_SIDE_WIDTH, CHANNEL_UNUSED
 from trackmod.trackers.s3m.spec.sizes import CHANNELS_STORED
 
 SIDES: Final = 2
@@ -34,8 +29,3 @@ def stated_width(settings: tuple[int, ...]) -> int:
     the middle still states every channel up to the last one it names.
     """
     return max((channel + 1 for channel, entry in enumerate(settings) if entry != CHANNEL_UNUSED), default=0)
-
-
-def sounded(entry: int) -> bool:
-    """Whether a channel's settings leave it playing, as against muted or left out of the module."""
-    return entry != CHANNEL_UNUSED and not entry & CHANNEL_MUTED

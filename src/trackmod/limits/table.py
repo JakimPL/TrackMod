@@ -7,7 +7,7 @@ from trackmod.limits.bound import Bound
 from trackmod.limits.capability import Capability
 from trackmod.limits.capacity import Capacity
 from trackmod.limits.compliance import Compliance
-from trackmod.limits.reach import depth
+from trackmod.limits.reach import width
 from trackmod.limits.tier import Tier
 from trackmod.limits.violation import Violation
 from trackmod.schema.config import FROZEN
@@ -86,7 +86,7 @@ class Limits(BaseModel):
             if tier.bound.contains(value):
                 continue
 
-            if depth(tier.level) < depth(self.compliance):
+            if width(tier.level) < width(self.compliance):
                 return None
 
             return Violation(

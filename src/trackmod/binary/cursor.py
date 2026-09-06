@@ -38,6 +38,14 @@ class Cursor:
         self._position += count
         return chunk
 
+    def byte(self) -> int:
+        """Consume and return the next byte, which is what a stream of markers and columns is read in.
+
+        Raises:
+            ValueError: when the data is spent.
+        """
+        return self.take(1)[0]
+
     def peek(self, count: int) -> bytes:
         """Return the next ``count`` bytes without consuming them.
 

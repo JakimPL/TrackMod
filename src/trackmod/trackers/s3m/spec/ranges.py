@@ -1,6 +1,5 @@
 from typing import Final
 
-from trackmod.spec.grid import MIN_CHANNELS
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.width import BYTE_MAX, DOUBLE_WORD_MAX, WORD_MAX
 from trackmod.trackers.s3m.spec.orders import ORDER_SEPARATOR
@@ -53,5 +52,4 @@ MAX_VOLUME_PANNING: Final = MAX_VOLUME
 PAN_MAX: Final = 15
 POSITION_MAX: Final = 128
 
-MIN_CHANNEL_COUNT: Final = MIN_CHANNELS
 MAX_BREAK_ROW: Final = PATTERN_ROWS - 1

@@ -1,3 +1,5 @@
+from typing import Final
+
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.songs.song import Song
 from trackmod.module.size import SizeReport
@@ -10,7 +12,7 @@ from trackmod.trackers.xm.spec.sizes import (
 )
 from trackmod.trackers.xm.spec.storage import XM_STORAGE
 
-NO_PATTERNS = 0
+NO_PATTERNS: Final = 0
 
 
 def module_bytes(song: Song) -> SizeReport:

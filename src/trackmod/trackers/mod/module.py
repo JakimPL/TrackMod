@@ -5,15 +5,15 @@ from pathlib import Path
 from pydantic import BaseModel, model_validator
 
 from trackmod.core.songs.song import Song
+from trackmod.core.voices.convert import sampled
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import require
-from trackmod.limits.reach import beyond, reached
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
+from trackmod.module.reaching import Reaching
 from trackmod.module.size import SizeReport
 from trackmod.module.storage import Storage
 from trackmod.schema.config import FROZEN
-from trackmod.trackers.mod.addressing import sampled
 from trackmod.trackers.mod.checks import violations
 from trackmod.trackers.mod.limits import mod_limits
 from trackmod.trackers.mod.parser import ModuleReader
@@ -24,7 +24,7 @@ from trackmod.trackers.mod.spec.storage import MOD_STORAGE
 from trackmod.trackers.mod.writer import write_module, written_dialect
 
 
-class MODModule(BaseModel):
+class MODModule(BaseModel, Reaching):
     """An Amiga ProTracker module: a song, the settings this format adds, and how strictly it is held.
 
     Every cell of this format names a sample, so the song it is bound to holds
@@ -126,24 +126,6 @@ class MODModule(BaseModel):
         violation names the ceiling through the level it broke.
         """
         return violations(self.song, limits=mod_limits(Compliance.CANONICAL))
-
-    @property
-    def reach(self) -> Compliance | None:
-        """The strictest level the song fits inside, or ``None`` for one no level holds.
-
-        A song whose values all sit inside a record layout reaches one of the three levels, and which
-        one says who will read it back. A song carrying a value no layout holds reaches none of them,
-        which :meth:`exceeded` states as a structural violation.
-        """
-        return reached(self.exceeded())
-
-    def require_reach(self, compliance: Compliance) -> None:
-        """Refuse a song reaching past a level.
-
-        Raises:
-            LimitError: carrying every bound it passes at or beyond ``compliance``.
-        """
-        require(beyond(self.exceeded(), compliance))
 
     def size(self) -> SizeReport:
         """How many bytes the module occupies, without serialising it."""

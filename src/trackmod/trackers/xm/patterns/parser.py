@@ -22,7 +22,7 @@ from trackmod.trackers.xm.spec.cells import (
     VOLUME_COLUMN_EMPTY,
     CellMask,
 )
-from trackmod.trackers.xm.volume import decode_volume
+from trackmod.trackers.xm.spec.volume import VOLUME_COLUMN
 
 COLUMN_BITS: Final = (
     CellMask.NOTE,
@@ -40,12 +40,12 @@ def stated_columns(cursor: Cursor) -> list[int]:
     otherwise the byte is a mask and only the columns it names are present. A column the stream ends
     before is read as an absence, which is what a cell cut short by a truncated file holds.
     """
-    first = cursor.take(1)[0]
+    first = cursor.byte()
     if not first & CellMask.PACKED:
         held = cursor.take_at_most(RAW_CELL_COLUMNS - 1)
         return [first, *held, *([EMPTY] * (RAW_CELL_COLUMNS - 1 - len(held)))]
 
-    return [cursor.take(1)[0] if first & bit and not cursor.at_end else EMPTY for bit in COLUMN_BITS]
+    return [cursor.byte() if first & bit and not cursor.at_end else EMPTY for bit in COLUMN_BITS]
 
 
 def stated_note(byte: int, unnamed: UnnamedBytes) -> NoteValue | None:
@@ -63,7 +63,7 @@ def stated_volume(byte: int, unnamed: UnnamedBytes) -> VolumeValue | None:
     The byte a cell writes where it states no volume names an absence rather than an unknown, so it is
     read as one and passes without report.
     """
-    volume = decode_volume(byte)
+    volume = VOLUME_COLUMN.stated(byte)
     if volume is None and byte != VOLUME_COLUMN_EMPTY:
         unnamed.met(byte, column=Column.VOLUME)
 
@@ -71,7 +71,7 @@ def stated_volume(byte: int, unnamed: UnnamedBytes) -> VolumeValue | None:
 
 
 def decode_effect(command: int, parameter: int) -> Effect | None:
-    """The effect a cell carries, which an empty command with an empty parameter does not."""
+    """The effect a cell's two columns state, reading an empty pair of them as a cell with no effect."""
     stated, argument = max(command, NO_EFFECT), max(parameter, NO_EFFECT)
     if stated == NO_EFFECT and argument == NO_EFFECT:
         return None

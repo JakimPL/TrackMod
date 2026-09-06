@@ -1,12 +1,35 @@
+from typing import Final
+
 import numpy as np
 
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.keymap import pitched_keymap
 from trackmod.core.samples.sample import Sample
+from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import InstrumentVoices, SampleVoices
 from trackmod.spec.pitch import REFERENCE_RATE
 
-NO_FRAMES = 0
+NO_FRAMES: Final = 0
+
+
+def sampled(song: Song) -> SampleVoices:
+    """The samples a song holds, which is what every cell of a sample-addressed format names.
+
+    A format of that kind keeps one kind of voice: a numbered sample, sounded at the pitch of the key
+    that triggers it. A song addressing instruments states the same music through :func:`flattened`,
+    which keeps the waveform each instrument sounds.
+
+    Raises:
+        ValueError: when the song's cells name instruments, which such a format keeps no records for.
+    """
+    voices = song.voices
+    if isinstance(voices, SampleVoices):
+        return voices
+
+    raise ValueError(
+        f"song {song.name!r} names {len(voices.instruments)} instruments from its cells, and this format's "
+        "cells name samples; flatten its voices onto samples first"
+    )
 
 
 def placeholder(name: str) -> Sample:

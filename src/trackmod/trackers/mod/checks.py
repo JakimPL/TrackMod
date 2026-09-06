@@ -3,11 +3,11 @@ from collections.abc import Sequence
 from trackmod.core.notes.checks import check_keys
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
+from trackmod.core.voices.convert import sampled
 from trackmod.limits.capability import Capability
 from trackmod.limits.checklist import Checklist
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
-from trackmod.trackers.mod.addressing import sampled
 from trackmod.trackers.mod.samples.writer import stored_bytes
 
 

@@ -32,7 +32,7 @@ def stated_effect(command: int, parameter: int) -> tuple[int, int]:
     if stated > NIBBLE_MAX:
         raise ValueError(f"effect command {stated} needs more than the four bits a cell holds")
 
-    return stated, min(argument, BYTE_MAX)
+    return stated, argument
 
 
 def reject_volume(volume: int) -> None:

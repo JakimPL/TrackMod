@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Final
 
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.notes.pitch import Note
@@ -9,7 +10,7 @@ from trackmod.trackers.xm.instruments.group import SampleGroup
 from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
 from trackmod.trackers.xm.tuning import Tuning, tuning_for
 
-FIRST_SLOT = 0
+FIRST_SLOT: Final = 0
 
 
 def local_slots(instrument: Instrument) -> dict[int, int]:

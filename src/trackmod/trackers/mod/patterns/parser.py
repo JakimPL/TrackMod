@@ -50,7 +50,7 @@ class StatedPeriods:
 
 
 def decode_effect(command: int, parameter: int) -> Effect | None:
-    """The effect a cell carries, which an empty command with an empty parameter does not."""
+    """The effect a cell's two bytes state, reading a zero command beside a zero parameter as silence."""
     if command == NO_EFFECT and parameter == NO_EFFECT:
         return None
 

@@ -7,9 +7,9 @@ from pydantic import BaseModel
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import require
-from trackmod.limits.reach import beyond, reached
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
+from trackmod.module.reaching import Reaching
 from trackmod.module.size import SizeReport
 from trackmod.schema.config import FROZEN
 from trackmod.trackers.xm.checks import instrument_violations
@@ -20,7 +20,7 @@ from trackmod.trackers.xm.sizing import instrument_file_bytes
 from trackmod.trackers.xm.spec.identity import INSTRUMENT_EXTENSION
 
 
-class XMInstrumentFile(BaseModel):
+class XMInstrumentFile(BaseModel, Reaching):
     """A standalone FastTracker 2 instrument: one unit, and how strictly it is held.
 
     A module carries a piece of music; this carries one voice out of it, which is what a producer of
@@ -86,24 +86,6 @@ class XMInstrumentFile(BaseModel):
         violation names the ceiling through the level it broke.
         """
         return instrument_violations(self.unit, limits=xm_limits(Compliance.CANONICAL))
-
-    @property
-    def reach(self) -> Compliance | None:
-        """The strictest level the unit fits inside, or ``None`` for one no level holds.
-
-        A unit whose values all sit inside a record layout reaches one of the three levels, and which
-        one says who will read it back. A unit carrying a value no layout holds reaches none of them,
-        which :meth:`exceeded` states as a structural violation.
-        """
-        return reached(self.exceeded())
-
-    def require_reach(self, compliance: Compliance) -> None:
-        """Refuse a unit reaching past a level.
-
-        Raises:
-            LimitError: carrying every bound it passes at or beyond ``compliance``.
-        """
-        require(beyond(self.exceeded(), compliance))
 
     def size(self) -> SizeReport:
         """How many bytes the file occupies, without serialising it."""

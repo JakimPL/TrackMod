@@ -21,6 +21,7 @@ PCM_SIGN: Final = PcmSign.UNSIGNED
 CANONICAL_FRAME_BYTES: Final = BitDepth.EIGHT.bytes_per_frame
 STRUCTURAL_FRAME_BYTES: Final = BitDepth.SIXTEEN.bytes_per_frame * STEREO_CHANNELS
 
+UNPACKED: Final = 0
 NO_RECORD: Final = 0
 
 S3M_STORAGE: Final = Storage(

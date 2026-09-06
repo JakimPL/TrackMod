@@ -6,10 +6,10 @@ from trackmod.trackers.mod.dialect import (
     DIALECTS,
     GENERATED,
     NAMED,
-    SPLIT_PATTERNS,
     WIDE_DIALECT,
     channel_tag,
 )
+from trackmod.trackers.mod.spec.dialects import SPLIT_TAGS
 from trackmod.trackers.mod.spec.identity import TAG_BYTES, TAG_OFFSET
 from trackmod.trackers.mod.spec.ranges import (
     CANONICAL_CHANNELS,
@@ -52,7 +52,7 @@ def test_a_tag_settles_the_width_before_a_pattern_is_read() -> None:
 
 
 def test_a_split_pattern_layout_is_named_when_it_is_refused() -> None:
-    tag = next(iter(SPLIT_PATTERNS))
+    tag = next(iter(SPLIT_TAGS))
     with pytest.raises(ValueError, match="two four-channel"):
         detected(raw_module(tag=tag))
 

@@ -7,9 +7,9 @@ from pydantic import BaseModel, model_validator
 from trackmod.core.songs.song import Song
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import require
-from trackmod.limits.reach import beyond, reached
 from trackmod.limits.table import Limits
 from trackmod.limits.violation import Violation
+from trackmod.module.reaching import Reaching
 from trackmod.module.size import SizeReport
 from trackmod.module.storage import Storage
 from trackmod.schema.config import FROZEN
@@ -24,7 +24,7 @@ from trackmod.trackers.xm.spec.storage import XM_STORAGE
 from trackmod.trackers.xm.writer import write_module
 
 
-class XMModule(BaseModel):
+class XMModule(BaseModel, Reaching):
     """A FastTracker 2 module: a song, the settings this format adds, and how strictly it is held.
 
     Every cell of this format names an instrument, so the song it is bound to holds
@@ -120,24 +120,6 @@ class XMModule(BaseModel):
         violation names the ceiling through the level it broke.
         """
         return violations(self.song, limits=xm_limits(Compliance.CANONICAL))
-
-    @property
-    def reach(self) -> Compliance | None:
-        """The strictest level the song fits inside, or ``None`` for one no level holds.
-
-        A song whose values all sit inside a record layout reaches one of the three levels, and which
-        one says who will read it back. A song carrying a value no layout holds reaches none of them,
-        which :meth:`exceeded` states as a structural violation.
-        """
-        return reached(self.exceeded())
-
-    def require_reach(self, compliance: Compliance) -> None:
-        """Refuse a song reaching past a level.
-
-        Raises:
-            LimitError: carrying every bound it passes at or beyond ``compliance``.
-        """
-        require(beyond(self.exceeded(), compliance))
 
     def size(self) -> SizeReport:
         """How many bytes the module occupies, without serialising it."""

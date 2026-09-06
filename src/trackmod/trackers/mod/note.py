@@ -6,7 +6,7 @@ from trackmod.core.notes.command import NoteCommand, NoteValue
 from trackmod.core.notes.pitch import Note
 from trackmod.spec.grid import EMPTY
 from trackmod.spec.pitch import NOTE_COUNT, NOTES_PER_OCTAVE
-from trackmod.trackers.mod.spec.cells import NO_PERIOD
+from trackmod.trackers.mod.spec.cells import NO_PERIOD, UNSTORABLE
 from trackmod.trackers.mod.spec.periods import (
     AMIGA_PERIODS,
     BASE_NOTE,
@@ -15,8 +15,6 @@ from trackmod.trackers.mod.spec.periods import (
     MAX_PERIOD,
     TOP_OCTAVE,
 )
-
-UNSTORABLE: Final = -1
 
 
 def scaled_period(note: int) -> int:

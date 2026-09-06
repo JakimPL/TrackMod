@@ -3,7 +3,7 @@ from typing import Final
 
 from trackmod.core.samples.depth import BitDepth
 
-NO_BIAS = 0
+NO_BIAS: Final = 0
 
 
 @unique

@@ -1,6 +1,6 @@
 from typing import Final
 
-from trackmod.trackers.mod.spec.periods import AMIGA_PERIODS, FINETUNE_PERIODS, FINETUNE_RATES
+from trackmod.trackers.mod.spec.periods import FINETUNE_PERIODS, FINETUNE_RATES
 
 FINETUNES: Final = tuple(range(len(FINETUNE_PERIODS)))
 
@@ -23,6 +23,3 @@ def finetune_for(rate: int) -> int:
     one the sixteen rows hold before writing.
     """
     return min(FINETUNES, key=lambda finetune: max(rate / FINETUNE_RATES[finetune], FINETUNE_RATES[finetune] / rate))
-
-
-REFERENCE_PERIOD: Final = AMIGA_PERIODS[0]

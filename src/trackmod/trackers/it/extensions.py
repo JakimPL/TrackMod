@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
+from typing import Final
 
 from pydantic import BaseModel
 
@@ -16,7 +17,7 @@ from trackmod.trackers.it.spec.extensions import (
 )
 from trackmod.trackers.it.spec.flags import SpecialFlag
 
-BLOCK_HEADER_BYTES = BLOCK_MAGIC_BYTES + BLOCK_LENGTH_BYTES
+BLOCK_HEADER_BYTES: Final = BLOCK_MAGIC_BYTES + BLOCK_LENGTH_BYTES
 
 
 def named_block(magic: bytes, names: Sequence[str], *, width: int) -> bytes:

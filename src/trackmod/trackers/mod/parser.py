@@ -1,3 +1,5 @@
+from typing import Final
+
 from trackmod.binary.cursor import Cursor
 from trackmod.binary.records.values import RecordValues, read_bytes, read_int
 from trackmod.binary.text import decode_name
@@ -31,7 +33,7 @@ from trackmod.trackers.mod.spec.sizes import (
 )
 from trackmod.trackers.mod.tag import detected
 
-NO_PATTERNS = 0
+NO_PATTERNS: Final = 0
 
 
 class ModuleReader:
@@ -152,15 +154,15 @@ class ModuleReader:
         carries. The trailing slots past all of that state nothing and are left out, while the empty
         slots before them stay, because the cells number their samples by position.
         """
-        return self._samples[: max(self._sounded(), self._named(), self._titled())]
+        return self._samples[: max(self._sounded(), self._addressed(), self._named())]
 
     def _sounded(self) -> int:
         return max((slot + 1 for slot, sample in enumerate(self._samples) if sample.frames), default=0)
 
-    def _titled(self) -> int:
+    def _named(self) -> int:
         return max((slot + 1 for slot, sample in enumerate(self._samples) if sample.name), default=0)
 
-    def _named(self) -> int:
+    def _addressed(self) -> int:
         highest = max(
             (int(pattern.instrument.max()) for pattern in self._patterns if pattern.instrument.size),
             default=EMPTY,

@@ -1,4 +1,5 @@
 import struct
+from typing import Final
 
 from trackmod.binary.cursor import Cursor
 from trackmod.binary.records.values import RecordValues, read_bytes, read_int
@@ -38,9 +39,10 @@ from trackmod.trackers.s3m.spec.sizes import (
     INSTRUMENT_RECORD_BYTES,
     ORDER_BYTES,
     PARAPOINTER_BYTES,
+    POINTER_CODE,
 )
 
-EMPTY_PATTERN_POINTER = 0
+EMPTY_PATTERN_POINTER: Final = 0
 
 
 class ModuleReader:
@@ -135,7 +137,7 @@ class ModuleReader:
 
     def _read_table(self, cursor: Cursor, count_field: str) -> tuple[int, ...]:
         count = read_int(self._header, count_field)
-        pointers = struct.unpack(f"<{count}H", cursor.take(PARAPOINTER_BYTES * count))
+        pointers = (entry for (entry,) in struct.iter_unpack(POINTER_CODE, cursor.take(PARAPOINTER_BYTES * count)))
         return tuple(pointed(pointer) for pointer in pointers)
 
     def _read_panning(self, cursor: Cursor) -> tuple[int | None, ...] | None:

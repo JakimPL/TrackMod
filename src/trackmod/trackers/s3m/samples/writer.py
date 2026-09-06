@@ -1,3 +1,5 @@
+from typing import Final
+
 from trackmod.binary.pcm.codec import encode_pcm
 from trackmod.binary.text import encode_name
 from trackmod.core.samples.depth import BitDepth
@@ -5,14 +7,13 @@ from trackmod.core.samples.loop import LoopMode
 from trackmod.core.samples.sample import STEREO_CHANNELS, Sample
 from trackmod.trackers.s3m.layout.instrument import INSTRUMENT_RECORD
 from trackmod.trackers.s3m.parapointers import split_pointer
-from trackmod.trackers.s3m.samples.parser import UNPACKED
 from trackmod.trackers.s3m.spec.defaults import NO_FRAMES, NO_LOOP
 from trackmod.trackers.s3m.spec.flags import RecordType, SampleFlag
 from trackmod.trackers.s3m.spec.identity import MAGIC_SAMPLE
 from trackmod.trackers.s3m.spec.sizes import FILENAME_BYTES, NAME_BYTES
-from trackmod.trackers.s3m.spec.storage import PCM_ENCODING, PCM_SIGN
+from trackmod.trackers.s3m.spec.storage import PCM_ENCODING, PCM_SIGN, UNPACKED
 
-NO_POINTER = 0
+NO_POINTER: Final = 0
 
 
 def reject_unstorable(sample: Sample) -> None:

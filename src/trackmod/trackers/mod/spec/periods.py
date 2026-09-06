@@ -16,7 +16,6 @@ FINETUNE_ROWS: Final = (
 )
 
 FINETUNE_PERIODS: Final = tuple(period for row in FINETUNE_ROWS for period in row)
-FINETUNE_COUNT: Final = len(FINETUNE_PERIODS)
 FINETUNE_RATES: Final = tuple(round(REFERENCE_RATE * AMIGA_PERIODS[0] / period) for period in FINETUNE_PERIODS)
 
 BASE_NOTE: Final = 48

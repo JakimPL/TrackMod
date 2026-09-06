@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+from trackmod.core.volumes.codec import decode_volume
 from trackmod.core.volumes.command import VolumeCommand, VolumeEffect, VolumeValue
 from trackmod.limits.bound import Bound
 from trackmod.schema.config import FROZEN
+from trackmod.spec.grid import EMPTY
 
 
 class VolumeSpan(BaseModel):
@@ -71,6 +73,29 @@ class VolumeColumn(BaseModel):
                 return span.stored(volume.amount) if span is not None and span.amounts.contains(volume.amount) else None
             case int():
                 return self.level_base + volume if self.levels.contains(volume) else None
+
+    def encoded(self, volume: VolumeValue) -> int:
+        """The byte this column stores ``volume`` as.
+
+        Raises:
+            ValueError: when the column cannot state ``volume``.
+        """
+        byte = self.stored(volume)
+        if byte is None:
+            raise ValueError(self.refusal(volume))
+
+        return byte
+
+    def stored_code(self, code: int) -> int:
+        """The byte a grid volume code is written as, leaving an absent volume absent.
+
+        Raises:
+            ValueError: when the code names a volume this column cannot state.
+        """
+        if code == EMPTY:
+            return EMPTY
+
+        return self.encoded(decode_volume(code))
 
     def refusal(self, volume: VolumeValue) -> str:
         """Why this column cannot state ``volume``."""

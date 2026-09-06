@@ -4,8 +4,8 @@ from trackmod.binary.text import encode_name
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.song import Song
+from trackmod.core.voices.convert import sampled
 from trackmod.spec.width import BYTE_MAX
-from trackmod.trackers.mod.addressing import sampled
 from trackmod.trackers.mod.dialect import Dialect
 from trackmod.trackers.mod.layout.file import MODULE_NAME, SEQUENCE
 from trackmod.trackers.mod.patterns.packer import pack_pattern

@@ -3,6 +3,7 @@ from typing import Final
 from trackmod.limits.bound import Bound
 from trackmod.limits.capability import Capability
 from trackmod.limits.capacity import Capacity
+from trackmod.spec.grid import MIN_CHANNELS
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.width import WORD_MAX
 from trackmod.trackers.s3m.spec.keys import (
@@ -27,7 +28,6 @@ from trackmod.trackers.s3m.spec.ranges import (
     MAX_SPEED,
     MAX_TEMPO,
     MAX_VOLUME_PANNING,
-    MIN_CHANNEL_COUNT,
     MIN_SPEED,
     MIN_TEMPO,
     PATTERN_ROWS,
@@ -43,9 +43,9 @@ from trackmod.trackers.s3m.spec.ranges import (
 
 CAPACITIES: Final = {
     Capability.CHANNELS: Capacity(
-        canonical=Bound(minimum=MIN_CHANNEL_COUNT, maximum=CANONICAL_MAX_CHANNELS),
-        extended=Bound(minimum=MIN_CHANNEL_COUNT, maximum=STRUCTURAL_MAX_CHANNELS),
-        structural=Bound(minimum=MIN_CHANNEL_COUNT, maximum=STRUCTURAL_MAX_CHANNELS),
+        canonical=Bound(minimum=MIN_CHANNELS, maximum=CANONICAL_MAX_CHANNELS),
+        extended=Bound(minimum=MIN_CHANNELS, maximum=STRUCTURAL_MAX_CHANNELS),
+        structural=Bound(minimum=MIN_CHANNELS, maximum=STRUCTURAL_MAX_CHANNELS),
     ),
     Capability.PATTERNS: Capacity(
         canonical=Bound(minimum=0, maximum=CANONICAL_MAX_PATTERNS),

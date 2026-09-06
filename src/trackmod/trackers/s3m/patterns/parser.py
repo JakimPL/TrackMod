@@ -21,7 +21,7 @@ from trackmod.trackers.s3m.spec.cells import (
     CellMask,
     NoteByte,
 )
-from trackmod.trackers.s3m.volume import decode_volume
+from trackmod.trackers.s3m.spec.volume import VOLUME_COLUMN
 
 
 def stated_note(byte: int, unnamed: UnnamedBytes) -> NoteValue | None:
@@ -38,7 +38,7 @@ def stated_note(byte: int, unnamed: UnnamedBytes) -> NoteValue | None:
 
 def stated_volume(byte: int, unnamed: UnnamedBytes) -> VolumeValue | None:
     """The volume a stored byte states, recording a byte this format's column leaves unnamed."""
-    volume = decode_volume(byte)
+    volume = VOLUME_COLUMN.stated(byte)
     if volume is None:
         unnamed.met(byte, column=Column.VOLUME)
 
@@ -51,13 +51,15 @@ def decode_key(cursor: Cursor, unnamed: UnnamedBytes) -> tuple[NoteValue | None,
     The pair shares one marker bit, so a cell stating either of them states both bytes and the one it
     leaves alone carries the value that names nothing.
     """
-    note, sample = cursor.take(1)[0], cursor.take(1)[0]
+    note = cursor.byte()
+    sample = cursor.byte()
     return stated_note(note, unnamed), None if sample == NO_SAMPLE else sample - SAMPLE_OFFSET
 
 
 def decode_effect(cursor: Cursor) -> Effect | None:
-    """The effect a cell carries, which the command a cell writes for none does not."""
-    command, parameter = cursor.take(1)[0], cursor.take(1)[0]
+    """The effect a cell's two bytes state, reading the command this format writes for none as silence."""
+    command = cursor.byte()
+    parameter = cursor.byte()
     return None if command == NO_EFFECT else Effect(command=command, parameter=parameter)
 
 
@@ -69,7 +71,7 @@ def payload_bytes(marker: int) -> int:
 def decode_cell(cursor: Cursor, marker: int, unnamed: UnnamedBytes) -> Cell:
     """One cell, read against the groups of bytes its marker says follow."""
     note, sample = decode_key(cursor, unnamed) if marker & CellMask.KEY else (None, None)
-    volume = stated_volume(cursor.take(1)[0], unnamed) if marker & CellMask.VOLUME else None
+    volume = stated_volume(cursor.byte(), unnamed) if marker & CellMask.VOLUME else None
     return Cell(
         note=note,
         instrument=sample,
@@ -92,7 +94,7 @@ def unpack_cells(stream: bytes, *, rows: int, channels: int, subject: str, repai
     row = 0
     beyond = 0
     while row < rows and not cursor.at_end:
-        marker = cursor.take(1)[0]
+        marker = cursor.byte()
         if marker == END_OF_ROW:
             row += 1
             continue

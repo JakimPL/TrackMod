@@ -3,6 +3,7 @@ from typing import Final
 
 END_OF_ROW: Final = 0x00
 CHANNEL_MASK: Final = 0x1F
+UNSTORABLE: Final = -1
 
 MARKER_BYTE: Final = 1
 KEY_BYTES: Final = 2

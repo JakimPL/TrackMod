@@ -29,7 +29,6 @@ from trackmod.trackers.xm.spec.cells import (
 )
 from trackmod.trackers.xm.spec.ranges import MAX_ROWS
 from trackmod.trackers.xm.spec.volume import VOLUME_COLUMN
-from trackmod.trackers.xm.volume import stored_volume
 
 GRIDS = (
     (16, 4, 2, 1),
@@ -187,7 +186,7 @@ def test_the_size_model_agrees_with_the_packer_over_volume_commands() -> None:
 
 
 def test_an_absent_volume_is_written_as_absent() -> None:
-    assert stored_volume(EMPTY) == EMPTY
+    assert VOLUME_COLUMN.stored_code(EMPTY) == EMPTY
 
 
 def test_a_note_byte_the_column_leaves_unnamed_reads_as_absent_and_is_reported() -> None:

@@ -24,6 +24,7 @@ from trackmod.trackers.s3m.samples.writer import sample_bytes, sample_record
 from trackmod.trackers.s3m.spec.flags import RecordType, SampleFlag
 from trackmod.trackers.s3m.spec.identity import SIGNED_FRAMES, UNSIGNED_FRAMES
 from trackmod.trackers.s3m.spec.sizes import PARAGRAPH_BYTES
+from trackmod.trackers.s3m.spec.storage import PCM_SIGN
 
 SILENCE = 0x80
 WAVEFORM_PARAGRAPH = bytes(PARAGRAPH_BYTES)
@@ -31,7 +32,7 @@ WAVEFORM_PARAGRAPH = bytes(PARAGRAPH_BYTES)
 
 def restored(sample: Sample) -> Sample:
     values = INSTRUMENT_RECORD.unpack(sample_record(sample, data_offset=0))
-    return parse_sample(values, sample_bytes(sample), subject="sample 0", repairs=Repairs())
+    return parse_sample(values, sample_bytes(sample), sign=PCM_SIGN, subject="sample 0", repairs=Repairs())
 
 
 @pytest.mark.parametrize("depth", list(BitDepth))
@@ -107,20 +108,20 @@ def test_a_slot_holding_no_frames_states_so_and_keeps_what_it_was_reserved_with(
 def test_a_record_stating_more_than_full_reads_as_full() -> None:
     values = INSTRUMENT_RECORD.unpack(instrument_record(length=4, volume=200))
     repairs = Repairs()
-    assert parse_sample(values, bytes(4), subject="sample 0", repairs=repairs).volume == 64
+    assert parse_sample(values, bytes(4), sign=PCM_SIGN, subject="sample 0", repairs=repairs).volume == 64
     assert [repair for _, repair in repairs.entries] == ["volume 200 read as 64"]
 
 
 def test_a_record_describing_an_opl_patch_is_refused_by_name() -> None:
     values = INSTRUMENT_RECORD.unpack(instrument_record(kind=int(RecordType.ADLIB_SNARE)))
     with pytest.raises(ValueError, match="adlib_snare"):
-        parse_sample(values, b"", subject="sample 3", repairs=Repairs())
+        parse_sample(values, b"", sign=PCM_SIGN, subject="sample 3", repairs=Repairs())
 
 
 def test_a_record_stating_a_packing_is_refused() -> None:
     values = INSTRUMENT_RECORD.unpack(instrument_record(length=4, pack=1))
     with pytest.raises(ValueError, match="packing 1"):
-        parse_sample(values, bytes(4), subject="sample 0", repairs=Repairs())
+        parse_sample(values, bytes(4), sign=PCM_SIGN, subject="sample 0", repairs=Repairs())
 
 
 def test_a_loop_reaching_past_the_frames_stored_is_drawn_back_inside_them() -> None:
@@ -128,7 +129,7 @@ def test_a_loop_reaching_past_the_frames_stored_is_drawn_back_inside_them() -> N
         instrument_record(length=8, loop_begin=2, loop_end=64, flags=int(SampleFlag.LOOP))
     )
     repairs = Repairs()
-    sample = parse_sample(values, bytes(8), subject="sample 0", repairs=repairs)
+    sample = parse_sample(values, bytes(8), sign=PCM_SIGN, subject="sample 0", repairs=repairs)
     assert sample.loop == Loop(begin=2, end=8, mode=LoopMode.FORWARD)
     assert repairs.entries
 
@@ -136,7 +137,7 @@ def test_a_loop_reaching_past_the_frames_stored_is_drawn_back_inside_them() -> N
 def test_a_rate_of_zero_reads_as_the_rate_this_lineage_measures_middle_c_by() -> None:
     values = INSTRUMENT_RECORD.unpack(instrument_record(length=4, c2spd=0))
     repairs = Repairs()
-    assert parse_sample(values, bytes(4), subject="sample 0", repairs=repairs).rate == REFERENCE_RATE
+    assert parse_sample(values, bytes(4), sign=PCM_SIGN, subject="sample 0", repairs=repairs).rate == REFERENCE_RATE
     assert repairs.entries
 
 
@@ -163,7 +164,9 @@ def test_a_sample_this_format_keeps_no_field_for_is_refused(field: str, value: o
 def test_a_waveform_the_file_stops_inside_reads_as_the_frames_it_holds() -> None:
     values = INSTRUMENT_RECORD.unpack(instrument_record(length=64, paragraph=1))
     repairs = Repairs()
-    sample = parse_sample(values, stated_frames(values, bytes(16 + 8)), subject="sample 0", repairs=repairs)
+    sample = parse_sample(
+        values, stated_frames(values, bytes(16 + 8)), sign=PCM_SIGN, subject="sample 0", repairs=repairs
+    )
     assert sample.frames == 8
     assert [repair for _, repair in repairs.entries] == ["waveform of 64 frames read as the 8 the file holds"]
 
@@ -171,7 +174,7 @@ def test_a_waveform_the_file_stops_inside_reads_as_the_frames_it_holds() -> None
 def test_a_record_opening_with_a_byte_naming_no_kind_is_refused() -> None:
     values = INSTRUMENT_RECORD.unpack(instrument_record(kind=200))
     with pytest.raises(ValueError, match="names none of the records"):
-        parse_sample(values, b"", subject="sample 7", repairs=Repairs())
+        parse_sample(values, b"", sign=PCM_SIGN, subject="sample 7", repairs=Repairs())
 
 
 def test_a_module_from_the_first_release_states_its_frames_are_signed() -> None:
@@ -182,14 +185,16 @@ def test_a_module_from_the_first_release_states_its_frames_are_signed() -> None:
 
     values = INSTRUMENT_RECORD.unpack(instrument_record(length=4))
     signed = parse_sample(values, bytes([0x80] * 4), sign=PcmSign.SIGNED, subject="a", repairs=Repairs())
-    unsigned = parse_sample(values, bytes([0x80] * 4), subject="b", repairs=Repairs())
+    unsigned = parse_sample(values, bytes([0x80] * 4), sign=PCM_SIGN, subject="b", repairs=Repairs())
     assert np.allclose(signed.pcm, -1.0)
     assert np.allclose(unsigned.pcm, 0.0)
 
 
 def held_sample(values: RecordValues, held: bytes, *, repairs: Repairs) -> Sample:
     """The sample a record reads as, given the bytes a file holds from the paragraph it points at."""
-    return parse_sample(values, stated_frames(values, WAVEFORM_PARAGRAPH + held), subject="sample 0", repairs=repairs)
+    return parse_sample(
+        values, stated_frames(values, WAVEFORM_PARAGRAPH + held), sign=PCM_SIGN, subject="sample 0", repairs=repairs
+    )
 
 
 def test_a_sixteen_bit_waveform_the_file_stops_inside_a_frame_of_reads_whole_frames() -> None:

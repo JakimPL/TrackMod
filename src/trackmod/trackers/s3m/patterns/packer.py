@@ -11,7 +11,7 @@ from trackmod.trackers.s3m.spec.cells import (
     NoteByte,
 )
 from trackmod.trackers.s3m.spec.sizes import PATTERN_LENGTH_BYTES
-from trackmod.trackers.s3m.volume import stored_volume
+from trackmod.trackers.s3m.spec.volume import VOLUME_COLUMN
 
 
 def stored_sample(instrument: int) -> int:
@@ -47,7 +47,7 @@ def encode_cell(note: int, instrument: int, volume: int, command: int, parameter
 
     if volume != EMPTY:
         marker |= CellMask.VOLUME
-        payload.append(stored_volume(volume))
+        payload.append(VOLUME_COLUMN.stored_code(volume))
 
     if command != EMPTY:
         marker |= CellMask.EFFECT

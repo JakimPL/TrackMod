@@ -31,7 +31,7 @@ The library is layered downward: every package depends only on the ones above it
 | `trackmod/limits` | The capability vocabulary, bounds, compliance levels, violations |
 | `trackmod/core` | The format-agnostic music: notes, patterns, samples, instruments, envelopes, voices, songs, timing |
 | `trackmod/binary` | Byte-level machinery: declarative records, a cursor, fixed-width text, PCM quantisation and encoding |
-| `trackmod/module` | What a format binding offers: the size report, the storage table and the `TrackerModule` and `InstrumentFile` protocols |
+| `trackmod/module` | What a format binding offers: the size report, the storage table, how far a file's values reach, and the `TrackerModule` and `InstrumentFile` protocols |
 | `trackmod/trackers/<format>` | One format each: its constants, its record layouts, its packers, parsers, size model, module class and instrument-file class |
 
 Each format package repeats the same internal shape, so knowing one is knowing the next:

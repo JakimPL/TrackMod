@@ -24,7 +24,6 @@ from trackmod.trackers.it.spec.cells import (
 )
 from trackmod.trackers.it.spec.ranges import MAX_ROWS
 from trackmod.trackers.it.spec.volume import VOLUME_COLUMN
-from trackmod.trackers.it.volume import stored_volume
 
 SUBJECT = "pattern 0"
 SILENT_ROWS = 64  # the height this format's own tracker opens a pattern at, and reads a block stating none at
@@ -215,7 +214,7 @@ def test_the_size_model_agrees_with_the_packer_over_volume_commands() -> None:
 
 
 def test_an_absent_volume_is_written_as_absent() -> None:
-    assert stored_volume(EMPTY) == EMPTY
+    assert VOLUME_COLUMN.stored_code(EMPTY) == EMPTY
 
 
 def test_a_note_byte_the_column_leaves_unnamed_reads_as_absent_and_is_reported() -> None:

@@ -44,8 +44,7 @@ from trackmod.trackers.it.limits import it_limits
 from trackmod.trackers.it.module import ITModule
 from trackmod.trackers.it.patterns.sizing import packed_bytes as it_packed_bytes
 from trackmod.trackers.it.patterns.width import WIDTH_MARKER_BYTES
-from trackmod.trackers.it.timing import exact_timings as it_exact_timings
-from trackmod.trackers.it.timing import row_frames as it_row_frames
+from trackmod.trackers.it.timing import TIMINGS as IT_TIMINGS
 from trackmod.trackers.mod.effects.catalog import MOD_EFFECTS
 from trackmod.trackers.mod.limits import mod_limits
 from trackmod.trackers.mod.module import MODModule
@@ -53,7 +52,7 @@ from trackmod.trackers.mod.patterns.sizing import packed_bytes as mod_packed_byt
 from trackmod.trackers.mod.spec.cells import CELL_BYTES as MOD_CELL_BYTES
 from trackmod.trackers.mod.spec.periods import CANONICAL_MAX_NOTE, CANONICAL_MIN_NOTE
 from trackmod.trackers.mod.spec.ranges import PATTERN_ROWS as MOD_PATTERN_ROWS
-from trackmod.trackers.mod.timing import row_frames as mod_row_frames
+from trackmod.trackers.mod.timing import TIMINGS as MOD_TIMINGS
 from trackmod.trackers.registry import (
     INSTRUMENT_EXTENSIONS,
     MODULE_EXTENSIONS,
@@ -65,15 +64,14 @@ from trackmod.trackers.s3m.limits import s3m_limits
 from trackmod.trackers.s3m.module import S3MModule
 from trackmod.trackers.s3m.patterns.sizing import packed_bytes as s3m_packed_bytes
 from trackmod.trackers.s3m.spec.sizes import PARAGRAPH_BYTES
-from trackmod.trackers.s3m.timing import row_frames as s3m_row_frames
+from trackmod.trackers.s3m.timing import TIMINGS as S3M_TIMINGS
 from trackmod.trackers.xm.effects.catalog import XM_EFFECTS
 from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.limits import xm_limits
 from trackmod.trackers.xm.module import XMModule
 from trackmod.trackers.xm.patterns.sizing import packed_bytes as xm_packed_bytes
 from trackmod.trackers.xm.spec.ranges import MAX_NOTE
-from trackmod.trackers.xm.timing import exact_timings as xm_exact_timings
-from trackmod.trackers.xm.timing import row_frames as xm_row_frames
+from trackmod.trackers.xm.timing import TIMINGS as XM_TIMINGS
 from trackmod.trackers.xm.tuning import tuned_rate, tuning_for
 
 FRAME_RATE: Final = 44100
@@ -747,14 +745,14 @@ def test_silence_costs_each_format_something_different() -> None:
 def test_every_format_reads_the_same_clock() -> None:
     frames = {
         row_frames(PORTABLE_SPEED, PORTABLE_TEMPO, frame_rate=FRAME_RATE)
-        for row_frames in (it_row_frames, xm_row_frames, mod_row_frames, s3m_row_frames)
+        for row_frames in (IT_TIMINGS.row_frames, XM_TIMINGS.row_frames, MOD_TIMINGS.row_frames, S3M_TIMINGS.row_frames)
     }
     assert len(frames) == 1
 
 
 def test_the_wider_tempo_field_reaches_shorter_rows() -> None:
-    shortest_it = min(timing.row_frames for timing in it_exact_timings(frame_rate=FRAME_RATE, speed=1))
-    shortest_xm = min(timing.row_frames for timing in xm_exact_timings(frame_rate=FRAME_RATE, speed=1))
+    shortest_it = min(timing.row_frames for timing in IT_TIMINGS.exact_timings(frame_rate=FRAME_RATE, speed=1))
+    shortest_xm = min(timing.row_frames for timing in XM_TIMINGS.exact_timings(frame_rate=FRAME_RATE, speed=1))
     assert shortest_xm < shortest_it
 
 

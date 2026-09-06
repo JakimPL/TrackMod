@@ -1,9 +1,12 @@
+import struct
 from collections.abc import Sequence
+from typing import Final
 
 from trackmod.binary.text import encode_name
 from trackmod.core.samples.sample import Sample
+from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.song import Song
-from trackmod.trackers.s3m.addressing import sampled
+from trackmod.core.voices.convert import sampled
 from trackmod.trackers.s3m.channels import channel_table, stated_width
 from trackmod.trackers.s3m.layout.file import FILE_HEADER
 from trackmod.trackers.s3m.panning import stored_panning
@@ -27,12 +30,12 @@ from trackmod.trackers.s3m.spec.identity import (
 from trackmod.trackers.s3m.spec.sizes import (
     CHANNELS_STORED,
     NAME_BYTES,
-    PARAPOINTER_BYTES,
+    POINTER_CODE,
 )
 
-NO_SPECIAL = 0
-NO_CLICK_REMOVAL = 0
-UNSTATED_PANNING = 0
+NO_SPECIAL: Final = 0
+NO_CLICK_REMOVAL: Final = 0
+UNSTATED_PANNING: Final = 0
 
 
 def written_channels(song: Song, settings: S3MSettings) -> tuple[int, ...]:
@@ -107,9 +110,14 @@ def file_header(song: Song, settings: S3MSettings, *, patterns: int) -> bytes:
     )
 
 
+def order_table(order: OrderList) -> bytes:
+    """The positions a song plays, one byte each, at the length the header states them at."""
+    return bytes(order.entries)
+
+
 def pointer_table(offsets: Sequence[int]) -> bytes:
     """The paragraph numbers a table of pointers holds, one entry to each block it names."""
-    return b"".join(parapointer(offset).to_bytes(PARAPOINTER_BYTES, "little") for offset in offsets)
+    return b"".join(struct.pack(POINTER_CODE, parapointer(offset)) for offset in offsets)
 
 
 def placed(song: Song, samples: Sequence[Sample], patterns: Sequence[bytes]) -> Placement:
@@ -124,6 +132,7 @@ def placed(song: Song, samples: Sequence[Sample], patterns: Sequence[bytes]) -> 
 def body(
     samples: Sequence[Sample],
     patterns: Sequence[bytes],
+    *,
     placement: Placement,
     start: int,
 ) -> bytes:
@@ -157,10 +166,10 @@ def write_module(song: Song, settings: S3MSettings) -> bytes:
     placement = placed(song, voices.samples, patterns)
 
     out = bytearray(file_header(song, settings, patterns=len(patterns)))
-    out += bytes(song.order.entries)
+    out += order_table(song.order)
     out += pointer_table(placement.instruments)
     out += pointer_table(placement.patterns)
     out += panning_table(settings)
     start = aligned(len(out))
     out += bytes(start - len(out))
-    return bytes(out) + body(voices.samples, patterns, placement, start)
+    return bytes(out) + body(voices.samples, patterns, placement=placement, start=start)

@@ -1,11 +1,11 @@
 from trackmod.trackers.mod.dialect import (
     DEFAULT_DIALECT,
     DIALECTS,
-    SPLIT_PATTERNS,
     WIDE_DIALECT,
     Dialect,
     channel_tag,
 )
+from trackmod.trackers.mod.spec.dialects import SPLIT_TAGS
 from trackmod.trackers.mod.spec.identity import TAG_BYTES, TAG_OFFSET
 from trackmod.trackers.mod.spec.ranges import CANONICAL_CHANNELS, TAGGED_MAX_PATTERNS
 
@@ -36,7 +36,7 @@ def detected(data: bytes) -> Dialect:
     if dialect is not None:
         return dialect
 
-    split = SPLIT_PATTERNS.get(tag)
+    split = SPLIT_TAGS.get(tag)
     if split is not None:
         raise ValueError(f"the tag {tag!r} names a layout that {split}")
 

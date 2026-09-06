@@ -23,7 +23,7 @@ from trackmod.trackers.it.spec.cells import (
     CellMask,
 )
 from trackmod.trackers.it.spec.ranges import DEFAULT_ROWS
-from trackmod.trackers.it.volume import decode_volume
+from trackmod.trackers.it.spec.volume import VOLUME_COLUMN
 
 
 def decode_column(
@@ -40,7 +40,7 @@ def decode_column(
     later cell can still reuse the value that was last stated.
     """
     if mask & fresh:
-        stated = cursor.take(1)[0]
+        stated = cursor.byte()
         return stated, stated
 
     if mask & reuse:
@@ -56,8 +56,8 @@ def decode_effect(
 ) -> Effect | None:
     """The effect this cell carries, reading the command and parameter bytes only when they are stated."""
     if mask & CellMask.EFFECT:
-        memory.command = cursor.take(1)[0]
-        memory.parameter = cursor.take(1)[0]
+        memory.command = cursor.byte()
+        memory.parameter = cursor.byte()
     elif not mask & CellMask.LAST_EFFECT:
         return None
 
@@ -81,7 +81,7 @@ def stated_note(byte: int, unnamed: UnnamedBytes) -> NoteValue | None:
 
 def stated_volume(byte: int, unnamed: UnnamedBytes) -> VolumeValue | None:
     """The volume a stored byte states, recording a byte this format's column leaves unnamed."""
-    volume = decode_volume(byte)
+    volume = VOLUME_COLUMN.stated(byte)
     if volume is None:
         unnamed.met(byte, column=Column.VOLUME)
 
@@ -153,7 +153,7 @@ def unpack_cells(stream: bytes, *, rows: int, subject: str, repairs: Repairs) ->
     row = 0
     unplaced = 0
     while row < rows and not cursor.at_end:
-        marker = cursor.take(1)[0]
+        marker = cursor.byte()
         if marker == END_OF_ROW:
             row += 1
             continue
@@ -161,7 +161,7 @@ def unpack_cells(stream: bytes, *, rows: int, subject: str, repairs: Repairs) ->
         channel = (marker & ~CHANNEL_MARKER) - 1
         memory = memories.setdefault(channel, ChannelMemory())
         if marker & CHANNEL_MARKER and not cursor.at_end:
-            memory.mask = cursor.take(1)[0]
+            memory.mask = cursor.byte()
 
         if cursor.remaining < payload_bytes(memory.mask):
             repairs.made("a cell the stream stops inside reads as silence", subject=subject)

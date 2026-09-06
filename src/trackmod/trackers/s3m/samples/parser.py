@@ -18,12 +18,9 @@ from trackmod.trackers.s3m.parapointers import joined_pointer
 from trackmod.trackers.s3m.spec.defaults import NO_FRAMES
 from trackmod.trackers.s3m.spec.flags import RecordType, SampleFlag
 from trackmod.trackers.s3m.spec.identity import SIGNED_FRAMES
-from trackmod.trackers.s3m.spec.storage import PCM_ENCODING, PCM_SIGN
+from trackmod.trackers.s3m.spec.storage import PCM_ENCODING, PCM_SIGN, UNPACKED
 
 MONO_CHANNELS: Final = 1
-UNPACKED: Final = 0
-
-RECORD_TYPES: Final = frozenset(int(kind) for kind in RecordType)
 
 
 def record_type(values: RecordValues, *, subject: str) -> RecordType:
@@ -33,7 +30,7 @@ def record_type(values: RecordValues, *, subject: str) -> RecordType:
         ValueError: when the byte names none of the kinds this format defines.
     """
     stated = read_int(values, "type")
-    if stated not in RECORD_TYPES:
+    if stated not in RecordType:
         raise ValueError(f"{subject} opens with {stated}, which names none of the records this format defines")
 
     return RecordType(stated)
@@ -159,7 +156,7 @@ def parse_sample(
     values: RecordValues,
     data: bytes,
     *,
-    sign: PcmSign = PCM_SIGN,
+    sign: PcmSign,
     subject: str,
     repairs: Repairs,
 ) -> Sample:

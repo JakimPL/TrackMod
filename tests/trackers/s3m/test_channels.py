@@ -1,7 +1,7 @@
 import pytest
 
-from trackmod.trackers.s3m.channels import channel_table, placed, sounded, stated_width
-from trackmod.trackers.s3m.spec.flags import CHANNEL_MUTED, CHANNEL_RIGHT, CHANNEL_UNUSED
+from trackmod.trackers.s3m.channels import channel_table, placed, stated_width
+from trackmod.trackers.s3m.spec.flags import CHANNEL_RIGHT, CHANNEL_UNUSED
 from trackmod.trackers.s3m.spec.sizes import CHANNELS_STORED
 
 OPENING_SLOTS = (0, 8, 1, 9, 2, 10, 3, 11)
@@ -21,12 +21,6 @@ def test_the_table_names_a_slot_for_each_channel_and_leaves_the_rest_out() -> No
 @pytest.mark.parametrize("channels", [1, 4, 16, 32])
 def test_the_width_a_table_states_is_the_width_it_was_built_at(channels: int) -> None:
     assert stated_width(channel_table(channels)) == channels
-
-
-def test_a_muted_channel_is_stated_and_silent() -> None:
-    assert sounded(0)
-    assert not sounded(CHANNEL_UNUSED)
-    assert not sounded(CHANNEL_MUTED | 4)
 
 
 def test_a_table_leaving_a_gap_states_every_channel_up_to_the_last_slot_it_names() -> None:

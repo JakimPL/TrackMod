@@ -5,14 +5,15 @@ from pydantic import BaseModel
 from pydantic import Field as ModelField
 
 from trackmod.schema.config import FROZEN
-from trackmod.trackers.mod.spec.identity import TAG_BYTES
-from trackmod.trackers.mod.spec.ranges import (
-    CANONICAL_CHANNELS,
-    EXTENDED_MIN_CHANNELS,
-    STRUCTURAL_MAX_CHANNELS,
+from trackmod.trackers.mod.spec.dialects import (
+    DEFAULT_TAG,
+    MULTICHANNEL,
+    NAMED_TAGS,
+    SINGLE_DIGIT_CHANNELS,
+    WIDE_TAG,
 )
-
-SINGLE_DIGIT_CHANNELS: Final = 9
+from trackmod.trackers.mod.spec.identity import TAG_BYTES
+from trackmod.trackers.mod.spec.ranges import EXTENDED_MIN_CHANNELS, STRUCTURAL_MAX_CHANNELS
 
 
 class Dialect(BaseModel):
@@ -43,36 +44,14 @@ def channel_tag(channels: int) -> bytes:
     return b"%dCH" % channels
 
 
-NAMED: Final = (
-    Dialect(tag=b"M.K.", channels=CANONICAL_CHANNELS, tracker="Amiga ProTracker"),
-    Dialect(tag=b"M!K!", channels=CANONICAL_CHANNELS, tracker="Amiga ProTracker"),
-    Dialect(tag=b"M&K!", channels=CANONICAL_CHANNELS, tracker="His Master's Noise"),
-    Dialect(tag=b"N.T.", channels=CANONICAL_CHANNELS, tracker="NoiseTracker"),
-    Dialect(tag=b".M.K", channels=CANONICAL_CHANNELS, tracker="NoiseTracker"),
-    Dialect(tag=b"LARD", channels=CANONICAL_CHANNELS, tracker="Amiga ProTracker"),
-    Dialect(tag=b"NSMS", channels=CANONICAL_CHANNELS, tracker="Amiga ProTracker"),
-    Dialect(tag=b"FLT4", channels=CANONICAL_CHANNELS, tracker="StarTrekker"),
-    Dialect(tag=b"CD61", channels=6, tracker="Octalyser"),
-    Dialect(tag=b"CD81", channels=8, tracker="Octalyser"),
-    Dialect(tag=b"FA04", channels=4, tracker="Digital Tracker"),
-    Dialect(tag=b"FA06", channels=6, tracker="Digital Tracker"),
-    Dialect(tag=b"FA08", channels=8, tracker="Digital Tracker"),
-    Dialect(tag=b"TDZ1", channels=1, tracker="TakeTracker"),
-    Dialect(tag=b"TDZ2", channels=2, tracker="TakeTracker"),
-    Dialect(tag=b"TDZ3", channels=3, tracker="TakeTracker"),
-    Dialect(tag=b"TDZ4", channels=4, tracker="TakeTracker"),
-)
+NAMED: Final = tuple(Dialect(tag=tag, channels=channels, tracker=tracker) for tag, channels, tracker in NAMED_TAGS)
 
 GENERATED: Final = tuple(
-    Dialect(tag=channel_tag(channels), channels=channels, tracker="multichannel")
+    Dialect(tag=channel_tag(channels), channels=channels, tracker=MULTICHANNEL)
     for channels in range(EXTENDED_MIN_CHANNELS, STRUCTURAL_MAX_CHANNELS + 1)
 )
 
 DIALECTS: Final[Mapping[bytes, Dialect]] = {dialect.tag: dialect for dialect in (*GENERATED, *NAMED)}
 
-DEFAULT_DIALECT: Final = DIALECTS[b"M.K."]
-WIDE_DIALECT: Final = DIALECTS[b"M!K!"]
-
-SPLIT_PATTERNS: Final[Mapping[bytes, str]] = {
-    b"FLT8": "stores each eight-channel pattern as two four-channel ones",
-}
+DEFAULT_DIALECT: Final = DIALECTS[DEFAULT_TAG]
+WIDE_DIALECT: Final = DIALECTS[WIDE_TAG]

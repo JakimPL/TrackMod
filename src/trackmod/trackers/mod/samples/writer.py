@@ -1,3 +1,5 @@
+from typing import Final
+
 import numpy as np
 
 from trackmod.binary.pcm.codec import encode_pcm
@@ -11,9 +13,9 @@ from trackmod.trackers.mod.spec.sizes import NAME_BYTES, WORD_BYTES
 from trackmod.trackers.mod.spec.storage import PCM_DEPTH, PCM_ENCODING, PCM_SIGN
 from trackmod.trackers.mod.tuning import finetune_for
 
-NO_LENGTH = 0
-NO_BEGIN = 0
-SILENT_FRAME = 0.0
+NO_LENGTH: Final = 0
+NO_BEGIN: Final = 0
+SILENT_FRAME: Final = 0.0
 
 
 def stored_frames(frames: int) -> int:

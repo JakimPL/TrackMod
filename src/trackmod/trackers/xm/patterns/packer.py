@@ -9,7 +9,7 @@ from trackmod.trackers.xm.spec.cells import (
 )
 from trackmod.trackers.xm.spec.defaults import PACKING_TYPE
 from trackmod.trackers.xm.spec.sizes import PATTERN_HEADER_BYTES
-from trackmod.trackers.xm.volume import stored_volume
+from trackmod.trackers.xm.spec.volume import VOLUME_COLUMN
 
 
 def encode_cell(note: int, instrument: int, volume: int, command: int, parameter: int) -> EncodedCell:
@@ -26,7 +26,7 @@ def encode_cell(note: int, instrument: int, volume: int, command: int, parameter
         columns.append((CellMask.INSTRUMENT, instrument + INSTRUMENT_OFFSET))
 
     if volume != EMPTY:
-        columns.append((CellMask.VOLUME, stored_volume(volume)))
+        columns.append((CellMask.VOLUME, VOLUME_COLUMN.stored_code(volume)))
 
     if command != EMPTY:
         columns.append((CellMask.EFFECT, command))
