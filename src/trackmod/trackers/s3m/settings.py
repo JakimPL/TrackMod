@@ -44,8 +44,9 @@ class S3MSettings(BaseModel):
     ``stereo`` is the switch the mixing-volume byte reserves its top bit for, and ``mix_volume`` the
     level in the seven bits below it.
 
-    ``created_with`` is the version field naming the program that wrote a file, so a module written back
-    states the same origin it stated before.
+    ``created_with`` is the version field naming the program that wrote a file. Those numbers belong to
+    the programs that took them, so a module written back states the same origin it stated before, and a
+    song built from nothing states the revision this format's own tracker settled.
     """
 
     model_config = FROZEN

@@ -177,6 +177,10 @@ state their own length the same way: the record carries the fields this format d
 defines them, whatever length it states, and the length says how far to step to the samples behind it.
 Version `0x0104` at offset 58 is what a reader expects.
 
+The twenty bytes at offset 38 name the program that wrote the module. A file read here writes back the name it arrived
+with, and a song built from nothing is signed with this library's own name and version. The field holds a genuine
+name, which is what lets a writer sign its work here.
+
 ## One instrument on its own (`.xi`)
 
 One instrument makes a file of its own:

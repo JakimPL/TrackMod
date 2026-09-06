@@ -26,7 +26,7 @@ The library is layered downward: every package depends only on the ones above it
 
 | Package | Owns |
 |---|---|
-| `trackmod/spec` | Constants every layer shares: the pitch numbering, level ranges, the grid sentinel, integer widths, the tracker clock |
+| `trackmod/spec` | Constants every layer shares: the pitch numbering, level ranges, the grid sentinel, integer widths, the tracker clock, this library's own name and version |
 | `trackmod/utils` | Arithmetic the timing lattice leans on: the divisors of a number, and the two of them nearest a candidate |
 | `trackmod/schema` | Pydantic plumbing: the frozen model config, the constrained scalar aliases, the numpy array annotations |
 | `trackmod/limits` | The capability vocabulary, bounds, compliance levels, violations |
@@ -100,11 +100,17 @@ from trackmod.trackers.xm.module import XMModule
 XMModule.from_song(song, compliance=Compliance.EXTENDED).save(Path("song.xm"))
 ```
 
-Each format keeps a frozen settings model beside its module class — `ITSettings`, `XMSettings`,
-`MODSettings` and `S3MSettings`, each in its package's `settings` module. They hold what belongs to a
-format rather than to the music: the tag an Amiga ProTracker module is written under, a channel panning
-table, a mix volume, a song message, the version a file claims to have been written by. A module read
-from a file carries the ones it arrived with, so writing it again states them unchanged.
+Each format keeps a frozen settings model beside its module class — `ITSettings`, `XMSettings`, `MODSettings`,
+`S3MSettings` and `STSettings`, each in its package's `settings` module. They hold what belongs to a format rather
+than to the music: the tag an Amiga ProTracker module is written under, a channel panning table, a mix volume, a song
+message, the version a file claims to have been written by. A module read from a file carries the ones it arrived
+with, so writing it again states them unchanged.
+
+One of those values names the writer, and only FastTracker 2 gives it room for a name: twenty bytes of header text,
+where a song built here is signed with this library's name and the version of the package doing the writing. Impulse
+Tracker and Scream Tracker 3 spend a number there, and each of those numbers belongs to the program that took it, so a
+song built here states the one its own format settled — the revision a reader reads the file under. Either field is a
+settings value, so a caller states another where they want one.
 
 ```python
 from trackmod.trackers.s3m.module import S3MModule

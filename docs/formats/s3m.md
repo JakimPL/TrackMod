@@ -178,7 +178,8 @@ spend the room its record left. Three things reach a reader:
 - **Stereo and sixteen-bit frames** are two flag bits the trackers after it set, and both are read here.
 - **A packing byte** states the ADPCM a later tracker wrote, which is refused by name.
 - **The word at offset 40** states the program and the version that wrote the module, `0x1320` being
-  Scream Tracker 3.20 itself. A file read here and written back states the origin it arrived with.
+  Scream Tracker 3.20 itself. Those numbers belong to the programs that took them, so a file keeps the
+  one it arrived with and one written here states `0x1320`.
 
 The word at offset 38 carries eight switches, most of them naming an older tracker's reading. The highest
 says a writer attached a block of its own, which the word at offset 62 points at.

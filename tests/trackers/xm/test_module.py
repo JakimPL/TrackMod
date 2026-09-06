@@ -5,7 +5,8 @@ import numpy as np
 import pytest
 
 from tests.conftest import keyed, lattice, revoiced, voices_of
-from trackmod.binary.records.values import read_int
+from trackmod.binary.records.values import read_bytes, read_int
+from trackmod.binary.text import decode_name, encode_name
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.point import EnvelopePoint
 from trackmod.core.envelopes.span import EnvelopeSpan
@@ -18,6 +19,7 @@ from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import InstrumentVoices
 from trackmod.limits.compliance import Compliance
+from trackmod.spec.application import APPLICATION_SIGNATURE
 from trackmod.spec.pitch import RATE_NOTE
 from trackmod.trackers.xm.instruments.grouping import song_groups
 from trackmod.trackers.xm.layout.file import FILE_HEADER
@@ -37,6 +39,7 @@ from trackmod.trackers.xm.spec.sizes import (
     KEYMAP_NOTES,
     PATTERN_HEADER_BYTES,
     SAMPLE_HEADER_BYTES,
+    TRACKER_NAME_BYTES,
 )
 from trackmod.trackers.xm.spec.storage import XM_STORAGE
 from trackmod.trackers.xm.tuning import Tuning, tuned_rate, tuning_for
@@ -411,3 +414,22 @@ def test_a_file_stopping_before_the_instruments_it_states_says_how_many_it_held(
     data = XMModule.from_song(xm_song, compliance=Compliance.CANONICAL).to_bytes()
     with pytest.warns(RepairWarning, match="instruments stated, 0 held"):
         XMModule.parse(data[: instrument_offsets(data)[0]])
+
+
+def test_a_song_built_here_is_signed_with_this_library_name_and_version(xm_song: Song) -> None:
+    header = FILE_HEADER.unpack(module(xm_song).to_bytes()[:FILE_HEADER_BYTES])
+
+    assert decode_name(read_bytes(header, "tracker")) == APPLICATION_SIGNATURE
+
+
+def test_a_module_read_here_writes_back_the_writer_it_arrived_with(xm_song: Song) -> None:
+    arrived = XMModule.from_song(xm_song, compliance=Compliance.EXTENDED, settings=XMSettings(tracker="MilkyTracker"))
+    recovered = XMModule.parse(arrived.to_bytes())
+    header = FILE_HEADER.unpack(recovered.to_bytes()[:FILE_HEADER_BYTES])
+
+    assert recovered.settings.tracker == "MilkyTracker"
+    assert decode_name(read_bytes(header, "tracker")) == "MilkyTracker"
+
+
+def test_the_signature_fits_the_field_this_format_names_a_writer_in() -> None:
+    assert decode_name(encode_name(APPLICATION_SIGNATURE, TRACKER_NAME_BYTES)) == APPLICATION_SIGNATURE

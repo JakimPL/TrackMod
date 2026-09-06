@@ -6,6 +6,8 @@ import pytest
 from tests.conftest import keyed, voices_of
 from trackmod.binary.records.field import Field
 from trackmod.binary.records.record import Record
+from trackmod.binary.records.values import read_bytes
+from trackmod.binary.text import decode_name
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.keymap import routed_keymap
@@ -16,6 +18,7 @@ from trackmod.core.songs.song import Song
 from trackmod.limits.capability import Capability
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.error import LimitError
+from trackmod.spec.application import APPLICATION_SIGNATURE
 from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.layout.instrument import INSTRUMENT_FILE_HEADER
 from trackmod.trackers.xm.spec.identity import (
@@ -64,6 +67,13 @@ def test_the_header_states_the_two_marks_a_reader_checks(xm_song: Song) -> None:
     data = instrument_file(piano(xm_song)).to_bytes()
     assert data[STRIPPED_OFFSET] == STRIPPED_BYTE
     assert int.from_bytes(data[VERSION_OFFSET : VERSION_OFFSET + 2], "little") == INSTRUMENT_VERSION
+
+
+def test_a_file_written_here_is_signed_with_this_library_name_and_version(xm_song: Song) -> None:
+    data = instrument_file(piano(xm_song)).to_bytes()
+    header = INSTRUMENT_FILE_HEADER.unpack(data[:INSTRUMENT_FILE_HEADER_BYTES])
+
+    assert decode_name(read_bytes(header, "tracker")) == APPLICATION_SIGNATURE
 
 
 def test_the_sample_count_closes_the_header(xm_song: Song) -> None:

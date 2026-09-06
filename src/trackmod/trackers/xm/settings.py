@@ -11,6 +11,10 @@ class XMSettings(BaseModel):
     The frequency-table flag is the one that matters to a reader: every rate this format expresses is a
     transposition read against the linear table, so a module that clears the flag is asking a player to
     interpolate its samples on a different lattice than the one their tunings were derived on.
+
+    ``tracker`` is the twenty bytes the header spends on the program that wrote a file. A module read
+    here keeps the name it arrived with, and a song built from nothing carries this library's own name
+    and version (:data:`~trackmod.spec.application.APPLICATION_SIGNATURE`).
     """
 
     model_config = FROZEN

@@ -205,9 +205,9 @@ after it spend that room. Three kinds of block reach the model:
 
 The stated blocks sit between the offset tables and the records, so they move every offset the header states.
 
-The header carries at offset 40 the version of whatever program wrote the module, each taking a number of
-its own above the twelve version bits: `0x0` Impulse Tracker, `0x1` Schism Tracker, `0x5` OpenMPT. A file
-read here and written back states the origin it arrived with.
+The header carries at offset 40 the version of whatever program wrote the module, each taking a number of its own
+above the twelve version bits: `0x0` Impulse Tracker, `0x1` Schism Tracker, `0x5` OpenMPT. Those numbers belong to the
+programs that took them, so a file keeps the one it arrived with and one written here states `0x0214`.
 
 ## One instrument on its own (`.iti`)
 
