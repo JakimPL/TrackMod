@@ -1,3 +1,5 @@
+from typing import Final
+
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.convert import sampled
 from trackmod.module.size import SizeReport
@@ -5,7 +7,7 @@ from trackmod.trackers.s3m.patterns.sizing import block_bytes, packed_bytes
 from trackmod.trackers.s3m.placement import Placement
 from trackmod.trackers.s3m.spec.storage import S3M_STORAGE
 
-NO_INSTRUMENTS: tuple[int, ...] = ()
+NO_INSTRUMENTS: Final[tuple[int, ...]] = ()
 
 
 def module_placement(song: Song) -> Placement:

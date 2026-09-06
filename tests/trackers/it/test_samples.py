@@ -7,16 +7,17 @@ from trackmod.binary.pcm.sign import PcmSign
 from trackmod.binary.records.values import RecordValues
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
+from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.sample import Sample
 from trackmod.core.samples.vibrato import Vibrato
 from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.it.samples.parser import (
     parse_sample,
+    stored_bytes,
     stored_channels,
     stored_convert,
     stored_encoding,
     stored_end,
-    stored_frames,
     stored_pcm,
     stored_sign,
 )
@@ -53,11 +54,11 @@ def test_stored_channels_reads_the_stereo_flag() -> None:
     assert stored_channels(_values(flags=SampleFlag.DATA | SampleFlag.STEREO, length=1)) == 2
 
 
-def test_stored_frames_counts_bytes_across_every_channel() -> None:
+def test_stored_bytes_counts_bytes_across_every_channel() -> None:
     mono = _values(flags=SampleFlag.DATA | SampleFlag.SIXTEEN_BIT, length=10)
     stereo = _values(flags=SampleFlag.DATA | SampleFlag.SIXTEEN_BIT | SampleFlag.STEREO, length=10)
-    assert stored_frames(mono) == 20
-    assert stored_frames(stereo) == 40
+    assert stored_bytes(mono) == 20
+    assert stored_bytes(stereo) == 40
 
 
 def test_an_uncompressed_stereo_sample_round_trips_through_the_header_and_writer() -> None:
@@ -239,3 +240,22 @@ def test_a_stereo_waveform_the_file_stops_inside_reads_as_far_as_both_channels_r
     assert recovered.frames == 4
     assert np.allclose(recovered.pcm, pcm[:4], atol=1.5 / sample.depth.scale)
     assert repairs.entries == ((SUBJECT, "waveform of 8 frames read as the 4 the file holds"),)
+
+
+def test_both_loops_read_back_at_the_direction_their_own_flag_states() -> None:
+    # The flag byte carries a direction bit for each loop, so a sample may run one forwards and the
+    # other back and forth, which is the pair this format is alone in storing.
+    sample = Sample(
+        name="looped",
+        pcm=dequantise(np.arange(-8, 8, dtype=np.int8), BitDepth.EIGHT),
+        rate=RATE,
+        depth=BitDepth.EIGHT,
+        loop=Loop(begin=2, end=10, mode=LoopMode.FORWARD),
+        sustain_loop=Loop(begin=4, end=12, mode=LoopMode.PING_PONG),
+    )
+    values = SAMPLE_HEADER.unpack(sample_header(sample, data_offset=0))
+    read = parse_sample(values, sample_bytes(sample), subject=SUBJECT, repairs=Repairs())
+
+    assert read.loop == sample.loop
+    assert read.sustain_loop == sample.sustain_loop
+    assert SampleFlag.PING_PONG_SUSTAIN in SampleFlag(int(values["flags"]))

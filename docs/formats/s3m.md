@@ -237,10 +237,12 @@ puts the floor there.
 | A song whose cells name instruments | `ValueError` |
 | A record describing an OPL patch | `ValueError` |
 | A waveform stored in ADPCM | `ValueError` |
+| A record opening with a type this format defines none for | `ValueError` |
+| A header opening with anything but this format's tag | `ValueError` |
 | A quantity past a bound | `LimitError` |
 
-The OPL patch and the packed waveform are met while reading, where every other refusal here is met while
-writing. [`limits.md`](../limits.md) states the bounds behind the closing row.
+The last four are met while reading, where every other refusal here is met while writing.
+[`limits.md`](../limits.md) states the bounds behind the closing row.
 
 ## Effect commands
 

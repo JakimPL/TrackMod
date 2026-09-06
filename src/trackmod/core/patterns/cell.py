@@ -20,8 +20,3 @@ class Cell(BaseModel):
     instrument: Index | None = None
     volume: VolumeValue | None = None
     effect: Effect | None = None
-
-    @property
-    def is_empty(self) -> bool:
-        """Whether every column is absent, so a tracker plays nothing new here."""
-        return self.note is None and self.instrument is None and self.volume is None and self.effect is None

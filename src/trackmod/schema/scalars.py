@@ -3,7 +3,7 @@ from typing import Annotated
 from pydantic import Field
 
 from trackmod.spec.clock import MIN_SPEED, MIN_TEMPO
-from trackmod.spec.grid import MIN_CHANNELS, MIN_ROWS
+from trackmod.spec.grid import MIN_CHANNELS
 from trackmod.spec.levels import (
     MAX_INSTRUMENT_VOLUME,
     MAX_PANNING,
@@ -36,5 +36,4 @@ Transposition = Annotated[int, Field(ge=SIGNED_BYTE_MIN, le=SIGNED_BYTE_MAX)]
 Speed = Annotated[int, Field(ge=MIN_SPEED)]
 Tempo = Annotated[int, Field(ge=MIN_TEMPO)]
 
-Rows = Annotated[int, Field(ge=MIN_ROWS)]
 Channels = Annotated[int, Field(ge=MIN_CHANNELS)]

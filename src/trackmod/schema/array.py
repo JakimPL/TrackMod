@@ -20,8 +20,8 @@ from trackmod.spec.grid import (
 class Shaped:
     """Validates a model field as a numpy array of one dtype and one number of dimensions.
 
-    Arrays are the one part of the model that is not a plain value, and describing them as annotation
-    metadata keeps them inside the schema every other field is checked by, rather than beside it.
+    An array carries its own dtype and shape, and describing them as annotation metadata keeps an array
+    field inside the schema every other field is checked by.
     """
 
     dtype: type[np.generic]

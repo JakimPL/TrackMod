@@ -39,17 +39,17 @@ is written to more than one of them.
 The first seven rows are answered by all five formats, and the rows below them belong to the ones
 keeping a volume column or instrument records. The six that follow are the ones worth reading twice.
 
-**No note command travels the whole set.** Impulse Tracker spells three of them, FastTracker 2 the key
-off, Scream Tracker 3 the cut and the two Amiga formats none, so the vocabularies share nothing: a voice
-ended the same way everywhere is one ended by a cell that states no note at all. An instrument is the
-same story from the other side — two of the five keep records for one.
+**Each format spells its own note commands.** Impulse Tracker spells three of them, FastTracker 2 the
+key off and Scream Tracker 3 the cut, while the two Amiga formats put a period in that column and
+nothing else, so a voice ended the same way everywhere is ended by a cell that states no note at all.
+An instrument is the same story from the other side — two of the five keep records for one.
 
 **A key travels as far as the deepest column reaches.** Impulse Tracker numbers ten octaves and stores a
 key as its own number. FastTracker 2 numbers eight of them from one. Scream Tracker 3 counts its octaves
 from the model's second, so a cell asking for one of the twelve deepest keys is refused by name, and the
 two Amiga formats store the period a pitch sounds at, whose twelve bits reach shared keys 21 to 119.
 
-**A fade is not portable.** The two counters differ by a factor of 32, so the same number means two
+**A fade travels as a curve.** The two counters differ by a factor of 32, so the same number means two
 lengths, and the two starting points differ by however long the volume envelope runs. A voice worth
 playing down the same way in both is worth playing down by the envelope curve, with the fade left to
 whatever the release needs.

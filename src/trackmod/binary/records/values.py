@@ -9,7 +9,7 @@ def read_int(values: RecordValues, name: str) -> int:
     """Read one unpacked field as an integer.
 
     Raises:
-        ValueError: when the field holds a block of bytes or a run of elements instead.
+        TypeError: when the field holds a block of bytes or a run of elements instead.
     """
     value = values[name]
     if not isinstance(value, int):
@@ -22,7 +22,7 @@ def read_bytes(values: RecordValues, name: str) -> bytes:
     """Read one unpacked field as a fixed-length byte block.
 
     Raises:
-        ValueError: when the field holds an integer or a run of elements instead.
+        TypeError: when the field holds an integer or a run of elements instead.
     """
     value = values[name]
     if not isinstance(value, bytes):
@@ -35,7 +35,7 @@ def read_rows(values: RecordValues, name: str) -> ArrayValue:
     """Read one unpacked array field as its run of elements.
 
     Raises:
-        ValueError: when the field holds a single value instead.
+        TypeError: when the field holds a single value instead.
     """
     value = values[name]
     if isinstance(value, (int, bytes)):

@@ -4,6 +4,7 @@ import pytest
 
 from trackmod.core.timing.lattice import exact_timings, nearest_timing, row_frames
 from trackmod.limits.bound import Bound
+from trackmod.utils.arithmetic import neighbor_divisors
 
 FRAME_RATE = 44100
 SPEED = Bound(minimum=1, maximum=255)
@@ -80,3 +81,18 @@ def test_nearest_timing_resolves_ties_to_the_shorter_row() -> None:
 def test_nearest_timing_picks_the_closest_row_when_there_is_no_tie() -> None:
     timing = nearest_timing(588, frame_rate=FRAME_RATE, speed=1, speed_bound=SPEED, tempo_bound=NARROW_TEMPO)
     assert timing.row_frames == 630
+
+
+@pytest.mark.parametrize("candidate", [0, -1, 13])
+def test_a_candidate_outside_the_dividend_is_refused(candidate: int) -> None:
+    # The two neighbours are divisors of the dividend, so a candidate outside it has no side to fall on.
+    with pytest.raises(ValueError, match="must be in 1..12"):
+        neighbor_divisors(candidate, 12)
+
+
+def test_a_candidate_that_divides_is_its_own_neighbour_on_both_sides() -> None:
+    assert neighbor_divisors(4, 12) == (4, 4)
+
+
+def test_a_candidate_between_two_divisors_is_answered_by_both() -> None:
+    assert neighbor_divisors(5, 12) == (4, 6)

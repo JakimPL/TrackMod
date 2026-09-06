@@ -199,7 +199,7 @@ class ModuleReader:
         if offset == EMPTY_PATTERN_POINTER:
             return Pattern.empty(rows=PATTERN_ROWS, channels=self._channels)
 
-        if offset > len(self._data):
+        if offset >= len(self._data):
             self._repairs.made(f"a block at {offset} of {len(self._data)} bytes held reads as silence", subject=subject)
             return Pattern.empty(rows=PATTERN_ROWS, channels=self._channels)
 

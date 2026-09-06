@@ -79,9 +79,9 @@ Every one of them carries a `.letter` property giving the character the tracker 
 pattern display or a log line wants. Amiga ProTracker prints a hexadecimal digit where the others print a
 letter, because its command is one nibble.
 
-**The tempo an effect sets is not the tempo a header holds.** FastTracker 2's header tempo is sixteen bits
-and its `Fxx` parameter is eight, so a module can start at tempo 441 and still have no way to change to it
-mid-song. `Playback(tempo=441)` is accepted and `XM_EFFECTS.set_tempo(441)` raises. See
+**A header reaches a tempo its own effect column stops short of.** FastTracker 2's header tempo is
+sixteen bits and its `Fxx` parameter is eight, so a module starting at tempo 441 keeps that clock for as
+long as it holds it. `Playback(tempo=441)` is accepted and `XM_EFFECTS.set_tempo(441)` raises. See
 [`limits.md`](limits.md).
 
 ## Reading effects back

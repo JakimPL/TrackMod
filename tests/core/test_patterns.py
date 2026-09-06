@@ -10,6 +10,7 @@ from trackmod.core.patterns.column import Column
 from trackmod.core.patterns.grid import Pattern
 from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
 from trackmod.spec.grid import EMPTY, GRID_DTYPE
+from trackmod.spec.width import BYTE_MAX
 
 CELLS = (
     Cell(),
@@ -115,6 +116,24 @@ def test_columns_of_different_shapes_are_rejected() -> None:
     columns[Column.VOLUME] = np.full((2, 3), EMPTY, dtype=GRID_DTYPE)
     with pytest.raises(ValueError):
         Pattern.from_columns(columns)
+
+
+@pytest.mark.parametrize("column", [Column.EFFECT, Column.PARAMETER])
+@pytest.mark.parametrize("value", [BYTE_MAX + 1, EMPTY - 1])
+def test_an_effect_past_the_byte_a_cell_states_it_in_is_rejected(column: Column, value: int) -> None:
+    # A cell holds both in one byte and every format writes them as one, so a grid built from planes is
+    # held to the same reach as one built cell by cell, where the model states it already.
+    columns = {name: np.full((2, 2), EMPTY, dtype=GRID_DTYPE) for name in Column}
+    columns[column] = np.full((2, 2), value, dtype=GRID_DTYPE)
+    with pytest.raises(ValueError, match="one byte"):
+        Pattern.from_columns(columns)
+
+
+@pytest.mark.parametrize("column", [Column.EFFECT, Column.PARAMETER])
+def test_an_effect_filling_the_byte_a_cell_states_it_in_is_kept(column: Column) -> None:
+    columns = {name: np.full((2, 2), EMPTY, dtype=GRID_DTYPE) for name in Column}
+    columns[column] = np.full((2, 2), BYTE_MAX, dtype=GRID_DTYPE)
+    assert int(Pattern.from_columns(columns).column(column).max()) == BYTE_MAX
 
 
 def test_a_one_dimensional_column_is_rejected() -> None:

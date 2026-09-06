@@ -15,8 +15,7 @@ def sample_bytes(sample: Sample) -> bytes:
     """Serialise a sample's waveform as this format stores it: signed frames, no differencing.
 
     A stereo waveform is stored planar, so each channel is encoded from its own 1-D slice and the two
-    are placed one after the other — never interleaved, which is what encoding the 2-D array whole would
-    produce instead.
+    are placed one after the other, which is the order a reader of this format walks them in.
     """
     if sample.channels != STEREO_CHANNELS:
         return encode_pcm(sample.pcm, depth=sample.depth, encoding=PCM_ENCODING, sign=PCM_SIGN)

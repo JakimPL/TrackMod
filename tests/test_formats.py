@@ -55,6 +55,7 @@ from trackmod.trackers.mod.limits import mod_limits
 from trackmod.trackers.mod.module import MODModule
 from trackmod.trackers.mod.timing import TIMINGS as MOD_TIMINGS
 from trackmod.trackers.registry import (
+    EXTENSIONS,
     INSTRUMENT_EXTENSIONS,
     MODULE_EXTENSIONS,
     parse_voices,
@@ -1067,3 +1068,18 @@ def test_a_song_read_as_units_states_one_per_instrument(
     module = instrument_binding.module.bind(voiced, Compliance.CANONICAL)
     recovered = voices_of(instrument_binding.module.parse(module.to_bytes()).song)
     assert held(recovered) == tuple(extract(recovered, index) for index in range(recovered.slots))
+
+
+def test_the_suffix_table_names_every_extension_a_format_here_writes() -> None:
+    # `EXTENSIONS` is what a caller filters a directory by, so it has to hold what the readers hold and
+    # nothing else. The two module formats of one lineage share a suffix, so the set is the smaller one.
+    assert EXTENSIONS == MODULE_EXTENSIONS | INSTRUMENT_EXTENSIONS
+    assert MODULE_EXTENSIONS == {".it", ".xm", ".mod", ".s3m"}
+    assert INSTRUMENT_EXTENSIONS == {".iti", ".xi"}
+    assert all(reads(extension) for extension in EXTENSIONS)
+    written = {
+        binding.bind(sampled_song(MOD_EFFECTS.note_delay, seed=PORTABLE_SEED), c).extension
+        for binding in SAMPLED_BINDINGS + (ST_BINDING,)
+        for c in (Compliance.CANONICAL,)
+    }
+    assert written <= MODULE_EXTENSIONS

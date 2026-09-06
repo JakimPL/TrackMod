@@ -1,40 +1,47 @@
 from math import isqrt
 
 
-def divisors(n: int) -> list[int]:
-    small: list[int] = []
-    large: list[int] = []
+def divisors(number: int) -> list[int]:
+    """Every divisor of ``number``, in ascending order.
 
-    for d in range(1, isqrt(n) + 1):
-        if n % d == 0:
-            small.append(d)
-            if d != n // d:
-                large.append(n // d)
+    Each divisor below the square root pairs with one above it, so walking up to the root finds both
+    halves at once and the run is complete once the two are joined.
+    """
+    below: list[int] = []
+    above: list[int] = []
+    for candidate in range(1, isqrt(number) + 1):
+        if number % candidate:
+            continue
 
-    return small + large[::-1]
+        below.append(candidate)
+        if candidate != number // candidate:
+            above.append(number // candidate)
+
+    return below + above[::-1]
 
 
-def neighbor_divisors(
-    candidate: int,
-    dividend: int,
-) -> tuple[int | None, int | None]:
+def neighbor_divisors(candidate: int, dividend: int) -> tuple[int | None, int | None]:
+    """The divisors of ``dividend`` that ``candidate`` falls between, as the pair below it and above it.
+
+    A candidate that divides the dividend is its own neighbour on both sides. Each side is answered
+    separately, and a side with no divisor on it is answered as absent.
+
+    Raises:
+        ValueError: when ``candidate`` falls outside ``1..dividend``.
+    """
     if candidate < 1 or candidate > dividend:
-        raise ValueError("candidate must be in [1, dividend]")
+        raise ValueError(f"candidate {candidate} must be in 1..{dividend}")
 
     if not dividend % candidate:
         return candidate, candidate
 
-    candidates = divisors(dividend)
-    previous_candidate: int | None = None
-    low: int | None = None
-    high: int | None = None
-    for cand in candidates:
-        difference = cand - candidate
-        if difference >= 0:
-            low = previous_candidate
-            high = cand
+    below: int | None = None
+    above: int | None = None
+    for divisor in divisors(dividend):
+        if divisor > candidate:
+            above = divisor
             break
 
-        previous_candidate = cand
+        below = divisor
 
-    return low, high
+    return below, above

@@ -93,8 +93,9 @@ effects, each occupying a run of sixteen values:
 | `0xA0` | vibrato speed | `0xF0` | portamento |
 
 `0x00` is what a cell stating every column writes where it holds no volume, so that byte reads as an
-absence, and the bytes below the level range read the same way — reported once for a whole pattern. See
-[`volume.md`](../volume.md).
+absence. Two runs are left over — `0x01` to `0x0F` below the levels, and `0x51` to `0x5F` between the top
+level and the first command — and a byte from either reads as an absence too, reported once for a whole
+pattern. See [`volume.md`](../volume.md).
 
 ## Instruments
 

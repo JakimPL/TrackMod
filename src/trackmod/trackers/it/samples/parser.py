@@ -76,7 +76,7 @@ def is_compressed(values: RecordValues) -> bool:
     return SampleFlag.COMPRESSED in SampleFlag(read_int(values, "flags"))
 
 
-def stored_frames(values: RecordValues) -> int:
+def stored_bytes(values: RecordValues) -> int:
     """How many bytes of waveform a sample header points at, across every channel it stores.
 
     A compressed waveform states its own length block by block, so a reader is given the rest of the file
@@ -104,7 +104,7 @@ def stored_end(values: RecordValues, data: bytes) -> int:
     """The byte past the frames a sample header points at, which a compressed block states for itself."""
     start = read_int(values, "sample_pointer")
     if not is_compressed(values):
-        return start + stored_frames(values)
+        return start + stored_bytes(values)
 
     extents = _compressed_extents(
         data[start:], frames=read_int(values, "length"), depth=stored_depth(values), channels=stored_channels(values)
@@ -228,5 +228,5 @@ def read_sample(data: bytes, *, offset: int, subject: str, repairs: Repairs) -> 
 
     values = SAMPLE_HEADER.unpack_at(data, offset)
     start = read_int(values, "sample_pointer")
-    frames = data[start:] if is_compressed(values) else data[start : start + stored_frames(values)]
+    frames = data[start:] if is_compressed(values) else data[start : start + stored_bytes(values)]
     return parse_sample(values, frames, subject=subject, repairs=repairs)

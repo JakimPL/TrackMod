@@ -3,6 +3,7 @@ import warnings
 import pytest
 
 from tests.trackers.xm.conftest import xm_pattern
+from trackmod.binary.cursor import Cursor
 from trackmod.binary.volume import VolumeSpan
 from trackmod.binary.warnings import UnnamedByteWarning
 from trackmod.core.effects.effect import Effect
@@ -17,7 +18,7 @@ from trackmod.spec.grid import EMPTY
 from trackmod.spec.pitch import NOTE_COUNT
 from trackmod.trackers.xm.note import stored_note
 from trackmod.trackers.xm.patterns.packer import pack_cells
-from trackmod.trackers.xm.patterns.parser import unpack_cells
+from trackmod.trackers.xm.patterns.parser import unpack_cells, unpack_pattern
 from trackmod.trackers.xm.patterns.sizing import packed_bytes
 from trackmod.trackers.xm.spec.cells import (
     KEY_OFF,
@@ -27,7 +28,7 @@ from trackmod.trackers.xm.spec.cells import (
     VOLUME_COLUMN_EMPTY,
     CellMask,
 )
-from trackmod.trackers.xm.spec.ranges import MAX_ROWS
+from trackmod.trackers.xm.spec.ranges import DEFAULT_ROWS, MAX_ROWS
 from trackmod.trackers.xm.spec.volume import VOLUME_COLUMN
 
 GRIDS = (
@@ -37,6 +38,12 @@ GRIDS = (
     (1, 1, 1, 4),
 )
 
+
+NOTE_BYTE = 61
+INSTRUMENT_BYTE = 2
+VOLUME_BYTE = 0x40
+COMMAND_BYTE = 0x0F
+PARAMETER_BYTE = 0x7D
 
 SUBJECT = "pattern 0"
 
@@ -207,11 +214,55 @@ def test_a_stream_ending_before_the_grid_does_leaves_the_rest_silent() -> None:
     # Files in the wild carry a pattern whose stream runs out, and a player sounds what is there.
     builder = PatternBuilder(rows=2, channels=2)
     builder.place(0, 0, Cell(note=Note(60), instrument=0, volume=64))
+    builder.place(0, 1, Cell(note=Note(62)))
+    stream = pack_cells(builder.build())
+    repairs = Repairs()
+    recovered = unpack_cells(stream[:4], rows=2, channels=2, subject=SUBJECT, repairs=repairs)
+
+    assert recovered.rows == 2
+    assert recovered.channels == 2
+    assert recovered.cell(0, 0) == Cell(note=Note(60), instrument=0, volume=64)
+    assert recovered.cell(1, 1) == Cell()
+    assert repairs.entries == ((SUBJECT, "3 cells past the end of the stream read as silence"),)
+
+
+def test_a_cell_the_stream_stops_inside_is_reported() -> None:
+    # A cell states which columns follow its first byte, so a stream stopping between them holds part of
+    # a cell. Reading it as silence is a repair the file is told about, the way the other formats do.
+    builder = PatternBuilder(rows=2, channels=2)
+    builder.place(0, 0, Cell(note=Note(60), instrument=0, volume=64))
     stream = pack_cells(builder.build())
     repairs = Repairs()
     recovered = unpack_cells(stream[:1], rows=2, channels=2, subject=SUBJECT, repairs=repairs)
 
-    assert recovered.rows == 2
-    assert recovered.channels == 2
-    assert recovered.cell(1, 1) == Cell()
-    assert repairs.entries == ((SUBJECT, "3 cells past the end of the stream read as silence"),)
+    assert recovered.cell(0, 0) == Cell()
+    assert repairs.entries == (
+        (SUBJECT, "4 cells past the end of the stream read as silence"),
+        (SUBJECT, "a cell the stream stops inside reads as silence"),
+    )
+
+
+def test_a_header_the_file_stops_inside_reads_at_the_height_a_tracker_plays() -> None:
+    # A file cut inside a pattern header states its rows as far as it holds them, so a header read from
+    # nothing states none. A pattern of no rows is not a grid, so the height a tracker plays stands in.
+    repairs = Repairs()
+    pattern = unpack_pattern(Cursor(bytes(4)), channels=2, subject=SUBJECT, repairs=repairs)
+
+    assert pattern.rows == DEFAULT_ROWS
+    assert repairs.entries == ((SUBJECT, f"a header stating 0 rows reads as {DEFAULT_ROWS}"),)
+
+
+def test_a_raw_cell_states_every_column_after_the_note_it_opens_with() -> None:
+    # A first byte with the high bit clear is the note itself, and the other four columns follow whole,
+    # which is the shape a writer uses where naming the columns would cost more than stating them.
+    raw = bytes((NOTE_BYTE, INSTRUMENT_BYTE, VOLUME_BYTE, COMMAND_BYTE, PARAMETER_BYTE))
+    repairs = Repairs()
+    pattern = unpack_cells(raw, rows=1, channels=1, subject=SUBJECT, repairs=repairs)
+
+    assert pattern.cell(0, 0) == Cell(
+        note=Note(NOTE_BYTE - 1),
+        instrument=INSTRUMENT_BYTE - 1,
+        volume=VOLUME_BYTE - 0x10,
+        effect=Effect(command=COMMAND_BYTE, parameter=PARAMETER_BYTE),
+    )
+    assert repairs.entries == ()

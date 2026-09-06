@@ -102,7 +102,7 @@ file's instrument definitions are set aside for the switch going back on; both a
 
 ### The volume column
 
-A mask bit says whether the column is present at all, so every byte in it means something:
+A mask bit says whether the column is present at all, so the column spends no byte on an absence:
 
 | Bytes | States | Amounts |
 |---|---|---|
@@ -136,9 +136,9 @@ six bytes — flags, point count, loop begin and end, sustain begin and end — 
 byte and a little-endian tick word. The flags are `0x01` enabled, `0x02` loop, `0x04` sustain, `0x08` carry
 and `0x80` filter, which reads the pitch envelope as a filter cutoff instead.
 
-Impulse Tracker reads `0..64` of the value byte for volume and `-32..32` for panning and pitch. **The
-sustain is a span**, so a curve may hold across two points, and **carry** is what a new note keeps: an
-envelope carrying on resumes where the previous note left it.
+Impulse Tracker reads `0..64` of the value byte for volume and `-32..32` for panning and pitch, of the
+`-128..127` the signed byte holds. **The sustain is a span**, so a curve may hold across two points, and
+**carry** is what a new note keeps: an envelope carrying on resumes where the previous note left it.
 
 A loop or sustain span stated outside its own points is drawn back inside them, and points stated out of
 order are held at the tick before them; both are reported.
@@ -243,7 +243,7 @@ shortest whole-frame row this format reaches is 441 frames — the one-byte temp
 | New note action | cut, continue, note off, note fade |
 | Sample volume | `0..64` |
 | Sample gain | `0..64` |
-| Sample panning | `0..255` |
+| Sample panning | `0..64`, behind an enable bit |
 | Sample auto-vibrato | speed, depth, rate, waveform |
 | Sample loop | forward, ping-pong |
 | Sustain loop | forward, ping-pong |

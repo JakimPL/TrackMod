@@ -15,7 +15,7 @@ from trackmod.trackers.xm.layout.instrument import INSTRUMENT_FILE_HEADER
 from trackmod.trackers.xm.samples.parser import read_samples
 from trackmod.trackers.xm.spec.identity import MAGIC_INSTRUMENT
 
-SILENT_KEYMAP: Keymap = (None,) * NOTE_COUNT
+SILENT_KEYMAP: Final[Keymap] = (None,) * NOTE_COUNT
 FIRST_SAMPLE: Final = 0
 
 

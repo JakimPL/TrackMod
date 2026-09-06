@@ -20,9 +20,8 @@ class Limits(BaseModel):
     graded against the widest ceiling it passes, and reported when that ceiling is the one this table is
     read at or a wider one — so a value the layout cannot hold is reported at every level, a value the
     players descended from the tracker refuse is reported at the two tighter levels, and a value only the
-    tracker's own editor refuses is reported at the tightest. That single rule is the whole mechanism: a
-    module held to a wider level is not one that skips validation, it is one validated against a wider
-    bound.
+    tracker's own editor refuses is reported at the tightest. That single rule is the whole mechanism, so a
+    module held to a wider level is one validated against a wider bound.
     """
 
     model_config = FROZEN

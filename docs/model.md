@@ -207,9 +207,12 @@ so the time it buys is `counter / fadeout` ticks. The counter's size is each for
 `timing` has:
 
 ```python
-fadeout_value(0.25, tempo=125)   # 82, the rate that fades a released voice out in a quarter second
-fade_seconds(82, tempo=125)      # 0.2498…, the same number read the other way
+fadeout_value(0.25, counter=1024, tempo=125)   # 82, the rate that fades a voice out in a quarter second
+fade_seconds(82, counter=1024, tempo=125)      # 0.2498…, the same number read the other way
 ```
+
+1024 is Impulse Tracker's counter, and each format's own `fade` module supplies its own: FastTracker 2
+counts down from 32768, so the same quarter second is a fadeout of 2621 there.
 
 `NO_FADEOUT` leaves the counter full, which is a voice that keeps its level for as long as it sounds and
 reads as a fade of unbounded length. A fade slower than a counter step of one raises, since zero
@@ -299,9 +302,10 @@ block length from the row it is fitting material to:
 - `nearest_timing(target_frames, ...)` — the closest achievable row length, resolving ties to the shorter
   row.
 
-Each format package re-exposes these three bound to its own speed and tempo ranges. The ranges are the
-whole difference: at 44100 Hz and speed 1 the shortest whole-frame row Impulse Tracker reaches is 441
-frames — the floor every one-byte tempo here shares — while FastTracker 2's sixteen-bit tempo reaches 2.
+Each format package states one `TIMINGS` object carrying its own speed and tempo ranges, and the three
+questions are asked of that. The ranges are the whole difference: at 44100 Hz and speed 1 the shortest
+whole-frame row Impulse Tracker reaches is 441 frames — the floor every one-byte tempo here shares —
+while FastTracker 2's sixteen-bit tempo reaches 2.
 
 The same clock read in seconds gives `tick_seconds(tempo)` — the unit envelope breakpoints and note fades
 are counted in — `row_seconds(speed, tempo)` for material laid out in time, and `elapsed_ticks(seconds,

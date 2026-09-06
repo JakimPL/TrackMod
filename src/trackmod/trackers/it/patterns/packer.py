@@ -51,8 +51,8 @@ def encode_effect(
         return
 
     encoded.mask |= CellMask.EFFECT
-    encoded.payload.append(command & BYTE_MAX)
-    encoded.payload.append(parameter & BYTE_MAX)
+    encoded.payload.append(command)
+    encoded.payload.append(parameter)
     memory.command, memory.parameter = command, parameter
 
 

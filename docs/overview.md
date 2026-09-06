@@ -49,16 +49,21 @@ Each format package repeats the same internal shape, so knowing one is knowing t
   note limits timing fade settings checks sizing writer parser module instrument_file
 ```
 
-A package holds the parts its own format keeps records for: the two that keep no instrument records —
-Amiga ProTracker and Scream Tracker 3 — have no `instruments/` and no envelopes, and each format adds the
-files its layout calls for, a table of dialects for the one and the paragraph arithmetic for the other.
+A package holds the parts its own format keeps records for: the three that keep no instrument records —
+Amiga ProTracker, Scream Tracker 3 and Soundtracker — have no `instruments/` and no envelopes, and each
+format adds the files its layout calls for, a table of dialects for one and the paragraph arithmetic for
+another.
 
 A lineage package sits beside them in the same shape and holds what a family of formats shares. `amiga/`
 is the one this library has: the period tables, the four-byte cell, the thirty-byte sample record and the
-eight-bit waveform that Ultimate Soundtracker settled and every tracker on that machine kept. A format
-reads its lineage and states what it decides for itself — how many sample records its header carries, and
-which unit its loop offsets count in. Where two formats disagree, the lineage takes the answer as an
-argument, so neither of them owns the other's.
+eight-bit waveform that Ultimate Soundtracker settled and every tracker on that machine kept, together
+with the walk that reads a file of either and the checks that grade a song for both. Its own files carry
+the same names — `reading`, `writing`, `sizing`, `checks`, `note`, `tuning` beside `spec/`, `layout/`,
+`patterns/` and `samples/` — so the shape above reads the same there.
+
+A format reads its lineage and states what it decides for itself: how many sample records its header
+carries, how wide its patterns are, and which unit its loop offsets count in. Where two formats disagree,
+the lineage takes the answer as an argument, so neither of them owns the other's.
 
 Every `__init__.py` is empty. A name is imported from the module that defines it:
 

@@ -10,14 +10,15 @@ from trackmod.core.patterns.column import Column, Columns
 from trackmod.schema.array import Grid
 from trackmod.schema.config import FROZEN
 from trackmod.spec.grid import EMPTY, GRID_DTYPE, MIN_CHANNELS, MIN_ROWS
+from trackmod.spec.width import BYTE_MAX
 
 
 class Pattern(BaseModel):
     """A grid of cells stored as five aligned ``(rows, channels)`` planes.
 
-    Columns are kept apart rather than as objects so presence is decided per column — the packers and the
-    size models read whole planes at once, and a cell may hold a note with no volume. The grid sentinel
-    marks an absent value in every plane.
+    Each column is its own plane, so presence is decided per column and a cell may hold a note with no
+    volume, while the packers and the size models read whole planes at once. The grid sentinel marks an
+    absent value in every plane.
     """
 
     model_config = FROZEN
@@ -36,6 +37,28 @@ class Pattern(BaseModel):
 
         if self.rows < MIN_ROWS or self.channels < MIN_CHANNELS:
             raise ValueError(f"pattern size {self.rows}x{self.channels} must be at least {MIN_ROWS}x{MIN_CHANNELS}")
+
+        return self
+
+    @model_validator(mode="after")
+    def _effects_fit_the_byte_a_cell_states_them_in(self) -> Pattern:
+        """Hold the effect pair to the byte every format stores it in, as :class:`Effect` already does.
+
+        A grid built from planes reaches the whole width of its dtype, where one built cell by cell is
+        held to what a cell carries. Stating the bound here is what makes the two agree, so a value no
+        format has a byte for is refused where the grid is built rather than where it is written.
+
+        Raises:
+            ValueError: when the effect or parameter plane holds a value past the byte a cell states it
+                in, the grid sentinel apart.
+        """
+        for column in (Column.EFFECT, Column.PARAMETER):
+            plane = self.columns[column]
+            if plane.size and (int(plane.min()) < EMPTY or int(plane.max()) > BYTE_MAX):
+                raise ValueError(
+                    f"the {column} column holds {int(plane.min())}..{int(plane.max())}, "
+                    f"and a cell states it in one byte"
+                )
 
         return self
 

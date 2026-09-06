@@ -374,3 +374,40 @@ def test_an_instrument_states_its_samples_in_the_order_the_song_holds_them(
 
     parsed = XMModule.parse(module(song).to_bytes())
     assert XMModule.parse(parsed.to_bytes()).song == parsed.song
+
+
+def truncated(song: Song, *, drop: int) -> bytes:
+    """The module a song writes, with its last bytes taken off — the shape a file cut in transit has."""
+    return XMModule.from_song(song, compliance=Compliance.CANONICAL).to_bytes()[:-drop]
+
+
+def test_a_file_stopping_inside_an_instrument_header_says_so(xm_song: Song) -> None:
+    # A record read from bytes the file stops before is zero-filled, so a truncated header states an
+    # instrument owning nothing at all. Saying so is what keeps the missing music visible.
+    data = XMModule.from_song(xm_song, compliance=Compliance.CANONICAL).to_bytes()
+    instrument = instrument_offsets(data)[-1]
+    with pytest.warns(RepairWarning, match="a header the file stops inside"):
+        XMModule.parse(data[: instrument + 10])
+
+
+def test_a_file_stopping_inside_a_sample_header_says_so(xm_song: Song) -> None:
+    data = XMModule.from_song(xm_song, compliance=Compliance.CANONICAL).to_bytes()
+    instrument = instrument_offsets(data)[-1]
+    stated = read_int(EMPTY_INSTRUMENT_HEADER.unpack(data[instrument : instrument + 29]), "header_size")
+    with pytest.warns(RepairWarning, match="a header the file stops inside"):
+        XMModule.parse(data[: instrument + stated + 10])
+
+
+def test_a_file_stopping_inside_a_waveform_reads_the_frames_it_holds(xm_song: Song) -> None:
+    with pytest.warns(RepairWarning, match="read as the .* the file holds"):
+        recovered = XMModule.parse(truncated(xm_song, drop=8))
+
+    assert sum(sample.frames for sample in recovered.song.voices.samples) < sum(
+        sample.frames for sample in xm_song.voices.samples
+    )
+
+
+def test_a_file_stopping_before_the_instruments_it_states_says_how_many_it_held(xm_song: Song) -> None:
+    data = XMModule.from_song(xm_song, compliance=Compliance.CANONICAL).to_bytes()
+    with pytest.warns(RepairWarning, match="instruments stated, 0 held"):
+        XMModule.parse(data[: instrument_offsets(data)[0]])

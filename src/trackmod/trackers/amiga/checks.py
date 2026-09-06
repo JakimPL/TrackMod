@@ -14,8 +14,9 @@ from trackmod.trackers.amiga.samples.writer import stored_bytes
 def check_song(checklist: Checklist, song: Song) -> None:
     """Grade the counts and the starting clock a song declares.
 
-    The clock is pinned to the one every module of this format starts on, because the header states
-    none: a song asking to start anywhere else is told so, which keeps the clock it asked for visible.
+    Neither header of this lineage states a clock, so both formats pin it to the one every module of
+    them starts on: a song asking to start anywhere else is told so, which keeps the clock it asked for
+    visible. The width is graded the same way, against whatever each format's own tag leaves room for.
     """
     checklist.check(Capability.CHANNELS, song.channels, subject="song")
     checklist.check(Capability.PATTERNS, len(song.patterns), subject="song")
@@ -39,7 +40,7 @@ def check_samples(checklist: Checklist, samples: Sequence[Sample]) -> None:
     A waveform is bounded twice over, because a record states its length in pairs of bytes: the frames
     it holds, and the block those frames come to once the pair is filled.
 
-    The rate bound is the whole of this format's tuning: sixteen rows an eighth of a semitone apart
+    The rate bound is the whole of this lineage's tuning: sixteen rows an eighth of a semitone apart
     around the reference, so a sample recorded anywhere else is told to be resampled onto one of them.
     """
     for index, sample in enumerate(samples):
@@ -54,8 +55,8 @@ def check_samples(checklist: Checklist, samples: Sequence[Sample]) -> None:
 def violations(song: Song, *, limits: Limits) -> tuple[Violation, ...]:
     """Every bound a song breaks, in the order the checks find them.
 
-    This format carries no envelopes, no instrument records and no volume column, so what a song states
-    through any of them is content it has no encoding for, which raises where it is met.
+    Neither format of this lineage carries envelopes, instrument records or a volume column, so what a
+    song states through any of them is content they have no encoding for, which raises where it is met.
     """
     checklist = Checklist(limits)
     check_song(checklist, song)

@@ -100,10 +100,17 @@ def read_samples(cursor: Cursor, *, count: int, subject: str, repairs: Repairs) 
     """The samples one instrument owns: every header first, then every waveform, as they are laid out.
 
     Both containers this format writes store an instrument's samples this way, so a reader that has
-    reached the end of an instrument header continues here whichever file it is walking.
+    reached the end of an instrument header continues here whichever file it is walking. A header the
+    file stops inside reads as the bytes it holds and zeros for the rest, and says so.
     """
     headers: list[RecordValues] = []
-    for _ in range(count):
+    for index in range(count):
+        if cursor.remaining < SAMPLE_HEADER_BYTES:
+            repairs.made(
+                "a header the file stops inside reads as far as it goes",
+                subject=f"{subject} sample {index}",
+            )
+
         headers.append(SAMPLE_HEADER.unpack(cursor.peek_padded(SAMPLE_HEADER_BYTES)))
         cursor.take_at_most(SAMPLE_HEADER_BYTES)
 

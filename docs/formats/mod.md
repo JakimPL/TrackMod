@@ -192,9 +192,12 @@ own range, which is one parameter byte.
 | A loop over a waveform of one pair of frames | `ValueError` |
 | An effect command past the four bits a cell holds | `ValueError` |
 | A song whose cells name instruments | `ValueError` |
+| A tag naming a layout that stores its patterns another way | `ValueError` |
+| A tag naming none of the dialects this format reads | `ValueError` |
 | A quantity past a bound | `LimitError` |
 
-Eleven rows against Impulse Tracker's two: this is the plainest of the formats here. Every field it fills
+The two tag rows are met while reading, where every other refusal here is met while writing. Thirteen
+rows against Impulse Tracker's two: this is the plainest of the formats here. Every field it fills
 the other three fill as well, the shared sample table apart, which FastTracker 2 keeps per instrument.
 [`limits.md`](../limits.md) states the bounds behind the last of them.
 

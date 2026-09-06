@@ -14,7 +14,7 @@ from trackmod.module.reaching import Reaching
 from trackmod.module.size import SizeReport
 from trackmod.module.storage import Storage
 from trackmod.schema.config import FROZEN
-from trackmod.trackers.mod.checks import violations
+from trackmod.trackers.amiga.checks import violations
 from trackmod.trackers.mod.limits import mod_limits
 from trackmod.trackers.mod.parser import ModuleReader
 from trackmod.trackers.mod.settings import MODSettings

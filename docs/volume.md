@@ -90,10 +90,10 @@ ValueError: the volume column has no run for VIBRATO_SPEED
 
 ## A byte naming nothing
 
-Every column leaves gaps: Impulse Tracker between `125..127` and above `212`, FastTracker 2 between `0x01`
-and `0x0F`, Scream Tracker 3 between `65` and `127` and above `192`. A file carrying one of those states
-something this vocabulary has no term for, so the column reads as absent and the parse reports what it
-met, once for a whole pattern:
+Every column leaves gaps: Impulse Tracker between `125..127` and above `212`, FastTracker 2 between
+`0x01` and `0x0F` and again between `0x51` and `0x5F`, Scream Tracker 3 between `65` and `127` and above
+`192`. A file carrying one of those states something this vocabulary has no term for, so the column
+reads as absent and the parse reports what it met, once for a whole pattern:
 
 ```
 UnnamedByteWarning: bytes this format leaves unnamed, read as absent: volume 213

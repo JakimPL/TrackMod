@@ -127,10 +127,14 @@ A refusals table follows it under the same heading, listing what a format has no
 - Every validated or serialised type is a **frozen** Pydantic model. Bounds live in `Field(...)`
   constraints, and cross-field rules in `model_validator(mode="after")`.
 - Constants live in `spec/` packages and nowhere else, so the constants read as the specification.
-- Protocols are preferred to base classes, and composition to inheritance.
+- Protocols are preferred to base classes, and composition to inheritance. `Reaching` is the one mixin,
+  carrying no fields, no construction and no format knowledge, which is what earns it the exception.
 - A format package owns every decision its own file layout makes. Two formats sharing a decision because
   one inherited it from the other share it through a **lineage package** under `trackers/`, which owns it
   outright; a format package reads its lineage and the layers below, and never another format package.
   `tests/test_boundaries.py` reads the import graph and holds all three statements.
+- Duplicate-code reporting is off, because the five format packages repeat one shape on purpose and
+  every remaining report is that shape. What two formats share for a reason belongs to their lineage,
+  and `tests/test_boundaries.py` is what holds the line instead.
 - The library carries no module docstrings and no code comments. Class and function docstrings state
   intent; the domain and format narrative lives in these documents.

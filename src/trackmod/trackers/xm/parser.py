@@ -113,6 +113,9 @@ class ModuleReader:
         identity = EMPTY_INSTRUMENT_HEADER.unpack(cursor.peek_padded(EMPTY_INSTRUMENT_HEADER_BYTES))
         size = read_int(identity, "header_size")
         length = read_int(identity, "sample_count")
+        if cursor.remaining < max(size, EMPTY_INSTRUMENT_HEADER_BYTES):
+            self._repairs.made("a header the file stops inside reads as far as it goes", subject=f"instrument {index}")
+
         extended = length > 0
         values = INSTRUMENT_HEADER.unpack(cursor.peek_padded(INSTRUMENT_HEADER_BYTES)) if extended else identity
 

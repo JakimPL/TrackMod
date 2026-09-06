@@ -10,9 +10,8 @@ class OrderList(BaseModel):
     """The sequence of patterns a song plays, and where it resumes after the last one.
 
     Entries are indices into a song's patterns. Formats that mark separators or an end of song in the
-    same table write those markers themselves, so this list holds playable positions only. The entries
-    are read through :attr:`entries` rather than by iterating the list, because a model iterates its own
-    fields.
+    same table write those markers themselves, so this list holds playable positions only. A caller reads
+    them through :attr:`entries`, which is the tuple itself, because a model iterates its own fields.
     """
 
     model_config = FROZEN
