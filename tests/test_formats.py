@@ -53,11 +53,13 @@ from trackmod.trackers.it.timing import TIMINGS as IT_TIMINGS
 from trackmod.trackers.mod.effects.catalog import MOD_EFFECTS
 from trackmod.trackers.mod.limits import mod_limits
 from trackmod.trackers.mod.module import MODModule
+from trackmod.trackers.mod.spec.identity import EXTENSION as MOD_EXTENSION
 from trackmod.trackers.mod.timing import TIMINGS as MOD_TIMINGS
 from trackmod.trackers.registry import (
     EXTENSIONS,
     INSTRUMENT_EXTENSIONS,
     MODULE_EXTENSIONS,
+    detected,
     parse_provenance,
     parse_voices,
     reads,
@@ -77,6 +79,7 @@ from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.limits import xm_limits
 from trackmod.trackers.xm.module import XMModule
 from trackmod.trackers.xm.patterns.sizing import packed_bytes as xm_packed_bytes
+from trackmod.trackers.xm.spec.identity import EXTENSION as XM_EXTENSION
 from trackmod.trackers.xm.spec.ranges import MAX_NOTE
 from trackmod.trackers.xm.timing import TIMINGS as XM_TIMINGS
 from trackmod.trackers.xm.tuning import tuned_rate, tuning_for
@@ -728,6 +731,48 @@ def test_the_registry_names_what_wrote_a_module_from_its_extension(binding: Bind
 def test_the_registry_refuses_to_name_a_writer_for_an_extension_no_module_format_writes() -> None:
     with pytest.raises(ValueError, match=UNWRITTEN_EXTENSION):
         parse_provenance(b"", extension=UNWRITTEN_EXTENSION)
+
+
+def test_the_bytes_of_a_module_state_the_extension_that_wrote_them(binding: Binding, portable: Song) -> None:
+    module = binding.bind(portable, Compliance.CANONICAL)
+    assert detected(written(module)) == module.extension
+
+
+def test_the_bytes_of_a_standalone_instrument_state_the_extension_that_wrote_them(
+    instrument_binding: InstrumentBinding,
+    voiced: Song,
+) -> None:
+    written_file = instrument_binding.bind_unit(extract(voices_of(voiced), 0), Compliance.CANONICAL)
+    assert detected(written_file.to_bytes()) == written_file.extension
+
+
+def test_a_module_reads_under_the_extension_its_bytes_state_rather_than_the_one_it_is_named(
+    binding: Binding,
+    portable: Song,
+) -> None:
+    # Real collections hold modules wearing the extension of another format, and the bytes are what say
+    # which reader they belong to, so naming that reader from them is what opens such a file.
+    module = binding.bind(portable, Compliance.CANONICAL)
+    data = written(module)
+    assert parse_voices(data, extension=detected(data)) == binding.parse(data).song.voices
+
+
+def test_a_module_wearing_another_formats_name_reads_as_what_it_is(fade_envelope: Envelope) -> None:
+    # The collection this library was exercised against holds FastTracker 2 modules named `.mod`, which
+    # the Amiga reader refuses because they carry no tag it knows. The bytes say what they are.
+    song = XM_BINDING.song(fade_envelope, PORTABLE_SEED)
+    data = written(XM_BINDING.bind(song, Compliance.CANONICAL))
+
+    with pytest.raises(ValueError, match="tag"):
+        parse_voices(data, extension=MOD_EXTENSION)
+
+    assert detected(data) == XM_EXTENSION
+    assert parse_voices(data, extension=detected(data)) == XM_BINDING.parse(data).song.voices
+
+
+def test_bytes_stating_none_of_the_formats_are_refused_by_length() -> None:
+    with pytest.raises(ValueError, match="state none of the formats"):
+        detected(b"not a module at all")
 
 
 def test_the_registry_reads_a_module_by_the_extension_that_wrote_it(binding: Binding, portable: Song) -> None:

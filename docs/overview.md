@@ -196,6 +196,21 @@ tracker wrote it and is read as Amiga ProTracker, and a file whose own records a
 behind a 600-byte header is read as Soundtracker. This is the one place that knows both, which is what
 keeps either format free of the other.
 
+A name can also be wrong: a module that was renamed, repacked or shared under a habit rather than a rule keeps the
+bytes it was written with and loses the suffix that fits them. `detected` answers from the bytes instead — every
+format but one opens a file with a tag or a name of its own, and the one that opens with neither is recognised by its
+records adding up to the length of the file:
+
+```python
+from trackmod.trackers.registry import detected, parse_voices
+
+data = path.read_bytes()
+voices = parse_voices(data, extension=detected(data))
+```
+
+Each format states its own answer, so the tag offsets stay with the format that chose them, and the registry asks the
+strongest statement first. Bytes stating none of the formats are refused by name.
+
 ## Budgeting
 
 `module.size()` answers what a song already costs. A caller filling a byte budget asks the question

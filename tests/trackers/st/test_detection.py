@@ -4,7 +4,7 @@ from tests.trackers.amiga.conftest import sample_record, silent_pattern
 from tests.trackers.mod.conftest import raw_module as raw_protracker
 from tests.trackers.st.conftest import raw_module
 from trackmod.core.voices.voices import SampleVoices
-from trackmod.trackers.registry import parse_voices
+from trackmod.trackers.registry import detected, parse_voices
 from trackmod.trackers.st.detection import stated_size, written_here
 from trackmod.trackers.st.spec.identity import EXTENSION
 from trackmod.trackers.st.spec.ranges import CHANNELS
@@ -89,3 +89,11 @@ def test_a_tagged_module_is_read_under_its_tag_where_both_readings_add_up() -> N
     data = ambiguous_module()
     voices = parse_voices(data, extension=EXTENSION)
     assert len(voices.samples) == SHARED_SLOT + 1
+
+
+def test_the_bytes_name_the_shared_extension_whichever_layout_holds_them() -> None:
+    # Both layouts are named `.mod`, so naming a format from the bytes answers with the extension the
+    # two share and leaves which of them holds it to the reader that already tells them apart.
+    assert detected(fifteen_sample_file()) == EXTENSION
+    assert detected(raw_protracker(order_count=1, patterns=silent_pattern(channels=CHANNELS))) == EXTENSION
+    assert detected(ambiguous_module()) == EXTENSION

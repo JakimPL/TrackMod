@@ -2,6 +2,7 @@ from typing import Final
 
 from trackmod.binary.records.field import Field
 from trackmod.binary.records.record import Record
+from trackmod.trackers.s3m.spec.identity import MAGIC_OFFSET
 from trackmod.trackers.s3m.spec.sizes import (
     CHANNELS_STORED,
     FILE_HEADER_BYTES,
@@ -21,7 +22,7 @@ FILE_HEADER: Final = Record(
         Field(name="flags", offset=38, code="<H"),
         Field(name="created_with", offset=40, code="<H"),
         Field(name="frame_format", offset=42, code="<H"),
-        Field(name="magic", offset=44, code="4s"),
+        Field(name="magic", offset=MAGIC_OFFSET, code="4s"),
         Field(name="global_volume", offset=48, code="B"),
         Field(name="speed", offset=49, code="B"),
         Field(name="tempo", offset=50, code="B"),
