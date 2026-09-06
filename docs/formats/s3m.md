@@ -86,8 +86,10 @@ The trackers of this lineage disagree over whether the two length bytes are coun
 state, so the stated length is read as the room the stream has and the row terminators as where it ends —
 which reads a block counted either way to the same music.
 
-A stream ending before the sixty-fourth row leaves the rows it never reached silent, and a cell on a
-channel past the width the settings state is left out; both are reported.
+A stream ending before the sixty-fourth row leaves the rows it never reached silent, a stream stopping
+inside a cell leaves that cell silent as well, a cell on a channel past the width the settings state is
+left out, and a pointer past the bytes the file holds names a pattern as absent as one of zero. All four
+are reported.
 
 ### The note column
 
@@ -134,8 +136,10 @@ in its first release and unsigned ones ever after, so a reader follows the heade
 holds each channel in full, the left before the right.
 
 An empty slot keeps the name, the filename, the rate, the level and the width a tracker held ready for
-the waveform to come, so a module written again states what it stated. A loop past the frames stored is
-drawn inside them and a rate of zero reads as 8363 Hz; both are reported.
+the waveform to come, so a module written again states what it stated, and a pointer past the bytes the
+file holds names a slot just as empty. A loop past the frames stored is drawn inside them, a loop whose
+ends meet repeats nothing and plays through once, a waveform the file stops inside reads as the frames it
+holds, and a rate of zero reads as 8363 Hz; all are reported.
 
 **A record may describe an OPL patch where a sampled one points at frames.** Scream Tracker 3 played six
 kinds of them — a melodic voice and five drums — and spends the eighty bytes on the synthesiser's

@@ -1,5 +1,5 @@
 from trackmod.binary.cursor import Cursor
-from trackmod.binary.records.values import read_int
+from trackmod.binary.records.values import RecordValues, read_int
 from trackmod.binary.warnings import UnnamedBytes
 from trackmod.core.effects.effect import Effect
 from trackmod.core.notes.command import NoteValue
@@ -7,19 +7,22 @@ from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.column import Column
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.repairs.report import Repairs
 from trackmod.core.volumes.command import VolumeValue
-from trackmod.spec.grid import EMPTY
+from trackmod.spec.grid import EMPTY, MIN_ROWS
 from trackmod.trackers.it.layout.pattern import PATTERN_HEADER
 from trackmod.trackers.it.note import decode_note
 from trackmod.trackers.it.patterns.memory import ChannelMemory
 from trackmod.trackers.it.spec.cells import (
     CHANNEL_MARKER,
+    COLUMN_BYTES,
     END_OF_ROW,
     INSTRUMENT_OFFSET,
     NO_INSTRUMENT,
     UNSET,
     CellMask,
 )
+from trackmod.trackers.it.spec.ranges import DEFAULT_ROWS
 from trackmod.trackers.it.volume import decode_volume
 
 
@@ -117,27 +120,65 @@ def decode_cell(cursor: Cursor, memory: ChannelMemory, unnamed: UnnamedBytes) ->
     )
 
 
-def unpack_cells(stream: bytes, *, rows: int) -> Pattern:
+def payload_bytes(mask: int) -> int:
+    """How many bytes the columns a mask states outright occupy after it."""
+    return sum(size for column, size in COLUMN_BYTES.items() if mask & column)
+
+
+def stated_rows(header: RecordValues, *, subject: str, repairs: Repairs) -> int:
+    """How tall a pattern's header states it is, at the height a tracker plays where it states none."""
+    rows = read_int(header, "rows")
+    if rows >= MIN_ROWS:
+        return rows
+
+    repairs.made(f"a block stating {rows} rows reads as {DEFAULT_ROWS}", subject=subject)
+    return DEFAULT_ROWS
+
+
+def unpack_cells(stream: bytes, *, rows: int, subject: str, repairs: Repairs) -> Pattern:
     """Rebuild a pattern grid from a packed cell stream, sized to the widest channel it reaches.
 
     A row naming a channel without a mask byte carries on with the mask that channel last stated, which
     starts out naming no columns -- so such a cell reads as the silence already sitting there, and the
     channel still counts towards the width.
+
+    A mask says how many bytes its cell spends, so a stream stopping inside one leaves that cell silent
+    along with the rows after it, and a marker naming a channel below the first leaves its cell silent
+    too. Both are reported.
     """
     cursor = Cursor(stream)
     unnamed = UnnamedBytes()
     memories: dict[int, ChannelMemory] = {}
     placed: list[tuple[int, int, Cell]] = []
-    for row in range(rows):
+    row = 0
+    unplaced = 0
+    while row < rows and not cursor.at_end:
         marker = cursor.take(1)[0]
-        while marker != END_OF_ROW:
-            channel = (marker & ~CHANNEL_MARKER) - 1
-            memory = memories.setdefault(channel, ChannelMemory())
-            if marker & CHANNEL_MARKER:
-                memory.mask = cursor.take(1)[0]
+        if marker == END_OF_ROW:
+            row += 1
+            continue
 
-            placed.append((row, channel, decode_cell(cursor, memory, unnamed)))
-            marker = cursor.take(1)[0]
+        channel = (marker & ~CHANNEL_MARKER) - 1
+        memory = memories.setdefault(channel, ChannelMemory())
+        if marker & CHANNEL_MARKER and not cursor.at_end:
+            memory.mask = cursor.take(1)[0]
+
+        if cursor.remaining < payload_bytes(memory.mask):
+            repairs.made("a cell the stream stops inside reads as silence", subject=subject)
+            break
+
+        cell = decode_cell(cursor, memory, unnamed)
+        if channel < 0:
+            unplaced += 1
+            continue
+
+        placed.append((row, channel, cell))
+
+    if row < rows:
+        repairs.made(f"{rows - row} rows past the end of the stream read as silence", subject=subject)
+
+    if unplaced:
+        repairs.made(f"{unplaced} cells naming no channel read as silence", subject=subject)
 
     unnamed.warn()
     channels = max((channel for _, channel, _ in placed), default=0) + 1
@@ -148,8 +189,14 @@ def unpack_cells(stream: bytes, *, rows: int) -> Pattern:
     return builder.build()
 
 
-def unpack_pattern(cursor: Cursor) -> Pattern:
-    """Read one pattern — its header and its cell stream — from the cursor's position."""
-    header = cursor.read(PATTERN_HEADER)
-    stream = cursor.take(read_int(header, "packed_size"))
-    return unpack_cells(stream, rows=read_int(header, "rows"))
+def unpack_pattern(cursor: Cursor, *, subject: str, repairs: Repairs) -> Pattern:
+    """Read one pattern — its header and its cell stream — from the cursor's position.
+
+    A file stopping inside the block states the header and the stream as far as it holds them, which
+    reads the pattern's rows as far as they go.
+    """
+    header = PATTERN_HEADER.unpack(cursor.peek_padded(PATTERN_HEADER.size))
+    cursor.take_at_most(PATTERN_HEADER.size)
+    stream = cursor.take_at_most(read_int(header, "packed_size"))
+    rows = stated_rows(header, subject=subject, repairs=repairs)
+    return unpack_cells(stream, rows=rows, subject=subject, repairs=repairs)

@@ -24,6 +24,13 @@ class CellMask(IntFlag):
     EFFECT = 0x80
 
 
+GROUP_BYTES: Final = {
+    CellMask.KEY: KEY_BYTES,
+    CellMask.VOLUME: VOLUME_BYTE,
+    CellMask.EFFECT: EFFECT_BYTES,
+}
+
+
 @unique
 class NoteByte(IntEnum):
     """The note-column values that carry no key: one silences the channel, the other states nothing."""

@@ -35,6 +35,7 @@ from trackmod.trackers.s3m.spec.orders import ORDER_SEPARATOR, ORDER_TERMINATOR
 from trackmod.trackers.s3m.spec.ranges import MIN_SPEED, MIN_TEMPO, PATTERN_ROWS
 from trackmod.trackers.s3m.spec.sizes import (
     CHANNELS_STORED,
+    INSTRUMENT_RECORD_BYTES,
     ORDER_BYTES,
     PARAPOINTER_BYTES,
 )
@@ -156,7 +157,7 @@ class ModuleReader:
         return tuple(
             parse_sample(
                 values,
-                stated_frames(values, self._data, subject=f"sample {index}", repairs=self._repairs),
+                stated_frames(values, self._data),
                 sign=frame_sign(read_int(self._header, "frame_format")),
                 subject=f"sample {index}",
                 repairs=self._repairs,
@@ -165,31 +166,47 @@ class ModuleReader:
         )
 
     def _records(self) -> tuple[RecordValues, ...]:
-        return tuple(INSTRUMENT_RECORD.unpack(self._data[offset:]) for offset in self._sample_offsets)
+        return tuple(
+            self._record_at(offset, subject=f"sample {index}") for index, offset in enumerate(self._sample_offsets)
+        )
+
+    def _record_at(self, offset: int, *, subject: str) -> RecordValues:
+        """The eighty bytes a record pointer names, filled out to the record where the file stops inside it.
+
+        The zeroes a short file is read to the end of spell the record of an empty slot, which keeps a
+        song's sample numbering standing whatever the pointer reached.
+        """
+        if offset + INSTRUMENT_RECORD_BYTES > len(self._data):
+            self._repairs.made(f"a record at {offset} of {len(self._data)} bytes held reads as empty", subject=subject)
+
+        return INSTRUMENT_RECORD.unpack_at(self._data, offset)
 
     def _patterns(self) -> tuple[Pattern, ...]:
-        """Every pattern the order list can name, in the order the table numbers them.
+        """Every pattern the order list can name, in the order the table numbers them."""
+        return tuple(
+            self._pattern_at(offset, subject=f"pattern {index}") for index, offset in enumerate(self._pattern_offsets)
+        )
+
+    def _pattern_at(self, offset: int, *, subject: str) -> Pattern:
+        """The pattern stored at one paragraph, or the empty grid a slot with no block of its own holds.
 
         A pointer of zero names a pattern the file stores nowhere, which a tracker plays as a whole
-        empty pattern -- so the slot is filled with silence rather than read from the file's own opening
-        bytes.
+        empty pattern, so the slot is filled with silence rather than read from the file's own opening
+        bytes. A pointer past the bytes the file holds names one just as absent, and is reported.
         """
-        patterns = []
-        for index, offset in enumerate(self._pattern_offsets):
-            if offset == EMPTY_PATTERN_POINTER:
-                patterns.append(Pattern.empty(rows=PATTERN_ROWS, channels=self._channels))
-                continue
+        if offset == EMPTY_PATTERN_POINTER:
+            return Pattern.empty(rows=PATTERN_ROWS, channels=self._channels)
 
-            cursor = Cursor(self._data)
-            cursor.seek(offset)
-            patterns.append(
-                unpack_pattern(
-                    cursor,
-                    rows=PATTERN_ROWS,
-                    channels=self._channels,
-                    subject=f"pattern {index}",
-                    repairs=self._repairs,
-                )
-            )
+        if offset > len(self._data):
+            self._repairs.made(f"a block at {offset} of {len(self._data)} bytes held reads as silence", subject=subject)
+            return Pattern.empty(rows=PATTERN_ROWS, channels=self._channels)
 
-        return tuple(patterns)
+        cursor = Cursor(self._data)
+        cursor.seek(offset)
+        return unpack_pattern(
+            cursor,
+            rows=PATTERN_ROWS,
+            channels=self._channels,
+            subject=subject,
+            repairs=self._repairs,
+        )

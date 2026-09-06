@@ -4,6 +4,7 @@ import pytest
 from tests.conftest import lattice
 from tests.trackers.s3m.conftest import instrument_record
 from trackmod.binary.pcm.sign import PcmSign
+from trackmod.binary.records.values import RecordValues
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
@@ -14,14 +15,17 @@ from trackmod.trackers.s3m.layout.instrument import INSTRUMENT_RECORD
 from trackmod.trackers.s3m.samples.parser import (
     frame_sign,
     parse_sample,
+    read_loop,
     stated_frames,
     stored_bytes,
 )
 from trackmod.trackers.s3m.samples.writer import sample_bytes, sample_record
 from trackmod.trackers.s3m.spec.flags import RecordType, SampleFlag
 from trackmod.trackers.s3m.spec.identity import SIGNED_FRAMES, UNSIGNED_FRAMES
+from trackmod.trackers.s3m.spec.sizes import PARAGRAPH_BYTES
 
 SILENCE = 0x80
+WAVEFORM_PARAGRAPH = bytes(PARAGRAPH_BYTES)
 
 
 def restored(sample: Sample) -> Sample:
@@ -158,9 +162,9 @@ def test_a_sample_this_format_keeps_no_field_for_is_refused(field: str, value: o
 def test_a_waveform_the_file_stops_inside_reads_as_the_frames_it_holds() -> None:
     values = INSTRUMENT_RECORD.unpack(instrument_record(length=64, paragraph=1))
     repairs = Repairs()
-    held = stated_frames(values, bytes(16 + 8), subject="sample 0", repairs=repairs)
-    assert len(held) == 8
-    assert [repair for _, repair in repairs.entries] == ["waveform of 64 bytes read as the 8 the file holds"]
+    sample = parse_sample(values, stated_frames(values, bytes(16 + 8)), subject="sample 0", repairs=repairs)
+    assert sample.frames == 8
+    assert [repair for _, repair in repairs.entries] == ["waveform of 64 frames read as the 8 the file holds"]
 
 
 def test_a_record_opening_with_a_byte_naming_no_kind_is_refused() -> None:
@@ -180,3 +184,43 @@ def test_a_module_from_the_first_release_states_its_frames_are_signed() -> None:
     unsigned = parse_sample(values, bytes([0x80] * 4), subject="b", repairs=Repairs())
     assert np.allclose(signed.pcm, -1.0)
     assert np.allclose(unsigned.pcm, 0.0)
+
+
+def held_sample(values: RecordValues, held: bytes, *, repairs: Repairs) -> Sample:
+    """The sample a record reads as, given the bytes a file holds from the paragraph it points at."""
+    return parse_sample(values, stated_frames(values, WAVEFORM_PARAGRAPH + held), subject="sample 0", repairs=repairs)
+
+
+def test_a_sixteen_bit_waveform_the_file_stops_inside_a_frame_of_reads_whole_frames() -> None:
+    values = INSTRUMENT_RECORD.unpack(instrument_record(length=8, flags=int(SampleFlag.SIXTEEN_BIT), paragraph=1))
+    repairs = Repairs()
+    sample = held_sample(values, bytes(9), repairs=repairs)
+    assert sample.frames == 4
+    assert [repair for _, repair in repairs.entries] == ["waveform of 8 frames read as the 4 the file holds"]
+
+
+def test_a_stereo_waveform_the_file_stops_inside_reads_as_far_as_both_channels_reach() -> None:
+    # Each channel is stored in full, the left before the right, so a block cut short holds all of the
+    # left and a part of the right. A frame is the pair a player sounds together, so the two are read
+    # to the length they share and every frame keeps the amplitudes that belong to it.
+    values = INSTRUMENT_RECORD.unpack(instrument_record(length=8, flags=int(SampleFlag.STEREO), paragraph=1))
+    left, right = bytes(range(0x80, 0x88)), bytes(range(0x7F, 0x7B, -1))
+    repairs = Repairs()
+    sample = held_sample(values, left + right, repairs=repairs)
+    assert sample.channels == 2
+    assert sample.frames == 4
+    assert [repair for _, repair in repairs.entries] == ["waveform of 8 frames read as the 4 the file holds"]
+
+    whole = INSTRUMENT_RECORD.unpack(instrument_record(length=4, flags=int(SampleFlag.STEREO), paragraph=1))
+    paired = held_sample(whole, left[:4] + right, repairs=Repairs())
+    assert np.array_equal(sample.pcm, paired.pcm)
+
+
+def test_a_loop_whose_ends_meet_repeats_nothing_and_is_reported() -> None:
+    values = INSTRUMENT_RECORD.unpack(
+        instrument_record(length=8, flags=int(SampleFlag.LOOP), loop_begin=4, loop_end=4, paragraph=1)
+    )
+    repairs = Repairs()
+    assert read_loop(values, subject="sample 0", repairs=repairs) is None
+    assert held_sample(values, bytes(8), repairs=Repairs()).loop is None
+    assert [repair for _, repair in repairs.entries] == ["loop 4..4 spans no frame and reads as none"]

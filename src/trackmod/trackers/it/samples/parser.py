@@ -3,6 +3,7 @@ from typing import Final
 import numpy as np
 from numpy.typing import NDArray
 
+from trackmod.binary.pcm.blocks import paired_channels, whole_frames
 from trackmod.binary.pcm.codec import decode_pcm
 from trackmod.binary.pcm.encoding import PcmEncoding
 from trackmod.binary.pcm.quantise import dequantise
@@ -12,7 +13,7 @@ from trackmod.binary.text import decode_name
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
-from trackmod.core.samples.repair import repaired_loop, repaired_rate
+from trackmod.core.samples.repair import repaired_loop, repaired_rate, repaired_waveform
 from trackmod.core.samples.sample import STEREO_CHANNELS, Sample
 from trackmod.core.samples.vibrato import Vibrato
 from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
@@ -133,7 +134,12 @@ def stored_pcm(
     subject: str,
     repairs: Repairs,
 ) -> NDArray[np.float64]:
-    """The waveform a sample header points at, however its frames and channels are stored."""
+    """The waveform a sample header points at, however its frames and channels are stored.
+
+    A stereo waveform holds each channel's frames in full, the left before the right. Each half is read
+    as far as whole frames go and the pair as far as both halves reach, so a block the file stops inside
+    sounds the frames it holds.
+    """
     length = read_int(values, "length")
     convert = stored_convert(values, subject=subject, repairs=repairs)
     doubled = states_differences(convert)
@@ -143,7 +149,7 @@ def stored_pcm(
             frames = decompress(data, frames=length, depth=depth, doubled=doubled, subject=subject, repairs=repairs)
             return dequantise(frames, depth)
 
-        return decode_pcm(data, depth=depth, encoding=encoding, sign=sign)
+        return decode_pcm(whole_frames(data, depth=depth), depth=depth, encoding=encoding, sign=sign)
 
     if is_compressed(values):
         left_bytes, _ = _compressed_extents(data, frames=length, depth=depth, channels=STEREO_CHANNELS)
@@ -153,17 +159,17 @@ def stored_pcm(
         )
         return dequantise(np.stack([left, right], axis=1), depth)
 
-    mono_bytes = length * depth.bytes_per_frame
-    left_pcm = decode_pcm(data[:mono_bytes], depth=depth, encoding=encoding, sign=sign)
-    right_pcm = decode_pcm(data[mono_bytes:], depth=depth, encoding=encoding, sign=sign)
+    left_block, right_block = paired_channels(data, block=length * depth.bytes_per_frame, depth=depth)
+    left_pcm = decode_pcm(left_block, depth=depth, encoding=encoding, sign=sign)
+    right_pcm = decode_pcm(right_block, depth=depth, encoding=encoding, sign=sign)
     return np.stack([left_pcm, right_pcm], axis=1)
 
 
 def parse_sample(values: RecordValues, data: bytes, *, subject: str, repairs: Repairs) -> Sample:
     """Rebuild a sample from its header fields and the frames the header points at.
 
-    A loop the header states past the frames that were stored, and a rate of zero, are drawn into
-    range and recorded in ``repairs``.
+    A loop the header states past the frames that were stored, a rate of zero and a waveform the file
+    holds a part of are drawn into range and recorded in ``repairs``.
     """
     flags = SampleFlag(read_int(values, "flags"))
     depth = stored_depth(values)
@@ -183,7 +189,12 @@ def parse_sample(values: RecordValues, data: bytes, *, subject: str, repairs: Re
         if SampleFlag.SUSTAIN_LOOP in flags
         else None
     )
-    pcm = stored_pcm(values, data, depth=depth, subject=subject, repairs=repairs)
+    pcm = repaired_waveform(
+        stored_pcm(values, data, depth=depth, subject=subject, repairs=repairs),
+        stated=read_int(values, "length"),
+        subject=subject,
+        repairs=repairs,
+    )
     frames = int(pcm.shape[0])
     return Sample(
         name=decode_name(read_bytes(values, "name")),
@@ -209,9 +220,13 @@ def read_sample(data: bytes, *, offset: int, subject: str, repairs: Repairs) -> 
     """The sample whose header sits at ``offset``, with the frames the header points at.
 
     Both containers this format writes find a waveform the same way — through a pointer counted from the
-    start of the file — so the header's position is all a reader needs to be told.
+    start of the file — so the header's position is all a reader needs to be told. A pointer reaching
+    past the bytes the file holds names an empty slot, which keeps a song's numbering standing.
     """
-    values = SAMPLE_HEADER.unpack(data[offset:])
+    if offset + SAMPLE_HEADER.size > len(data):
+        repairs.made(f"a header at {offset} of {len(data)} bytes held reads as empty", subject=subject)
+
+    values = SAMPLE_HEADER.unpack_at(data, offset)
     start = read_int(values, "sample_pointer")
     frames = data[start:] if is_compressed(values) else data[start : start + stored_frames(values)]
     return parse_sample(values, frames, subject=subject, repairs=repairs)

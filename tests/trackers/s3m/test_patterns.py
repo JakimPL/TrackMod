@@ -13,6 +13,7 @@ from trackmod.trackers.s3m.patterns.packer import pack_cells, pack_pattern
 from trackmod.trackers.s3m.patterns.parser import unpack_cells, unpack_pattern
 from trackmod.trackers.s3m.patterns.sizing import block_bytes, packed_bytes
 from trackmod.trackers.s3m.spec.ranges import PATTERN_ROWS
+from trackmod.trackers.s3m.spec.sizes import PATTERN_LENGTH_BYTES
 
 CHANNELS = 4
 REFERENCE_BYTE = 0x40
@@ -134,3 +135,22 @@ def test_a_command_stating_nothing_carries_no_effect() -> None:
     block = pattern_block((cell_bytes(0, note=REFERENCE_BYTE, sample=1, command=0, parameter=0),))
     pattern = unpack_pattern(Cursor(block), rows=PATTERN_ROWS, channels=1, subject="pattern", repairs=Repairs())
     assert pattern.cell(0, 0).effect is None
+
+
+def test_a_stream_stopping_inside_a_cell_reads_it_and_the_rows_after_it_as_silence() -> None:
+    # A marker states which groups of bytes follow it, so a stream that runs out inside one leaves the
+    # cell it opened silent along with every row it never reached.
+    block = pattern_block((cell_bytes(0, note=REFERENCE_BYTE, sample=1, volume=32),))
+    repairs = Repairs()
+    pattern = unpack_pattern(
+        Cursor(block[: PATTERN_LENGTH_BYTES + 2]),
+        rows=PATTERN_ROWS,
+        channels=1,
+        subject="pattern",
+        repairs=repairs,
+    )
+    assert not pattern.occupied.any()
+    assert [repair for _, repair in repairs.entries] == [
+        "64 rows past the end of the stream read as silence",
+        "a cell the stream stops inside reads as silence",
+    ]

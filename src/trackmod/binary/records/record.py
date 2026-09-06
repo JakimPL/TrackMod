@@ -63,6 +63,15 @@ class Record(BaseModel):
 
         return bytes(buffer)
 
+    def unpack_at(self, data: bytes, offset: int) -> dict[str, FieldValue | ArrayValue]:
+        """Read this record from ``offset``, filling it out with zeroes where the data stops inside it.
+
+        A file states where each of its records sits, and one stating an offset it never reaches is read
+        to the end of what it holds -- the fields the data covers are the ones it stated, and the rest
+        read as the zeroes an empty record holds.
+        """
+        return self.unpack(data[offset : offset + self.size].ljust(self.size, b"\0"))
+
     def unpack(self, data: bytes) -> dict[str, FieldValue | ArrayValue]:
         """Read every described field out of ``data``.
 

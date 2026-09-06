@@ -20,6 +20,7 @@ from trackmod.trackers.mod.samples.writer import (
 from trackmod.trackers.mod.samples.writer import stored_frames as stored_frame_count
 from trackmod.trackers.mod.spec.defaults import NO_LOOP_LENGTH
 from trackmod.trackers.mod.spec.periods import FINETUNE_RATES
+from trackmod.trackers.mod.spec.ranges import MIN_LOOP_FRAMES
 from trackmod.trackers.mod.spec.sizes import WORD_BYTES
 
 
@@ -138,3 +139,34 @@ def test_a_sample_this_format_keeps_no_field_for_is_refused() -> None:
     for sample, reason in refused:
         with pytest.raises(ValueError, match=reason):
             sample_header(sample)
+
+
+def looped(frames: int, loop: Loop) -> Sample:
+    """A waveform of ``frames`` frames repeating over ``loop``, at the one depth this format stores."""
+    return Sample(name="looped", pcm=np.zeros(frames), rate=REFERENCE_RATE, depth=BitDepth.EIGHT, loop=loop)
+
+
+def test_a_loop_shorter_than_the_shortest_a_record_states_stays_a_loop() -> None:
+    # A record says a sample plays through once by running its loop for a single pair of frames, so a
+    # loop of one pair has to be stored as two for the sample to go on repeating.
+    sample = looped(8, Loop(begin=1, end=3, mode=LoopMode.FORWARD))
+    values = SAMPLE_HEADER.unpack(sample_header(sample))
+    assert (values["loop_begin"], values["loop_length"]) == (0, 2)
+    assert written(sample).loop == Loop(begin=0, end=4, mode=LoopMode.FORWARD)
+
+
+def test_a_loop_between_pairs_is_stored_as_the_pairs_that_hold_its_ends() -> None:
+    # Both ends count pairs, so the beginning goes back to the pair holding it and the end on to the
+    # pair closing it, which keeps every frame the loop repeats inside the region the record names.
+    sample = looped(8, Loop(begin=3, end=7, mode=LoopMode.FORWARD))
+    values = SAMPLE_HEADER.unpack(sample_header(sample))
+    assert (values["loop_begin"], values["loop_length"]) == (1, 3)
+
+    recovered = written(sample).loop
+    assert recovered == Loop(begin=2, end=8, mode=LoopMode.FORWARD)
+
+
+def test_a_loop_the_shortest_a_record_states_has_no_room_for_is_refused() -> None:
+    sample = looped(2, Loop(begin=0, end=2, mode=LoopMode.FORWARD))
+    with pytest.raises(ValueError, match=f"runs for {MIN_LOOP_FRAMES} frames at the least"):
+        sample_header(sample)

@@ -205,3 +205,37 @@ def test_a_convert_byte_naming_a_storage_this_reader_leaves_out_reads_signed_amp
 
     assert np.allclose(pcm, dequantise(np.asarray([0, 64, -64, 127, -128]), depth))
     assert repairs.entries == ((SUBJECT, "a convert byte of 0xff reads as signed amplitudes"),)
+
+
+def test_a_sixteen_bit_waveform_the_file_stops_inside_a_frame_of_reads_whole_frames() -> None:
+    sample = Sample(name="wave", pcm=np.linspace(-1.0, 1.0, 8), rate=RATE)
+    values = SAMPLE_HEADER.unpack(sample_header(sample, data_offset=0))
+    repairs = Repairs()
+
+    recovered = parse_sample(values, sample_bytes(sample)[:9], subject=SUBJECT, repairs=repairs)
+
+    assert recovered.frames == 4
+    assert repairs.entries == ((SUBJECT, "waveform of 8 frames read as the 4 the file holds"),)
+
+
+def test_a_stereo_waveform_the_file_stops_inside_reads_as_far_as_both_channels_reach() -> None:
+    # Each channel is stored in full, the left before the right, so a block cut short holds all of the
+    # left and a part of the right. A frame is the pair a player sounds together, so the two are read
+    # to the length they share and every frame keeps the amplitudes that belong to it.
+    pcm = np.stack([np.linspace(-1.0, 1.0, 8), np.linspace(1.0, -1.0, 8)], axis=1)
+    sample = Sample(name="wide", pcm=pcm, rate=RATE)
+    values = SAMPLE_HEADER.unpack(sample_header(sample, data_offset=0))
+    channel_bytes = sample.frames * sample.depth.bytes_per_frame
+    repairs = Repairs()
+
+    recovered = parse_sample(
+        values,
+        sample_bytes(sample)[: channel_bytes + channel_bytes // 2],
+        subject=SUBJECT,
+        repairs=repairs,
+    )
+
+    assert recovered.channels == 2
+    assert recovered.frames == 4
+    assert np.allclose(recovered.pcm, pcm[:4], atol=1.5 / sample.depth.scale)
+    assert repairs.entries == ((SUBJECT, "waveform of 8 frames read as the 4 the file holds"),)

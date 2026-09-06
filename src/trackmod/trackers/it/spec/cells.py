@@ -31,6 +31,14 @@ class CellMask(IntFlag):
     LAST_EFFECT = 0x80
 
 
+COLUMN_BYTES: Final = {
+    CellMask.NOTE: COLUMN_BYTE,
+    CellMask.INSTRUMENT: COLUMN_BYTE,
+    CellMask.VOLUME: COLUMN_BYTE,
+    CellMask.EFFECT: EFFECT_BYTES,
+}
+
+
 @unique
 class NoteByte(IntEnum):
     """The note-column values that act on the playing voice instead of naming a key."""

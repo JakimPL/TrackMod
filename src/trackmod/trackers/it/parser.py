@@ -1,7 +1,8 @@
 import struct
 
 from trackmod.binary.cursor import Cursor
-from trackmod.binary.records.values import read_bytes, read_int
+from trackmod.binary.records.record import Record
+from trackmod.binary.records.values import RecordValues, read_bytes, read_int
 from trackmod.binary.text import decode_name, decode_text
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.repair import routed_within
@@ -129,6 +130,17 @@ class ModuleReader:
         stored = tuple(offset for offset in pointed if offset != EMPTY_PATTERN_OFFSET)
         return min(stored, default=self._tables_end)
 
+    def _header_at(self, offset: int, record: Record, *, subject: str) -> RecordValues:
+        """The record one table entry names, read as an empty one where the file stops inside it.
+
+        The zeroes a short file is read to the end of spell a record holding nothing, which keeps a
+        song's numbering standing whatever the entry reached.
+        """
+        if offset + record.size > len(self._data):
+            self._repairs.made(f"a record at {offset} of {len(self._data)} bytes held reads as empty", subject=subject)
+
+        return record.unpack_at(self._data, offset)
+
     @property
     def _appended_start(self) -> int:
         """The byte past every record the header points at, where a writer's own blocks begin.
@@ -140,11 +152,11 @@ class ModuleReader:
         reaches = [self._body_start]
         reaches += [offset + INSTRUMENT_HEADER_BYTES for offset in self._instrument_offsets]
         for offset in self._sample_offsets:
-            values = SAMPLE_HEADER.unpack(self._data[offset:])
+            values = SAMPLE_HEADER.unpack_at(self._data, offset)
             reaches += [offset + SAMPLE_HEADER_BYTES, stored_end(values, self._data)]
 
         for offset in self._stored_patterns:
-            header = PATTERN_HEADER.unpack(self._data[offset:])
+            header = PATTERN_HEADER.unpack_at(self._data, offset)
             reaches.append(offset + PATTERN_HEADER_BYTES + read_int(header, "packed_size"))
 
         message_range = self._message_range()
@@ -220,7 +232,7 @@ class ModuleReader:
         return tuple(
             routed_within(
                 parse_instrument(
-                    INSTRUMENT_HEADER.unpack(self._data[offset:]),
+                    self._header_at(offset, INSTRUMENT_HEADER, subject=f"instrument {index}"),
                     subject=f"instrument {index}",
                     repairs=self._repairs,
                 ),
@@ -248,20 +260,25 @@ class ModuleReader:
         return tuple(offset for offset in self._pattern_offsets if offset != EMPTY_PATTERN_OFFSET)
 
     def _patterns(self) -> tuple[Pattern, ...]:
-        """Every pattern the order list can name, in the order the table numbers them.
+        """Every pattern the order list can name, in the order the table numbers them."""
+        return tuple(
+            self._pattern_at(offset, subject=f"pattern {index}") for index, offset in enumerate(self._pattern_offsets)
+        )
+
+    def _pattern_at(self, offset: int, *, subject: str) -> Pattern:
+        """The pattern stored at one offset, or the empty grid a slot with no block of its own holds.
 
         An entry of zero names a pattern the file stores nowhere, which a tracker plays as the default
-        number of empty rows -- so the slot is filled with those rather than read from the file's own
-        opening bytes.
+        number of empty rows, so the slot is filled with those rather than read from the file's own
+        opening bytes. An entry past the bytes the file holds names one just as absent, and is reported.
         """
-        patterns = []
-        for offset in self._pattern_offsets:
-            if offset == EMPTY_PATTERN_OFFSET:
-                patterns.append(Pattern.empty(rows=DEFAULT_ROWS, channels=MIN_CHANNELS))
-                continue
+        if offset == EMPTY_PATTERN_OFFSET:
+            return Pattern.empty(rows=DEFAULT_ROWS, channels=MIN_CHANNELS)
 
-            cursor = Cursor(self._data)
-            cursor.seek(offset)
-            patterns.append(unpack_pattern(cursor))
+        if offset > len(self._data):
+            self._repairs.made(f"a block at {offset} of {len(self._data)} bytes held reads as silence", subject=subject)
+            return Pattern.empty(rows=DEFAULT_ROWS, channels=MIN_CHANNELS)
 
-        return tuple(patterns)
+        cursor = Cursor(self._data)
+        cursor.seek(offset)
+        return unpack_pattern(cursor, subject=subject, repairs=self._repairs)

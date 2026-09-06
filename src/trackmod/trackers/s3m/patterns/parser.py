@@ -14,6 +14,7 @@ from trackmod.trackers.s3m.note import decode_note
 from trackmod.trackers.s3m.spec.cells import (
     CHANNEL_MASK,
     END_OF_ROW,
+    GROUP_BYTES,
     NO_EFFECT,
     NO_SAMPLE,
     SAMPLE_OFFSET,
@@ -60,6 +61,11 @@ def decode_effect(cursor: Cursor) -> Effect | None:
     return None if command == NO_EFFECT else Effect(command=command, parameter=parameter)
 
 
+def payload_bytes(marker: int) -> int:
+    """How many bytes the groups a marker names occupy after it."""
+    return sum(size for group, size in GROUP_BYTES.items() if marker & group)
+
+
 def decode_cell(cursor: Cursor, marker: int, unnamed: UnnamedBytes) -> Cell:
     """One cell, read against the groups of bytes its marker says follow."""
     note, sample = decode_key(cursor, unnamed) if marker & CellMask.KEY else (None, None)
@@ -76,7 +82,9 @@ def unpack_cells(stream: bytes, *, rows: int, channels: int, subject: str, repai
     """Rebuild a pattern grid from a packed cell stream, whose rows are closed one by one.
 
     A row lists only the channels carrying something and ends with a zero byte, so the stream states its
-    own height and a stream ending early leaves the rows it never reached silent.
+    own height and a stream ending early leaves the rows it never reached silent. A marker says how many
+    bytes its cell spends, so a stream stopping inside one leaves that cell silent along with the rows
+    after it.
     """
     cursor = Cursor(stream)
     unnamed = UnnamedBytes()
@@ -88,6 +96,10 @@ def unpack_cells(stream: bytes, *, rows: int, channels: int, subject: str, repai
         if marker == END_OF_ROW:
             row += 1
             continue
+
+        if cursor.remaining < payload_bytes(marker):
+            repairs.made("a cell the stream stops inside reads as silence", subject=subject)
+            break
 
         cell = decode_cell(cursor, marker, unnamed)
         channel = marker & CHANNEL_MASK
@@ -112,8 +124,10 @@ def unpack_pattern(cursor: Cursor, *, rows: int, channels: int, subject: str, re
     The stated length covers the block a pointer names, the two bytes stating it included in the count
     the trackers of this lineage wrote there, while the row terminators are what delimit the cells. The
     length is therefore read as the room the stream has and the terminators as where it ends, so a block
-    counted either way reads to the same music.
+    counted either way reads to the same music. A block the file stops inside states the length it holds,
+    which reads its rows as far as they go.
     """
-    header = cursor.read(PATTERN_HEADER)
+    header = PATTERN_HEADER.unpack(cursor.peek_padded(PATTERN_HEADER.size))
+    cursor.take_at_most(PATTERN_HEADER.size)
     stream = cursor.take_at_most(read_int(header, "block_size"))
     return unpack_cells(stream, rows=rows, channels=channels, subject=subject, repairs=repairs)

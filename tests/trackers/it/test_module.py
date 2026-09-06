@@ -1,3 +1,4 @@
+import struct
 from pathlib import Path
 
 import numpy as np
@@ -5,6 +6,7 @@ import pytest
 
 from tests.conftest import make_sample, revoiced, voices_of
 from trackmod.core.instruments.instrument import Instrument
+from trackmod.core.repairs.report import RepairWarning
 from trackmod.core.samples.sample import Sample
 from trackmod.core.songs.song import Song
 from trackmod.limits.compliance import Compliance
@@ -19,7 +21,11 @@ from trackmod.trackers.it.spec.identity import (
     MAGIC_SAMPLE,
 )
 from trackmod.trackers.it.spec.ranges import DEFAULT_ROWS
-from trackmod.trackers.it.spec.sizes import FILE_HEADER_BYTES, OFFSET_TABLE_ENTRY_BYTES
+from trackmod.trackers.it.spec.sizes import (
+    FILE_HEADER_BYTES,
+    OFFSET_TABLE_ENTRY_BYTES,
+    PATTERN_HEADER_BYTES,
+)
 from trackmod.trackers.it.spec.storage import IT_STORAGE
 from trackmod.trackers.it.version import Tracker, wrote
 
@@ -140,19 +146,87 @@ def test_a_song_built_from_nothing_states_the_version_this_format_writes(song: S
     assert wrote(recovered.settings.created_with) is Tracker.IMPULSE_TRACKER
 
 
-def test_a_pattern_the_table_points_at_offset_zero_plays_as_empty_rows(song: Song) -> None:
-    # ITTECH.TXT stores no data for such a pattern, and files in the wild carry the entry. Reading it
-    # from the file's own opening bytes would parse the header as a cell stream.
-    data = bytearray(module(song).to_bytes())
-    values = FILE_HEADER.unpack(bytes(data))
-    patterns_at = (
+def patterns_table(data: bytes) -> int:
+    """Where the table of pattern offsets opens, which follows the order list and the two above it."""
+    values = FILE_HEADER.unpack(data)
+    return (
         FILE_HEADER_BYTES
         + values["order_count"]
         + OFFSET_TABLE_ENTRY_BYTES * (values["instrument_count"] + values["sample_count"])
     )
+
+
+def test_a_pattern_the_table_points_past_the_bytes_the_file_holds_plays_as_empty_rows(song: Song) -> None:
+    data = bytearray(module(song).to_bytes())
+    patterns_at = patterns_table(bytes(data))
+    struct.pack_into("<I", data, patterns_at, len(data) + 1)
+
+    with pytest.warns(RepairWarning, match="reads as silence"):
+        recovered = ITModule.parse(bytes(data)).song
+
+    assert len(recovered.patterns) == len(song.patterns)
+    assert recovered.patterns[0].rows == DEFAULT_ROWS
+    assert not recovered.patterns[0].occupied.any()
+
+
+def test_a_pattern_the_table_points_at_offset_zero_plays_as_empty_rows(song: Song) -> None:
+    # ITTECH.TXT stores no data for such a pattern, and files in the wild carry the entry. Reading it
+    # from the file's own opening bytes would parse the header as a cell stream.
+    data = bytearray(module(song).to_bytes())
+    patterns_at = patterns_table(bytes(data))
     data[patterns_at : patterns_at + OFFSET_TABLE_ENTRY_BYTES] = bytes(OFFSET_TABLE_ENTRY_BYTES)
 
     recovered = ITModule.parse(bytes(data)).song
     assert len(recovered.patterns) == len(song.patterns)
     assert recovered.patterns[0].rows == DEFAULT_ROWS
     assert not recovered.patterns[0].occupied.any()
+
+
+def test_a_record_the_table_points_past_the_bytes_the_file_holds_reads_as_an_empty_one(song: Song) -> None:
+    # Every table here names its records by an offset counted from the start of the file, so a table
+    # reaching past the file leaves the slot standing empty and the numbering every cell counts against
+    # where it was.
+    data = bytearray(module(song).to_bytes())
+    values = FILE_HEADER.unpack(bytes(data))
+    samples_at = FILE_HEADER_BYTES + values["order_count"] + OFFSET_TABLE_ENTRY_BYTES * values["instrument_count"]
+    struct.pack_into("<I", data, samples_at, len(data) + 1)
+
+    with pytest.warns(RepairWarning, match="reads as empty"):
+        recovered = ITModule.parse(bytes(data)).song
+
+    assert len(voices_of(recovered).samples) == len(voices_of(song).samples)
+    assert voices_of(recovered).samples[0].frames == 0
+
+
+def test_an_instrument_the_table_points_past_the_bytes_the_file_holds_reads_as_an_empty_one(song: Song) -> None:
+    data = bytearray(module(song).to_bytes())
+    values = FILE_HEADER.unpack(bytes(data))
+    struct.pack_into("<I", data, FILE_HEADER_BYTES + values["order_count"], len(data) + 1)
+
+    with pytest.warns(RepairWarning, match="reads as empty"):
+        recovered = ITModule.parse(bytes(data)).song
+
+    assert len(voices_of(recovered).instruments) == len(voices_of(song).instruments)
+    assert voices_of(recovered).instruments[0].name == ""
+
+
+def test_a_file_stopping_inside_a_block_reads_its_rows_as_far_as_they_go(song: Song) -> None:
+    data = bytearray(module(song).to_bytes())
+    (offset,) = struct.unpack_from("<I", bytes(data), patterns_table(bytes(data)))
+
+    with pytest.warns(RepairWarning):
+        recovered = ITModule.parse(bytes(data[: offset + 1])).song
+
+    assert recovered.patterns[0].rows == DEFAULT_ROWS
+    assert not recovered.patterns[0].occupied.any()
+
+
+def test_a_block_stating_a_stream_longer_than_the_file_holds_reads_what_is_there(song: Song) -> None:
+    data = bytearray(module(song).to_bytes())
+    (offset,) = struct.unpack_from("<I", bytes(data), patterns_table(bytes(data)))
+    held = 2
+
+    with pytest.warns(RepairWarning):
+        recovered = ITModule.parse(bytes(data[: offset + PATTERN_HEADER_BYTES + held])).song
+
+    assert recovered.patterns[0].rows == song.patterns[0].rows

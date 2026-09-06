@@ -33,12 +33,12 @@ sample frames                          pointed at by each sample header
 song message                           pointed at by the file header
 ```
 
-The header counts the instruments, samples and patterns the file holds, and three tables of 32-bit
-offsets follow the order list, one entry per item. A section sits wherever its entry points, so the order
-above is one this library chose, with the frames a sample header points at last.
+The header counts the instruments, samples and patterns, and three tables of 32-bit offsets follow the
+order list. A section sits wherever its entry points, so the order above is one this library chose.
 
 Each section carries its own tag: `IMPM` opens the file, `IMPI` each instrument, `IMPS` each sample. An
-entry of zero points at no record, which is how a pattern stored nowhere is stated; it plays 64 empty rows.
+entry of zero points at no record, which is how a pattern stored nowhere is stated; it plays 64 empty
+rows. An entry past the bytes the file holds names a record just as absent, and is reported.
 
 Two 64-byte tables, at offsets 64 and 128, hold a panning and a volume for each of the format's own 64
 channels, beside the song's global volume, mix volume, panning separation and flag word.
@@ -73,15 +73,17 @@ announced by the byte `channel + 1`, with `0x80` set when a mask byte follows:
 | `0x40` | the volume it last stated |
 | `0x80` | the effect it last stated |
 
-Every channel keeps a **memory** of the four values it last stated and of the mask it last used. A repeated
-column costs one bit, and a marker leaving the high bit clear carries the mask that channel last used, so a
-channel holding steady settles to a single byte a row. A channel whose first marker sets no mask starts
-from one over no columns, which reads as the silence already in the grid.
+Every channel keeps a **memory** of the four values and the mask it last stated. A repeated column costs
+one bit, and a marker leaving the high bit clear reuses that mask, so a channel holding steady settles to a
+single byte a row; a first marker setting no mask starts over no columns, reading as the grid's silence.
 
 **How wide a pattern is comes out of the stream.** The format states a channel count nowhere, so the width
 is the widest channel any row lists, and a song holding channels in reserve would come back narrower. The
 writer closes that gap: where the grid leaves the widest channel silent, the opening row announces it with
 a mask over no columns — `0x80 | channels` then `0x00` — so the declared width survives a round trip.
+
+A stream stopping inside a cell, a marker naming no channel, and a header stating no rows are each read as
+the silence a player sounds there, and reported.
 
 ### The note column
 
@@ -124,8 +126,6 @@ The keymap is 120 pairs of (sounded note, sample number) at offset 64, one per k
 one-based, so zero silences a key, and an unmapped key names its own pitch. Separating the pressed key from
 the sounded note lets one instrument route keys onto different samples and transpose each independently.
 
-Instruments sit beside the sample table and index into it, so a shared waveform is stored once and named twice.
-
 A key routed to a missing sample is left silent, a sounded note past the last key is drawn onto it, and a
 behaviour byte this format leaves unnamed reads as that field's default. All three are reported.
 
@@ -164,7 +164,8 @@ ping-pong sustain — so both loops are optionally bidirectional.
 
 The panning byte reserves its high bit as an enable switch and holds a position on `0..64`, and the global
 volume is a per-sample multiplier applied on top of whatever level plays. A loop past the frames stored is
-drawn inside them and a rate of zero reads as 8363 Hz; both are reported.
+drawn inside them, a waveform the file stops inside reads as the frames it holds, and a rate of zero reads
+as 8363 Hz; all three are reported.
 
 **The convert byte says how the frames are read.** Its low bit distinguishes signed amplitudes, which
 Impulse Tracker itself writes, from unsigned ones, which sit a full scale higher and are common in files
@@ -220,8 +221,7 @@ sample frames                     pointed at by each sample header
 
 The header's sample count says how many headers follow it, so a reader finds each by arithmetic where a
 module consults an offset table. Each sample pointer is still counted from the start of the file, which
-lets one reader serve both containers. The keymap's one-based numbers name the samples stored here, in the
-order they are stored.
+lets one reader serve both containers, and the keymap names the samples in the order they are stored.
 
 ## Timing
 

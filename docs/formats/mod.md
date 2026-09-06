@@ -98,8 +98,10 @@ eight-bit and one channel throughout. A module writes all thirty-one records whe
 or leaves them empty, which is what makes one more sample cost its frames and nothing else.
 
 A loop length of one pair is what this format writes to say a sample plays through once, so a loop runs
-from two pairs up. A loop reaching past the frames the file holds is drawn inside them and a volume past
-full is drawn back to it; both are reported.
+from two pairs up. Writing one takes its beginning back to the pair holding it and its end on to the pair
+closing it, which keeps every frame it repeats inside the region the record names; a waveform of a single
+pair leaves a loop no room at all. A loop reaching past the frames the file holds is drawn inside them and
+a volume past full is drawn back to it; both are reported.
 
 Trackers of this lineage wrote liner notes into the sample names, so a slot holding no waveform still
 carries text a file means to keep. A song therefore holds every slot up to the last one that states
@@ -184,11 +186,12 @@ one parameter byte.
 | A per-sample panning | `ValueError` |
 | A sustain loop | `ValueError` |
 | A loop that plays backwards | `ValueError` |
+| A loop over a waveform of one pair of frames | `ValueError` |
 | An effect command past the four bits a cell holds | `ValueError` |
 | A song whose cells name instruments | `ValueError` |
 | A quantity past a bound | `LimitError` |
 
-Ten rows against Impulse Tracker's two: this is the plainest of the formats here, and what it carries
+Eleven rows against Impulse Tracker's two: this is the plainest of the formats here, and what it carries
 every other one carries too. [`limits.md`](../limits.md) states the bounds behind the last of them.
 
 ## Effect commands

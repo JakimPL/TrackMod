@@ -44,9 +44,16 @@ from trackmod.trackers.s3m.spec.flags import (
 )
 from trackmod.trackers.s3m.spec.identity import MAGIC_MODULE, UNSIGNED_FRAMES
 from trackmod.trackers.s3m.spec.ranges import PATTERN_ROWS
-from trackmod.trackers.s3m.spec.sizes import CHANNELS_STORED, PARAGRAPH_BYTES
+from trackmod.trackers.s3m.spec.sizes import (
+    CHANNELS_STORED,
+    FILE_HEADER_BYTES,
+    PARAGRAPH_BYTES,
+    PARAPOINTER_BYTES,
+)
 
 REFERENCE_BYTE = 0x40
+ONE_ORDER = b"\x00"
+UNREACHED_PARAGRAPH = 0xF000
 
 
 def written(song: Song, settings: S3MSettings | None = None) -> bytes:
@@ -280,3 +287,50 @@ def test_a_cell_on_a_channel_above_a_gap_in_the_settings_table_is_music() -> Non
     song = S3MModule.parse(bytes(data)).song
     assert song.channels == 3
     assert song.patterns[0].cell(row=0, channel=2).note == REFERENCE_KEY
+
+
+def pointed_past_the_file(*, pointer: int) -> bytes:
+    """A module of one record and one pattern whose ``pointer``-th table entry names no byte it holds."""
+    data = bytearray(
+        raw_module(
+            orders=ONE_ORDER,
+            records=(instrument_record(length=4, kind=int(RecordType.SAMPLE)),),
+            patterns=(silent_block(),),
+            waveforms=(bytes(4),),
+        )
+    )
+    table = FILE_HEADER_BYTES + len(ONE_ORDER) + PARAPOINTER_BYTES * pointer
+    struct.pack_into("<H", data, table, UNREACHED_PARAGRAPH)
+    return bytes(data)
+
+
+def test_a_block_pointer_past_the_bytes_the_file_holds_reads_as_silence() -> None:
+    with pytest.warns(RepairWarning, match="reads as silence"):
+        song = S3MModule.parse(pointed_past_the_file(pointer=1)).song
+
+    assert song.patterns[0] == Pattern.empty(rows=PATTERN_ROWS, channels=song.channels)
+
+
+def test_a_record_pointer_past_the_bytes_the_file_holds_reads_as_an_empty_slot() -> None:
+    # A slot standing empty keeps a song's sample numbering, which is what every cell naming a sample
+    # counts against, so a pointer reaching nothing leaves the numbering where it was.
+    with pytest.warns(RepairWarning, match="reads as empty"):
+        song = S3MModule.parse(pointed_past_the_file(pointer=0)).song
+
+    assert len(song.voices.samples) == 1
+    assert song.voices.samples[0].frames == 0
+
+
+def test_a_file_stopping_inside_a_block_reads_its_rows_as_far_as_they_go() -> None:
+    data = raw_module(
+        orders=ONE_ORDER,
+        records=(instrument_record(kind=int(RecordType.EMPTY)),),
+        patterns=(pattern_block((cell_bytes(0, note=REFERENCE_BYTE, sample=1),)),),
+    )
+    table = FILE_HEADER_BYTES + len(ONE_ORDER) + PARAPOINTER_BYTES
+    (paragraph,) = struct.unpack_from("<H", data, table)
+
+    with pytest.warns(RepairWarning, match="rows past the end of the stream"):
+        song = S3MModule.parse(data[: paragraph * PARAGRAPH_BYTES + 1]).song
+
+    assert song.patterns[0] == Pattern.empty(rows=PATTERN_ROWS, channels=song.channels)

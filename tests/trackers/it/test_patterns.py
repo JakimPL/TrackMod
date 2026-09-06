@@ -9,10 +9,11 @@ from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
 from trackmod.core.patterns.grid import Pattern
+from trackmod.core.repairs.report import Repairs
 from trackmod.core.volumes.command import VolumeCommand, VolumeEffect
-from trackmod.spec.grid import EMPTY
+from trackmod.spec.grid import EMPTY, MIN_CHANNELS
 from trackmod.trackers.it.patterns.packer import pack_cells, stored_instrument
-from trackmod.trackers.it.patterns.parser import unpack_cells
+from trackmod.trackers.it.patterns.parser import stated_rows, unpack_cells
 from trackmod.trackers.it.patterns.sizing import packed_bytes
 from trackmod.trackers.it.patterns.width import WIDTH_MARKER_BYTES, width_marker
 from trackmod.trackers.it.spec.cells import (
@@ -21,9 +22,11 @@ from trackmod.trackers.it.spec.cells import (
     NO_INSTRUMENT,
     CellMask,
 )
-from trackmod.trackers.it.spec.ranges import MAX_ROWS
+from trackmod.trackers.it.spec.ranges import DEFAULT_ROWS, MAX_ROWS
 from trackmod.trackers.it.spec.volume import VOLUME_COLUMN
 from trackmod.trackers.it.volume import stored_volume
+
+SUBJECT = "pattern 0"
 
 GRIDS = (
     GridShape(rows=16, channels=4, instruments=2, seed=1),
@@ -64,7 +67,7 @@ def test_a_pattern_whose_widest_channels_are_silent_keeps_its_width() -> None:
     builder = PatternBuilder(rows=4, channels=12)
     builder.place(0, 0, Cell(note=Note(60), instrument=0, volume=64))
     pattern = builder.build()
-    assert unpack_cells(pack_cells(pattern), rows=pattern.rows) == pattern
+    assert unpack_cells(pack_cells(pattern), rows=pattern.rows, subject=SUBJECT, repairs=Repairs()) == pattern
 
 
 def test_the_widest_channel_states_the_width_by_carrying_content() -> None:
@@ -73,14 +76,14 @@ def test_the_widest_channel_states_the_width_by_carrying_content() -> None:
     builder.place(3, 11, Cell(note=Note(60), instrument=0, volume=64))
     pattern = builder.build()
     assert width_marker(pattern) == b""
-    assert unpack_cells(pack_cells(pattern), rows=pattern.rows) == pattern
+    assert unpack_cells(pack_cells(pattern), rows=pattern.rows, subject=SUBJECT, repairs=Repairs()) == pattern
 
 
 def test_the_width_is_named_by_a_cell_the_grid_reads_as_silence() -> None:
     pattern = Pattern.empty(rows=1, channels=6)
     stream = pack_cells(pattern)
     assert stream[:WIDTH_MARKER_BYTES] == bytes([CHANNEL_MARKER | pattern.channels, NO_COLUMNS])
-    assert unpack_cells(stream, rows=1).cell(0, pattern.channels - 1) == Cell()
+    assert unpack_cells(stream, rows=1, subject=SUBJECT, repairs=Repairs()).cell(0, pattern.channels - 1) == Cell()
 
 
 def test_a_changed_volume_spends_a_byte_and_keeps_the_mask() -> None:
@@ -95,7 +98,9 @@ def test_a_changed_volume_spends_a_byte_and_keeps_the_mask() -> None:
 @pytest.mark.parametrize("shape", GRIDS, ids=lambda shape: f"{shape.rows}x{shape.channels}")
 def test_a_packed_pattern_unpacks_to_the_same_grid(shape: GridShape) -> None:
     pattern = random_pattern(shape)
-    recovered = unpack_cells(pack_cells(pattern), rows=pattern.rows).widened(pattern.channels)
+    recovered = unpack_cells(pack_cells(pattern), rows=pattern.rows, subject=SUBJECT, repairs=Repairs()).widened(
+        pattern.channels
+    )
     assert recovered == pattern
 
 
@@ -103,14 +108,14 @@ def test_a_note_command_survives_a_round_trip() -> None:
     builder = PatternBuilder(rows=2, channels=1)
     builder.place(0, 0, Cell(note=Note(60), instrument=0, volume=64))
     builder.place(1, 0, Cell(note=NoteCommand.OFF))
-    recovered = unpack_cells(pack_cells(builder.build()), rows=2)
+    recovered = unpack_cells(pack_cells(builder.build()), rows=2, subject=SUBJECT, repairs=Repairs())
     assert recovered.cell(1, 0) == Cell(note=NoteCommand.OFF)
 
 
 def test_an_effect_survives_a_round_trip() -> None:
     builder = PatternBuilder(rows=1, channels=1)
     builder.place(0, 0, Cell(effect=Effect(command=20, parameter=200)))
-    recovered = unpack_cells(pack_cells(builder.build()), rows=1)
+    recovered = unpack_cells(pack_cells(builder.build()), rows=1, subject=SUBJECT, repairs=Repairs())
     assert recovered.cell(0, 0) == Cell(effect=Effect(command=20, parameter=200))
 
 
@@ -121,7 +126,7 @@ def test_a_column_left_out_of_a_cell_does_not_erase_what_the_channel_remembers()
     builder.place(1, 0, Cell(note=Note(62)))
     builder.place(2, 0, Cell(note=Note(62), volume=32))
     pattern = builder.build()
-    recovered = unpack_cells(pack_cells(pattern), rows=3)
+    recovered = unpack_cells(pack_cells(pattern), rows=3, subject=SUBJECT, repairs=Repairs())
     assert recovered.cell(1, 0) == Cell(note=Note(62))
     assert recovered.cell(2, 0) == Cell(note=Note(62), volume=32)
 
@@ -130,7 +135,7 @@ def test_a_channel_named_before_any_mask_reads_as_silence_and_still_states_the_w
     # ITTECH.TXT starts every channel remembering a mask over no columns, and files in the wild name a
     # channel with no mask byte at all. Such a cell carries nothing and still widens the pattern, which
     # is the same reading the width marker relies on.
-    recovered = unpack_cells(bytes([0x04, 0x00]), rows=1)
+    recovered = unpack_cells(bytes([0x04, 0x00]), rows=1, subject=SUBJECT, repairs=Repairs())
     assert recovered.channels == 4
     assert recovered.cell(0, 3) == Cell()
     assert not recovered.occupied.any()
@@ -148,7 +153,7 @@ def test_the_first_instrument_is_stored_above_the_byte_that_means_none() -> None
 def test_an_instrument_survives_a_round_trip() -> None:
     builder = PatternBuilder(rows=1, channels=1)
     builder.place(0, 0, Cell(note=Note(60), instrument=0, volume=64))
-    recovered = unpack_cells(pack_cells(builder.build()), rows=1)
+    recovered = unpack_cells(pack_cells(builder.build()), rows=1, subject=SUBJECT, repairs=Repairs())
     assert recovered.cell(0, 0).instrument == 0
 
 
@@ -163,7 +168,7 @@ def volume_stream(byte: int) -> bytes:
 
 def unpack_cells_at(stream: bytes) -> Pattern:
     """The one-row pattern a stream packs to."""
-    return unpack_cells(stream, rows=1)
+    return unpack_cells(stream, rows=1, subject=SUBJECT, repairs=Repairs())
 
 
 @pytest.mark.parametrize("span", VOLUME_COLUMN.spans, ids=lambda span: span.effect.name)
@@ -216,11 +221,46 @@ def test_a_note_byte_the_column_leaves_unnamed_reads_as_absent_and_is_reported()
     # The keys stop at 119 and the commands sit at 253..255, so the values between them name nothing.
     stream = bytes([1 | CHANNEL_MARKER, CellMask.NOTE, 200, 0x00])
     with pytest.warns(UnnamedByteWarning, match="200"):
-        recovered = unpack_cells(stream, rows=1)
+        recovered = unpack_cells(stream, rows=1, subject=SUBJECT, repairs=Repairs())
 
     assert recovered.cell(0, 0) == Cell()
 
 
 def test_the_commands_at_the_top_of_the_byte_range_still_read() -> None:
     stream = bytes([1 | CHANNEL_MARKER, CellMask.NOTE, 255, 0x00])
-    assert unpack_cells(stream, rows=1).cell(0, 0) == Cell(note=NoteCommand.OFF)
+    assert unpack_cells(stream, rows=1, subject=SUBJECT, repairs=Repairs()).cell(0, 0) == Cell(note=NoteCommand.OFF)
+
+
+def test_a_stream_stopping_inside_a_cell_reads_it_and_the_rows_after_it_as_silence() -> None:
+    # A mask states which columns follow it, so a stream that runs out inside one leaves the cell it
+    # opened silent along with every row it never reached.
+    stream = bytes([1 | CHANNEL_MARKER, CellMask.NOTE | CellMask.VOLUME, 60])
+    repairs = Repairs()
+
+    pattern = unpack_cells(stream, rows=2, subject=SUBJECT, repairs=repairs)
+
+    assert not pattern.occupied.any()
+    assert [repair for _, repair in repairs.entries] == [
+        "2 rows past the end of the stream read as silence",
+        "a cell the stream stops inside reads as silence",
+    ]
+
+
+def test_a_marker_naming_no_channel_reads_as_silence() -> None:
+    # The channel byte is one-based, so a marker whose channel bits are all clear names nothing at all.
+    repairs = Repairs()
+
+    pattern = unpack_cells(bytes([CHANNEL_MARKER, NO_COLUMNS, 0x00]), rows=1, subject=SUBJECT, repairs=repairs)
+
+    assert pattern.channels == MIN_CHANNELS
+    assert not pattern.occupied.any()
+    assert [repair for _, repair in repairs.entries] == ["1 cells naming no channel read as silence"]
+
+
+def test_a_block_stating_no_rows_reads_at_the_height_a_tracker_plays() -> None:
+    repairs = Repairs()
+
+    rows = stated_rows({"rows": 0}, subject=SUBJECT, repairs=repairs)
+
+    assert rows == DEFAULT_ROWS
+    assert [repair for _, repair in repairs.entries] == [f"a block stating 0 rows reads as {DEFAULT_ROWS}"]

@@ -1,3 +1,6 @@
+import numpy as np
+from numpy.typing import NDArray
+
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.loop import Loop
 from trackmod.spec.pitch import REFERENCE_RATE
@@ -41,3 +44,23 @@ def repaired_rate(rate: int, *, subject: str, repairs: Repairs) -> int:
 
     repairs.made(f"rate 0 read as {REFERENCE_RATE} Hz", subject=subject)
     return REFERENCE_RATE
+
+
+def repaired_waveform(
+    pcm: NDArray[np.float64],
+    *,
+    stated: int,
+    subject: str,
+    repairs: Repairs,
+) -> NDArray[np.float64]:
+    """The frames a waveform holds, reported where a record states more than the file goes on to carry.
+
+    A record counts its frames per channel, so a file cut short in transit holds the head of a waveform
+    while its record still states the whole of it. The frames that are there are the ones that sound,
+    and the count they were read as is recorded.
+    """
+    held = int(pcm.shape[0])
+    if held < stated:
+        repairs.made(f"waveform of {stated} frames read as the {held} the file holds", subject=subject)
+
+    return pcm

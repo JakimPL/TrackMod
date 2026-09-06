@@ -3,6 +3,7 @@ from typing import Final
 import numpy as np
 from numpy.typing import NDArray
 
+from trackmod.binary.pcm.blocks import paired_channels, whole_frames
 from trackmod.binary.pcm.codec import decode_pcm
 from trackmod.binary.pcm.sign import PcmSign
 from trackmod.binary.records.values import RecordValues, read_bytes, read_int
@@ -10,7 +11,7 @@ from trackmod.binary.text import decode_name
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
-from trackmod.core.samples.repair import repaired_loop, repaired_rate
+from trackmod.core.samples.repair import repaired_loop, repaired_rate, repaired_waveform
 from trackmod.core.samples.sample import STEREO_CHANNELS, Sample
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.trackers.s3m.parapointers import joined_pointer
@@ -90,28 +91,42 @@ def reject_adlib(values: RecordValues, *, subject: str) -> None:
         raise ValueError(f"{subject} is {kind.name.lower()}, an OPL patch stated as registers rather than frames")
 
 
-def read_loop(values: RecordValues) -> Loop | None:
-    """The loop a record declares, or ``None`` when the waveform plays through once."""
+def read_loop(values: RecordValues, *, subject: str, repairs: Repairs) -> Loop | None:
+    """The loop a record declares, or ``None`` when the waveform plays through once.
+
+    A record can raise the loop flag over a pair of points that meet, which repeats nothing at all, so
+    the waveform plays through once and the claim the flag made is reported.
+    """
     if not SampleFlag(read_int(values, "flags")) & SampleFlag.LOOP:
         return None
 
     begin, end = read_int(values, "loop_begin"), read_int(values, "loop_end")
-    return Loop(begin=begin, end=end, mode=LoopMode.FORWARD) if end > begin else None
+    if end > begin:
+        return Loop(begin=begin, end=end, mode=LoopMode.FORWARD)
+
+    repairs.made(f"loop {begin}..{end} spans no frame and reads as none", subject=subject)
+    return None
 
 
 def stored_pcm(values: RecordValues, data: bytes, *, depth: BitDepth, sign: PcmSign) -> NDArray[np.float64]:
     """The waveform a record points at, however many channels it stores.
 
     A stereo waveform holds each channel's frames in full, the left before the right, so the two are
-    read from their own halves of the block rather than out of one interleaved run.
+    read from their own halves of the block rather than out of one interleaved run. Each half is read
+    as far as whole frames go and the pair as far as both halves reach, so a block the file stops
+    inside sounds the frames it holds.
     """
     if stored_channels(values) == MONO_CHANNELS:
-        return decode_pcm(data, depth=depth, encoding=PCM_ENCODING, sign=sign)
+        return decode_pcm(whole_frames(data, depth=depth), depth=depth, encoding=PCM_ENCODING, sign=sign)
 
-    mono_bytes = read_int(values, "length") * depth.bytes_per_frame
-    left = decode_pcm(data[:mono_bytes], depth=depth, encoding=PCM_ENCODING, sign=sign)
-    right = decode_pcm(data[mono_bytes:], depth=depth, encoding=PCM_ENCODING, sign=sign)
-    return np.stack([left, right], axis=1)
+    left, right = paired_channels(data, block=read_int(values, "length") * depth.bytes_per_frame, depth=depth)
+    return np.stack(
+        [
+            decode_pcm(left, depth=depth, encoding=PCM_ENCODING, sign=sign),
+            decode_pcm(right, depth=depth, encoding=PCM_ENCODING, sign=sign),
+        ],
+        axis=1,
+    )
 
 
 def read_volume(values: RecordValues, *, subject: str, repairs: Repairs) -> int:
@@ -150,8 +165,8 @@ def parse_sample(
 ) -> Sample:
     """Rebuild a sample from its record and the frames the record points at.
 
-    A loop stated past the frames that were stored, and a rate of zero, are drawn into range and
-    recorded in ``repairs``.
+    A loop stated past the frames that were stored, a loop spanning no frame, a rate of zero and a
+    waveform the file holds a part of are drawn into range and recorded in ``repairs``.
 
     Raises:
         ValueError: when the record describes an OPL patch or states a packing.
@@ -162,24 +177,30 @@ def parse_sample(
 
     reject_packed(values, subject=subject)
     depth = stored_depth(values)
-    pcm = stored_pcm(values, data, depth=depth, sign=sign)
+    pcm = repaired_waveform(
+        stored_pcm(values, data, depth=depth, sign=sign),
+        stated=read_int(values, "length"),
+        subject=subject,
+        repairs=repairs,
+    )
     return Sample(
         name=decode_name(read_bytes(values, "name")),
         pcm=pcm,
         rate=repaired_rate(read_int(values, "c2spd"), subject=subject, repairs=repairs),
         depth=depth,
         volume=read_volume(values, subject=subject, repairs=repairs),
-        loop=repaired_loop(read_loop(values), frames=int(pcm.shape[0]), name="loop", subject=subject, repairs=repairs),
+        loop=repaired_loop(
+            read_loop(values, subject=subject, repairs=repairs),
+            frames=int(pcm.shape[0]),
+            name="loop",
+            subject=subject,
+            repairs=repairs,
+        ),
         filename=decode_name(read_bytes(values, "filename")),
     )
 
 
-def stated_frames(values: RecordValues, data: bytes, *, subject: str, repairs: Repairs) -> bytes:
-    """The frames a record states, as far as the file goes on to hold them."""
+def stated_frames(values: RecordValues, data: bytes) -> bytes:
+    """The block of frames a record points at, as far as the file goes on to hold it."""
     start = waveform_start(values)
-    stated = stored_bytes(values)
-    held = data[start : start + stated]
-    if len(held) < stated:
-        repairs.made(f"waveform of {stated} bytes read as the {len(held)} the file holds", subject=subject)
-
-    return held
+    return data[start : start + stored_bytes(values)]
