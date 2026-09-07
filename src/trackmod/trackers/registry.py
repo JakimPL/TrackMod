@@ -164,6 +164,21 @@ def parse_voices(data: bytes, *, extension: str) -> Voices:
     return reader(data)
 
 
+def load_voices(path: Path) -> Voices:
+    """The voice table a file holds, read as the format its own bytes state.
+
+    A module answers with as many voices as it was written with and a standalone instrument file with
+    the one it carries, so a loop over a collection reaches the sounds of either the same way. The name
+    the file arrived under is one a collection may have lost or changed, so the format comes from
+    :func:`detected`.
+
+    Raises:
+        ValueError: when the bytes state none of the formats written here.
+    """
+    data = path.read_bytes()
+    return parse_voices(data, extension=detected(data))
+
+
 def parse_provenance(data: bytes, *, extension: str) -> Provenance | None:
     """What the bytes state about the program that wrote them, or ``None`` for a format stating none.
 

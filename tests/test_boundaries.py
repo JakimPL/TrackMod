@@ -30,6 +30,16 @@ def imported(path: Path) -> tuple[str, ...]:
     return tuple(names)
 
 
+def layer(path: Path) -> int:
+    """Where in the order a file sits, counting the package root as standing above every layer.
+
+    The root is what a caller imports from, so it names what each layer offers and stands over all of
+    them; every other file sits in the layer whose directory holds it.
+    """
+    parts = path.relative_to(SOURCE).parts
+    return LAYERS.index(parts[0]) if len(parts) > 1 else len(LAYERS)
+
+
 def holder(path: Path) -> str:
     """Which format or lineage package a file belongs to, empty where it sits below them."""
     parts = path.relative_to(SOURCE).parts
@@ -80,6 +90,6 @@ def test_a_layer_reads_only_the_layers_beneath_it() -> None:
         for path in modules()
         for module in imported(path)
         if (parts := module.split("."))[1:2] and parts[1] in LAYERS
-        if LAYERS.index(parts[1]) > LAYERS.index(path.relative_to(SOURCE).parts[0])
+        if LAYERS.index(parts[1]) > layer(path)
     )
     assert inverted == ()
