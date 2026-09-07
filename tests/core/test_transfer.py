@@ -3,11 +3,11 @@ import pytest
 from tests.conftest import make_sample
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.keymap import KeyAssignment, routed_keymap
-from trackmod.core.instruments.transfer import combine, extract, held
+from trackmod.core.instruments.transfer import combine, extract, held, units
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.notes.pitch import Note
 from trackmod.core.songs.song import Song
-from trackmod.core.voices.voices import InstrumentVoices
+from trackmod.core.voices.voices import InstrumentVoices, SampleVoices
 
 
 def test_a_unit_carries_only_the_samples_its_keys_reach(voices: InstrumentVoices) -> None:
@@ -99,3 +99,29 @@ def test_rerouting_without_a_position_for_a_reached_sample_is_refused(voices: In
 def test_an_instrument_out_of_range_is_refused(voices: InstrumentVoices) -> None:
     with pytest.raises(IndexError):
         extract(voices, len(voices.instruments))
+
+
+def test_a_table_naming_instruments_states_the_units_it_already_holds(voices: InstrumentVoices) -> None:
+    assert units(voices) == held(voices)
+
+
+def test_a_table_naming_samples_states_one_unit_per_waveform() -> None:
+    # A sample-addressed song is what three of the five formats hold, and a caller reaching for the
+    # instruments inside one asks the same question of it as of the other two.
+    samples = (make_sample("lead", seed=1), make_sample("bass", seed=2))
+    reached = units(SampleVoices(samples=samples))
+    assert len(reached) == len(samples)
+    for sample, unit in zip(samples, reached):
+        assert unit.samples == (sample,)
+        assert unit.instrument.name == sample.name
+
+
+def test_a_raised_unit_sounds_every_key_at_its_own_pitch() -> None:
+    sample = make_sample("lead", seed=1)
+    unit = units(SampleVoices(samples=(sample,)))[0]
+    for key in (0, 60, 119):
+        assert unit.instrument.assignment(Note(key)) == KeyAssignment(sample=0, note=Note(key))
+
+
+def test_a_table_holding_no_sample_states_no_unit() -> None:
+    assert units(SampleVoices(samples=())) == ()

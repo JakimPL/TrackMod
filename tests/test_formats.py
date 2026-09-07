@@ -12,7 +12,7 @@ from trackmod.core.effects.catalog import EffectCatalog
 from trackmod.core.effects.effect import Effect
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.instruments.instrument import Instrument
-from trackmod.core.instruments.transfer import combine, extract, held
+from trackmod.core.instruments.transfer import combine, extract, held, units
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.notes.command import NoteCommand
 from trackmod.core.notes.pitch import Note
@@ -60,6 +60,8 @@ from trackmod.trackers.registry import (
     INSTRUMENT_EXTENSIONS,
     MODULE_EXTENSIONS,
     detected,
+    load_module,
+    parse_module,
     parse_provenance,
     parse_voices,
     reads,
@@ -779,6 +781,82 @@ def test_the_registry_reads_a_module_by_the_extension_that_wrote_it(binding: Bin
     module = binding.bind(portable, Compliance.CANONICAL)
     assert module.extension in MODULE_EXTENSIONS
     assert parse_voices(module.to_bytes(), extension=module.extension) == binding.parse(module.to_bytes()).song.voices
+
+
+def test_the_registry_binds_a_module_to_the_format_that_wrote_it(binding: Binding, portable: Song) -> None:
+    module = binding.bind(portable, Compliance.CANONICAL)
+    data = written(module)
+    bound = parse_module(data, extension=module.extension)
+    assert bound.song == binding.parse(data).song
+    assert bound.extension == module.extension
+    assert bound.provenance == module.provenance
+
+
+def test_the_registry_binds_a_module_however_its_extension_is_spelled(binding: Binding, portable: Song) -> None:
+    data = written(binding.bind(portable, Compliance.CANONICAL))
+    assert (
+        parse_module(data, extension=detected(data).upper()).song == parse_module(data, extension=detected(data)).song
+    )
+
+
+def test_the_registry_binds_a_module_at_the_compliance_it_is_asked_for(binding: Binding, portable: Song) -> None:
+    data = written(binding.bind(portable, Compliance.CANONICAL))
+    bound = parse_module(data, extension=detected(data), compliance=Compliance.CANONICAL)
+    assert bound.limits.compliance is Compliance.CANONICAL
+
+
+def test_the_registry_refuses_to_bind_a_module_for_an_extension_no_module_format_writes() -> None:
+    with pytest.raises(ValueError, match=UNWRITTEN_EXTENSION):
+        parse_module(b"", extension=UNWRITTEN_EXTENSION)
+
+
+def test_the_registry_refuses_to_bind_a_module_for_a_standalone_instrument(
+    instrument_binding: InstrumentBinding,
+    voiced: Song,
+) -> None:
+    # A file holding one voice is read for its voices; asking it for a song names the four that write one.
+    file = instrument_binding.bind_unit(extract(voices_of(voiced), 0), Compliance.CANONICAL)
+    with pytest.raises(ValueError, match="names no module format here"):
+        parse_module(file.to_bytes(), extension=file.extension)
+
+
+def test_a_file_opens_as_the_format_its_own_bytes_state(
+    binding: Binding,
+    portable: Song,
+    tmp_path: Path,
+) -> None:
+    # This is the loop a caller reading a whole collection writes: every module opens the same way, and
+    # the name a file arrived under has no say in it.
+    module = binding.bind(portable, Compliance.CANONICAL)
+    path = tmp_path / f"song{UNWRITTEN_EXTENSION}"
+    module.save(path)
+    opened = load_module(path)
+    assert opened.song == binding.parse(written(module)).song
+    assert opened.extension == module.extension
+
+
+def test_a_file_stating_none_of_the_formats_is_refused_by_length(tmp_path: Path) -> None:
+    path = tmp_path / "song.it"
+    path.write_bytes(b"not a module at all")
+    with pytest.raises(ValueError, match="state none of the formats"):
+        load_module(path)
+
+
+def test_every_instrument_of_a_module_reaches_a_standalone_file(
+    instrument_binding: InstrumentBinding,
+    voiced: Song,
+    tmp_path: Path,
+) -> None:
+    # The whole point of the extraction surface: open a file, and write out every voice inside it.
+    module = instrument_binding.module.bind(voiced, Compliance.CANONICAL)
+    path = tmp_path / f"song{module.extension}"
+    module.save(path)
+
+    for index, unit in enumerate(units(load_module(path).song.voices)):
+        file = instrument_binding.bind_unit(unit, Compliance.CANONICAL)
+        target = tmp_path / f"{index:02d}{file.extension}"
+        file.save(target)
+        assert instrument_binding.parse_unit(target.read_bytes()).unit == unit
 
 
 def test_the_registry_reads_a_standalone_instrument_as_the_one_voice_it_holds(
