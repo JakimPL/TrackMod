@@ -37,7 +37,7 @@ from trackmod.module.instrument import InstrumentFile
 from trackmod.module.protocol import TrackerModule
 from trackmod.module.storage import NO_PADDING, Storage
 from trackmod.spec.levels import CENTRE_PANNING, MAX_VOLUME
-from trackmod.spec.pitch import RATE_NOTE, REFERENCE_RATE
+from trackmod.spec.pitch import NO_TRANSPOSITION, RATE_NOTE, REFERENCE_RATE
 from trackmod.spec.width import NIBBLE_MAX
 from trackmod.trackers.amiga.patterns.sizing import packed_bytes as mod_packed_bytes
 from trackmod.trackers.amiga.spec.cells import CELL_BYTES as MOD_CELL_BYTES
@@ -85,6 +85,9 @@ from trackmod.trackers.xm.spec.identity import EXTENSION as XM_EXTENSION
 from trackmod.trackers.xm.spec.ranges import MAX_NOTE
 from trackmod.trackers.xm.timing import TIMINGS as XM_TIMINGS
 from trackmod.trackers.xm.tuning import tuned_rate, tuning_for
+from trackmod.wave.parser import load_sample
+from trackmod.wave.spec import WAVE_EXTENSION
+from trackmod.wave.writer import save_sample
 
 FRAME_RATE: Final = 44100
 UNWRITTEN_EXTENSION: Final = ".med"
@@ -857,6 +860,34 @@ def test_every_instrument_of_a_module_reaches_a_standalone_file(
         target = tmp_path / f"{index:02d}{file.extension}"
         file.save(target)
         assert instrument_binding.parse_unit(target.read_bytes()).unit == unit
+
+
+def sounded(sample: Sample) -> Sample:
+    """A sample as an audio file states it, whose pitch is the rate its frames go by.
+
+    One format reaches that rate through a semitone offset and a finetune trim its header states, and
+    those two stay with the module that holds them -- an audio file names the rate they arrive at.
+    """
+    return sample.model_copy(update={"relative_note": NO_TRANSPOSITION, "finetune": NO_TRANSPOSITION})
+
+
+def test_every_waveform_of_a_module_reaches_an_audio_file(
+    binding: Binding,
+    portable: Song,
+    tmp_path: Path,
+) -> None:
+    # The other half of the extraction surface, and the half every format takes part in: open a file
+    # in whichever format wrote it, and write each waveform inside it out as ordinary audio.
+    module = binding.bind(portable, Compliance.CANONICAL)
+    path = tmp_path / f"song{module.extension}"
+    module.save(path)
+
+    samples = load_module(path).song.voices.samples
+    assert samples
+    for index, sample in enumerate(samples):
+        target = tmp_path / f"{index:02d}{WAVE_EXTENSION}"
+        save_sample(sample, target)
+        assert load_sample(target) == sounded(sample)
 
 
 def test_the_registry_reads_a_standalone_instrument_as_the_one_voice_it_holds(

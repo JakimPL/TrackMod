@@ -10,7 +10,7 @@ PACKAGES: Final = frozenset(path.name for path in TRACKERS.iterdir() if (path / 
 FORMATS: Final = frozenset(name for name in PACKAGES if (TRACKERS / name / "module.py").exists())
 LINEAGES: Final = PACKAGES - FORMATS
 
-LAYERS: Final = ("spec", "utils", "schema", "limits", "core", "binary", "module", "trackers")
+LAYERS: Final = ("spec", "utils", "schema", "limits", "core", "binary", "wave", "module", "trackers")
 
 
 def modules() -> tuple[Path, ...]:
