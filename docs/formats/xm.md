@@ -39,8 +39,8 @@ instrument is self-contained: its header, its sample headers, then its waveforms
 The header states `order_count` played positions at offset 64 and a `restart_position` at offset 66.
 The list occupies its full 256 bytes whatever the count, and each entry is one byte naming a pattern.
 
-A restart position past the last played entry is drawn back inside the list, and an entry naming a
-pattern the file leaves out is dropped. Both are reported.
+The parser draws a restart position past the last played entry back inside the list, drops an entry
+naming a pattern the file leaves out, and reports both.
 
 ## Patterns
 
@@ -123,9 +123,9 @@ Two envelopes, volume and panning, of at most 12 points each, values `0..64`. Th
 fixed offsets in the instrument header — volume from 129, panning from 177 — with the counts, sustain
 points, loop bounds and flags behind them. The flag bits are `0x01` enabled, `0x02` sustain, `0x04` loop.
 
-The sustain is a **single point**, so an envelope sustaining across a span of points is refused. A loop
-or sustain stated outside its own points is drawn back inside them, and points stated out of order are
-held at the tick before them; both are reported.
+The sustain is a **single point**, so an envelope sustaining across a span of points is refused. The parser draws a
+loop or sustain stated outside its own points back inside them, holds points stated out of order at the
+tick before them, and reports both.
 
 ### Fadeout
 
@@ -147,8 +147,8 @@ Frames are stored as **differences** that a player integrates with a running sum
 a difference overshooting the signed range wraps exactly as that sum unwraps it. The first difference is
 taken against zero, which makes it the waveform's first amplitude.
 
-A loop reaching past the frames the file holds is drawn back inside them, and a waveform shorter than
-the header states is read at the length the file holds; both are reported.
+The parser draws a loop reaching past the frames the file holds back inside them, reads a waveform
+shorter than the header states at the length the file holds, and reports both.
 
 ### Tuning
 

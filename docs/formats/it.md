@@ -97,8 +97,8 @@ The column is **one-based**: byte `n` names position `n - 1`, and `0` leaves the
 already carries. What that position numbers is what bit 2 of the header's flag word says — an instrument
 when it is set, a sample when it is clear — so one file addresses one way throughout.
 
-A cell naming a position past the table the file holds carries its channel on, and a sample-addressed
-file's instrument definitions are set aside for the switch going back on; both are reported.
+The parser carries a channel on where a cell names a position past the table the file holds, sets a
+sample-addressed file's instrument definitions aside for the switch going back on, and reports both.
 
 ### The volume column
 
@@ -140,8 +140,8 @@ Impulse Tracker reads `0..64` of the value byte for volume and `-32..32` for pan
 `-128..127` the signed byte holds. **The sustain is a span**, so a curve may hold across two points, and
 **carry** is what a new note keeps: an envelope carrying on resumes where the previous note left it.
 
-A loop or sustain span stated outside its own points is drawn back inside them, and points stated out of
-order are held at the tick before them; both are reported.
+The parser draws a loop or sustain span stated outside its own points back inside them, holds points
+stated out of order at the tick before them, and reports both.
 
 ### Fadeout
 

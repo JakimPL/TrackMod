@@ -54,8 +54,8 @@ The header states how many positions play in one byte at offset 470, and the tab
 bytes whatever the count, one byte to a position naming a pattern. A song plays from its first position
 through to the count, and starts again at the beginning.
 
-A count past the 128 the table holds is drawn back to it, and a position naming a pattern the file leaves
-out is dropped; both are reported.
+The parser draws a count past the 128 the table holds back to it, drops a position naming a pattern the
+file leaves out, and reports both.
 
 ## Patterns
 
@@ -108,8 +108,8 @@ its length counts pairs in both. A loop length of one pair says a sample plays t
 runs from two pairs up, and writing one takes its end on to the pair closing it, which keeps every frame
 it repeats inside the region the record names.
 
-A loop reaching past the frames the file holds is drawn inside them, and a volume past full is drawn back
-to it; both are reported.
+The parser draws a loop reaching past the frames the file holds inside them, holds a volume past full at
+full, and reports both.
 
 The trackers of this format shipped a sample library and wrote the name a waveform came from into the
 record, so a slot holding no waveform still carries text a file means to keep. A song therefore holds
@@ -185,8 +185,9 @@ player reads it in.
 | A song whose cells name instruments | `ValueError` |
 | A quantity past a bound | `LimitError` |
 
-Twelve rows is the longest refusals table here, and one row longer than [Amiga ProTracker's](mod.md):
-the header states where a song starts and nothing about where it resumes.
+Twelve rows, one below [Amiga ProTracker's](mod.md) thirteen: the two the newer layout adds are met
+while reading a tag, and the one this layout adds is its own — the header states where a song starts and
+nothing about where it resumes.
 [`limits.md`](../reference/limits.md) states the bounds behind the last of them.
 
 ## Effect commands

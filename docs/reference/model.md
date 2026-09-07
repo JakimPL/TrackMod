@@ -27,9 +27,9 @@ row at `tempo` beats per minute.
 ## Voices
 
 Every tracker's cell carries an instrument column, and what the number in it names differs by format.
-Amiga ProTracker and Scream Tracker 3 name a **sample**. FastTracker 2 names an **instrument**, which
-routes keys onto samples of its own. Impulse Tracker names either, and says which in one header bit. The
-model states that as a union of two tables, one per way of addressing:
+Amiga ProTracker, Soundtracker and Scream Tracker 3 name a **sample**. FastTracker 2 names an
+**instrument**, which routes keys onto samples of its own. Impulse Tracker names either, and says which
+in one header bit. The model states that as a union of two tables, one per way of addressing:
 
 ```python
 class SampleVoices(BaseModel):
@@ -64,8 +64,8 @@ at another key's pitch, since a table of samples holds no room for either — so
 song into one a sample-addressed format can write is a visible step with a visible failure.
 
 Each format states which tables it writes. Impulse Tracker takes either and states the choice in its
-header; FastTracker 2 takes `InstrumentVoices`; Amiga ProTracker and Scream Tracker 3 take `SampleVoices`.
-A song carrying the other kind is refused by name.
+header; FastTracker 2 takes `InstrumentVoices`; Amiga ProTracker, Soundtracker and Scream Tracker 3 take
+`SampleVoices`. A song carrying the other kind is refused by name.
 
 ## Pattern
 
@@ -106,7 +106,7 @@ because zero is what a stored cell writes to leave a channel on the voice it alr
 
 `Note` is a key counted in semitones above C-0, in `0..119`. That is Impulse Tracker's numbering;
 FastTracker 2 stores the same key one higher, Scream Tracker 3 as an octave over a semitone counted from
-the second, and Amiga ProTracker as the period the pitch sounds at. The tracker octave is one above the
+the second, and the two Amiga layouts as the period the pitch sounds at. The tracker octave is one above the
 MIDI octave of the same pitch, so tracker C-5 is MIDI 72 and `Note.from_midi(m) == Note(m - 12)`.
 
 `NoteCommand` covers the note-column entries that act on a playing voice — `OFF`, `CUT`, `FADE`. Their

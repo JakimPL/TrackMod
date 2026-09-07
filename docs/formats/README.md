@@ -1,9 +1,9 @@
 # The formats
 
 One document per format, each written to the same headings so that the set is diffable and one more
-format is one more file. [`documentation.md`](../contributing/documentation.md) states the template and the two tables
-every one of them carries; this page is the index, and the short list of places where the same field
-means two things.
+format is one more file. [`documentation.md`](../contributing/documentation.md) states the template and
+the two tables every one of them carries; this page is the index, and the short list of places where the
+same field means two things.
 
 | Format | Document | A cell's instrument column names | Sections are found by | One instrument |
 |---|---|---|---|---|
@@ -38,7 +38,8 @@ is written to more than one of them.
 | Fade counter | 1024 | 32768 | — | — | — |
 
 The first seven rows are answered by all five formats, and the rows below them belong to the ones
-keeping a volume column, instrument records, or a field naming the program that wrote a file. The six that follow are the ones worth reading twice.
+keeping a volume column, instrument records, or a field naming the program that wrote a file. The six
+paragraphs that follow are the ones worth reading twice.
 
 **Each format spells its own note commands.** Impulse Tracker spells three of them, FastTracker 2 the
 key off and Scream Tracker 3 the cut, while the two Amiga formats put a period in that column and
@@ -70,5 +71,6 @@ row where a stream lists only what plays, and one byte a cell — four in the Am
 writes every position down. That is the whole difference between the two ways of storing a pattern, in
 one number.
 
-[`limits.md`](../reference/limits.md) states every bound behind these, [`volume.md`](../reference/volume.md) the columns, and
-[`model.md`](../reference/model.md) what the shared model holds that any one format may leave out.
+[`limits.md`](../reference/limits.md) states every bound behind these,
+[`volume.md`](../reference/volume.md) the columns, and [`model.md`](../reference/model.md) what the
+shared model holds that any one format may leave out.

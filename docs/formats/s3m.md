@@ -202,8 +202,8 @@ and tempo the tick rate, so a row lasts `speed × 5 / (2 × tempo)` seconds, and
 shortest whole-frame row this format reaches is 441 frames — the same floor Impulse Tracker's one-byte
 tempo holds it to.
 
-A tempo below 32 is read as this format's own starting tempo of 125, and a speed below 1 as its starting
-speed of 6; both are reported. Every player of this lineage draws a slower tempo up to 32, which is what
+The parser reads a tempo below 32 as this format's own starting tempo of 125 and a speed below 1 as its
+starting speed of 6, and reports both. Every player of this lineage draws a slower tempo up to 32, which is what
 puts the floor there.
 
 ## What this format carries

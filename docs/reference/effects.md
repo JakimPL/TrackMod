@@ -66,10 +66,11 @@ on the pair.
 ## The full command set
 
 Beyond the catalogue, each format exposes its native commands as an `IntEnum` —
-`trackmod.trackers.it.effects.command.ITEffect` and its `XMEffect`, `MODEffect` and `S3MEffect`
-counterparts, each with an `Extended` companion for the sub-commands one command selects with its high
-nibble. The format documents tabulate them. Anything outside the shared eight is written by naming the
-command directly:
+`trackmod.trackers.it.effects.command.ITEffect` and its `XMEffect`, `MODEffect`, `S3MEffect` and
+`STEffect` counterparts. The four whose cells hold an extended command carry an `Extended` companion
+beside it, for the sub-commands one command selects with its high nibble; Soundtracker names seven
+commands and nothing extended. The format documents tabulate them. Anything outside the shared eight is
+written by naming the command directly:
 
 ```python
 Effect(command=ITEffect.TREMOLO, parameter=0x84)

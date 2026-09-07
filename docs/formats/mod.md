@@ -47,8 +47,8 @@ both, and reading the waveforms at the right offset depends on it.
 The header states how many positions play in one byte at offset 950, and a restart position in the next.
 The table occupies its full 128 bytes whatever the count, one byte to a position naming a pattern.
 
-A count past the 128 the table holds is drawn back to it, and a position naming a pattern the file leaves
-out is dropped; both are reported. Trackers of this lineage write a marker into the restart byte rather
+The parser draws a count past the 128 the table holds back to it, drops a position naming a pattern the
+file leaves out, and reports both. Trackers of this lineage write a marker into the restart byte rather
 than a position — most often the full width of the table — so the byte has two homes: a file's own byte is
 kept in this format's settings and written back as it stood, and a song built from nothing states the
 restart its order list holds.
@@ -102,8 +102,8 @@ or leaves them empty, which is what makes one more sample cost its frames and no
 A loop length of one pair is what this format writes to say a sample plays through once, so a loop runs
 from two pairs up. Writing one takes its beginning back to the pair holding it and its end on to the pair
 closing it, which keeps every frame it repeats inside the region the record names; a waveform of a single
-pair leaves a loop no room at all. A loop reaching past the frames the file holds is drawn inside them and
-a volume past full is drawn back to it; both are reported.
+pair leaves a loop no room at all. The parser draws a loop reaching past the frames the file
+holds inside them, holds a volume past full at full, and reports both.
 
 Trackers of this lineage wrote liner notes into the sample names, so a slot holding no waveform still
 carries text a file means to keep. A song therefore holds every slot up to the last one that states
@@ -198,8 +198,9 @@ own range, which is one parameter byte.
 | A quantity past a bound | `LimitError` |
 
 The two tag rows are met while reading, where every other refusal here is met while writing. Thirteen
-rows against Impulse Tracker's two: this is the plainest of the formats here. Every field it fills
-the other three fill as well, the shared sample table apart, which FastTracker 2 keeps per instrument.
+rows against Impulse Tracker's two: this is the plainest of the formats here. Every field it fills the
+other four fill as well, but for two — FastTracker 2 keeps its samples per instrument rather than in one
+table, and the older Amiga layout names its writer nowhere.
 [`limits.md`](../reference/limits.md) states the bounds behind the last of them.
 
 ## Effect commands

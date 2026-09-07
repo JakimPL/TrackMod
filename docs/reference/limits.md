@@ -100,10 +100,12 @@ Content a format has no encoding for at all is not a quantity. There is no bound
 so it raises `ValueError` where it is met. FastTracker 2 is where much of this line falls: a note cut or
 fade in the note column (it stores a key off and nothing else), a sustain loop, a pitch envelope, an
 envelope sustaining over a span of points, and a keymap that transposes one key of a sample differently
-from another. Amiga ProTracker adds its own: a volume column, a note command of any kind, a stereo or
-sixteen-bit waveform, and a per-sample panning. Scream Tracker 3 stores a note cut and no other command,
-pans by channel rather than by sample, and meets two of its refusals while reading — a record holding an
-OPL patch, and a waveform stored in the ADPCM a later tracker wrote.
+from another. The two Amiga layouts add their own: a volume column, a note command of any kind, a
+stereo or sixteen-bit waveform, and a per-sample panning, with Soundtracker adding one more of its own —
+its header states where a song starts and nothing about where it resumes, so a song resuming past its
+first position raises. Scream Tracker 3 stores a note cut and no other command, pans by channel rather
+than by sample, and meets two of its refusals while reading — a record holding an OPL patch, and a
+waveform stored in the ADPCM a later tracker wrote.
 
 The volume column is where the line falls for the three that carry one: Impulse Tracker names nine of the
 twelve intents the columns state between them, FastTracker 2 ten and Scream Tracker 3 one, so a pitch
@@ -203,7 +205,8 @@ spelling two decimal digits name up to 99, and an order byte whose `0xFE` and `0
 and the end of song names `0..253`. **Extended** is measured, by asking the players descended from these
 trackers what they read back rather than what they merely accept.
 
-The levels part company in thirty-three of the eighty entries. These are the ones worth naming:
+The levels part company in 34 of the 93 entries the five tables state between them. These are the ones
+worth naming:
 
 | Bound | canonical | extended | structural |
 |---|---|---|---|
@@ -212,7 +215,7 @@ The levels part company in thirty-three of the eighty entries. These are the one
 | XM channels | 32, the editor's own | 127, past which the file is refused | 65535, the header's word |
 | XM tempo | 255, one byte of it | 1000, past which the tempo is drawn back | 65535, the header's word |
 | IT patterns | 200, the editor's own | 240, past which the count is drawn back | 254, what an order byte names |
-| MOD note range | 48..83, the three tabulated octaves | 21..119, every period the field holds | the same |
+| MOD, ST note range | 48..83, the three tabulated octaves | 21..119, every period the field holds | the same |
 | MOD channels | 4, the only width the tracker wrote | 32, as far as the players read | 99, as far as two digits spell |
 | MOD patterns | 64, what the plain tag was read with | 256, what an order byte names | the same |
 | IT sample rate | 9999999, the editor's own | 4294967295, the record's four bytes | the same |
@@ -224,9 +227,9 @@ The levels part company in thirty-three of the eighty entries. These are the one
 | S3M sample rate | 65535, the low word the tracker reads | 4294967295, the whole field | the same |
 | S3M note range | 12..107, the eight octaves it names | 12..119, every key two nibbles spell | the same |
 
-The Impulse Tracker tempo stays at **255 at every level**, which is what forty-seven of the eighty
-entries do — and it is the one of them a caller is most likely to walk into. Its header tempo is a single
-byte at offset 51. A tempo of 441 does not overflow into a slower song — it cannot be written at all.
+The Impulse Tracker tempo stays at **255 at every level**, which is what the remaining 59 entries do —
+and it is the one of them a caller is most likely to walk into. Its header tempo is a single byte at
+offset 51. A tempo of 441 does not overflow into a slower song — it cannot be written at all.
 Reporting it as a `STRUCTURAL` violation is the difference between a clear message and a `struct.error`
 from deep inside a writer.
 

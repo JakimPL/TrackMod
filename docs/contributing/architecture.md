@@ -9,7 +9,7 @@ The library is layered downward: every package reads its own layer and the ones 
 
 | Package | Owns |
 |---|---|
-| `trackmod/spec` | Constants every layer shares: the pitch numbering, level ranges, the grid sentinel, integer widths, the tracker clock, this library's own name and version |
+| `trackmod/spec` | Constants every layer shares: the pitch numbering, level ranges, the volume-column grid, the grid sentinel, integer widths, the tracker clock, the tracker character set, this library's own name and version |
 | `trackmod/utils` | Arithmetic the timing lattice leans on: the divisors of a number, and the two of them nearest a candidate |
 | `trackmod/schema` | Pydantic plumbing: the frozen model config, the constrained scalar aliases, the numpy array annotations |
 | `trackmod/limits` | The capability vocabulary, bounds, compliance levels, violations |
@@ -51,13 +51,21 @@ Each format package repeats the same internal shape, so knowing one is knowing t
   patterns/     packer, parser, and the size model that is their exact counterpart
   samples/      waveform and header serialisation
   instruments/  header serialisation, keymaps, envelopes, the standalone instrument file
-  note limits timing fade settings checks sizing writer parser module instrument_file
+  detection limits timing settings sizing writer parser module
 ```
 
-A package holds the parts its own format keeps records for: the three that keep no instrument records —
-Amiga ProTracker, Scream Tracker 3 and Soundtracker — have no `instruments/` and no envelopes, and each
-format adds the files its layout calls for, a table of dialects for one and the paragraph arithmetic for
-another.
+The last line is what every format has: what its bytes state about themselves, its capacities read at one
+level, its clock, its own settings, its size model, and the pair that writes and reads a whole file behind
+the module class.
+
+A package holds the subdirectories its own format keeps records for. The three that keep no instrument
+records — Amiga ProTracker, Scream Tracker 3 and Soundtracker — have no `instruments/` and no envelopes,
+and the two Amiga layouts read their `patterns/` and `samples/` from the lineage that holds both.
+
+Each format then adds the files its layout calls for: `note`, `fade`, `checks` and `instrument_file` where
+a format keeps instrument records, `dialect` and `tag` for the four characters that name an Amiga layout,
+`parapointers` and `placement` for the paragraphs Scream Tracker 3's blocks open on, `tuning` where a
+header states a transposition rather than a rate, and `version` where a file numbers its writer.
 
 ## Lineage packages
 
@@ -68,10 +76,10 @@ together with the walk that reads a file of either and the checks that grade a s
 files carry the same names — `reading`, `writing`, `sizing`, `checks`, `note`, `tuning` beside `spec/`,
 `layout/`, `patterns/` and `samples/` — so the shape above reads the same there.
 
-A format package owns every decision its own file layout makes, and reads its lineage and the layers
-beneath it. Two formats sharing a decision because one inherited it from the other share it through the
-lineage, which owns it outright; where they disagree, the lineage takes the answer as an argument, so
-neither of them owns the other's. A format package never reads another format package.
+A format package owns every decision its own file layout makes, and every import it makes reaches its
+lineage or a layer beneath it. Two formats sharing a decision because one inherited it from the other
+share it through the lineage, which owns it outright; where they disagree, the lineage takes the answer as
+an argument, so each of them keeps its own. `tests/test_boundaries.py` holds that line.
 
 ## Validating versus repairing
 
