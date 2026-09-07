@@ -83,8 +83,8 @@ def test_a_lineage_package_reads_no_format_package() -> None:
 
 
 def test_a_layer_reads_only_the_layers_beneath_it() -> None:
-    # The order is the one `docs/overview.md` states, and a package reads its own layer and the ones
-    # below it, so knowing where a name lives is knowing what may reach it.
+    # The order is the one `docs/contributing/architecture.md` states, and a package reads its own layer
+    # and the ones below it, so knowing where a name lives is knowing what may reach it.
     inverted = tuple(
         f"{path}: {module}"
         for path in modules()

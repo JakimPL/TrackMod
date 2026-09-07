@@ -125,7 +125,7 @@ A marker bit says whether the column is present at all, and the byte spends its 
 
 The bytes between and above the two runs read as an absent volume, reported once for a whole pattern.
 Panning here is as fine as Impulse Tracker's and four times finer than the sixteen steps this format's own
-channel table holds. See [`volume.md`](../volume.md).
+channel table holds. See [`volume.md`](../reference/volume.md).
 
 ## Samples
 
@@ -248,7 +248,7 @@ puts the floor there.
 | A quantity past a bound | `LimitError` |
 
 The last four are met while reading, where every other refusal here is met while writing.
-[`limits.md`](../limits.md) states the bounds behind the closing row.
+[`limits.md`](../reference/limits.md) states the bounds behind the closing row.
 
 ## Effect commands
 
@@ -277,4 +277,4 @@ position on.
 | `1` glissando | `4` tremolo waveform | `B` pattern loop | `E` pattern delay |
 | `2` finetune | `8` panning | `C` note cut | `F` funk repeat |
 
-See [`effects.md`](../effects.md) for the shared vocabulary these spell.
+See [`effects.md`](../reference/effects.md) for the shared vocabulary these spell.

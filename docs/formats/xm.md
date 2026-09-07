@@ -95,7 +95,7 @@ effects, each occupying a run of sixteen values:
 `0x00` is what a cell stating every column writes where it holds no volume, so that byte reads as an
 absence. Two runs are left over — `0x01` to `0x0F` below the levels, and `0x51` to `0x5F` between the top
 level and the first command — and a byte from either reads as an absence too, reported once for a whole
-pattern. See [`volume.md`](../volume.md).
+pattern. See [`volume.md`](../reference/volume.md).
 
 ## Instruments
 
@@ -248,8 +248,8 @@ format's own starting speed of 6, and reported.
 | A volume-column intent this format leaves unnamed | `ValueError` |
 | A quantity past a bound | `LimitError` |
 
-See [`limits.md`](../limits.md) for the bounds, and [`conventions.md`](../conventions.md) for the rule
-that separates the two.
+See [`limits.md`](../reference/limits.md) for the bounds, and
+[`architecture.md`](../contributing/architecture.md) for the rule that separates the two.
 
 ## Effect commands
 
@@ -281,4 +281,4 @@ even in a module whose header carries more.
 | `3` glissando | `7` tremolo waveform | `B` fine volume down | |
 | `4` vibrato waveform | `8` panning | `C` note cut | |
 
-See [`effects.md`](../effects.md) for the shared vocabulary these spell.
+See [`effects.md`](../reference/effects.md) for the shared vocabulary these spell.

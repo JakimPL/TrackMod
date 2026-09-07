@@ -200,7 +200,7 @@ own range, which is one parameter byte.
 The two tag rows are met while reading, where every other refusal here is met while writing. Thirteen
 rows against Impulse Tracker's two: this is the plainest of the formats here. Every field it fills
 the other three fill as well, the shared sample table apart, which FastTracker 2 keeps per instrument.
-[`limits.md`](../limits.md) states the bounds behind the last of them.
+[`limits.md`](../reference/limits.md) states the bounds behind the last of them.
 
 ## Effect commands
 
@@ -232,4 +232,4 @@ ticks a row lasts, and at or above it the beats per minute. FastTracker 2 inheri
 `E8` is left out: the trackers that wrote this format put different things there, so a cell carrying it
 keeps the bytes it holds for whoever knows which tracker wrote them.
 
-See [`effects.md`](../effects.md) for the shared vocabulary these spell.
+See [`effects.md`](../reference/effects.md) for the shared vocabulary these spell.

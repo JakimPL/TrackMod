@@ -115,7 +115,7 @@ A mask bit says whether the column is present at all, so the column spends no by
 | `203..212` | vibrato depth | `0..9` |
 
 The bytes between the runs read as an absent volume, reported once for a whole pattern. See
-[`volume.md`](../volume.md).
+[`volume.md`](../reference/volume.md).
 
 ## Instruments
 
@@ -267,7 +267,7 @@ shortest whole-frame row this format reaches is 441 frames — the one-byte temp
 | A volume-column intent this format leaves unnamed | `ValueError` |
 | A quantity past a bound | `LimitError` |
 
-Its refusals are two rows where FastTracker 2's are nine; [`limits.md`](../limits.md) states the bounds.
+Its refusals are two rows where FastTracker 2's are nine; [`limits.md`](../reference/limits.md) states the bounds.
 
 ## Effect commands
 
@@ -294,4 +294,4 @@ Speed and tempo are separate commands here, `A` and `T`, and `C` breaks to the p
 | `3` vibrato waveform | `7` note control | `B` pattern loop | `F` MIDI macro select |
 | `4` tremolo waveform | `8` panning | `C` note cut | |
 
-See [`effects.md`](../effects.md) for the shared vocabulary these spell.
+See [`effects.md`](../reference/effects.md) for the shared vocabulary these spell.

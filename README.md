@@ -103,8 +103,8 @@ any audio editor as an ordinary sound file.
 
 ## Where to read next
 
-See [`docs/`](docs/) for the rest: how a song is modelled, what each format can hold, and one document per
-format describing its bytes. Start at [`docs/overview.md`](docs/overview.md).
+See [`docs/`](docs/) for the rest: a guide to each task, a reference for the model and its limits, and
+one document per format describing its bytes. Start at [`docs/README.md`](docs/README.md).
 
 ## Development
 

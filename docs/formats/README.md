@@ -1,7 +1,7 @@
 # The formats
 
 One document per format, each written to the same headings so that the set is diffable and one more
-format is one more file. [`conventions.md`](../conventions.md) states the template and the two tables
+format is one more file. [`documentation.md`](../contributing/documentation.md) states the template and the two tables
 every one of them carries; this page is the index, and the short list of places where the same field
 means two things.
 
@@ -70,5 +70,5 @@ row where a stream lists only what plays, and one byte a cell — four in the Am
 writes every position down. That is the whole difference between the two ways of storing a pattern, in
 one number.
 
-[`limits.md`](../limits.md) states every bound behind these, [`volume.md`](../volume.md) the columns, and
-[`model.md`](../model.md) what the shared model holds that any one format may leave out.
+[`limits.md`](../reference/limits.md) states every bound behind these, [`volume.md`](../reference/volume.md) the columns, and
+[`model.md`](../reference/model.md) what the shared model holds that any one format may leave out.

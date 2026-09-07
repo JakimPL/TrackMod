@@ -187,7 +187,7 @@ player reads it in.
 
 Twelve rows is the longest refusals table here, and one row longer than [Amiga ProTracker's](mod.md):
 the header states where a song starts and nothing about where it resumes.
-[`limits.md`](../limits.md) states the bounds behind the last of them.
+[`limits.md`](../reference/limits.md) states the bounds behind the last of them.
 
 ## Effect commands
 
@@ -208,4 +208,4 @@ reads the same. `D` reads its parameter a decimal digit to each nibble, so a bre
 at or above `0x20` setting the beats per minute — arrived with that format, along with `A`, the `E`
 sub-commands, and the rest of the vocabulary.
 
-See [`effects.md`](../effects.md) for the shared vocabulary these spell.
+See [`effects.md`](../reference/effects.md) for the shared vocabulary these spell.

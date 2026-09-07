@@ -112,7 +112,7 @@ MIDI octave of the same pitch, so tracker C-5 is MIDI 72 and `Note.from_midi(m) 
 `NoteCommand` covers the note-column entries that act on a playing voice — `OFF`, `CUT`, `FADE`. Their
 values continue past the key range, so one integer plane holds either kind and
 `NoteValue = Note | NoteCommand`. Which of the three a format spells is its own business, and
-[`formats/README.md`](formats/README.md) collects that.
+[`formats/README.md`](../formats/README.md) collects that.
 
 ## Volumes
 
@@ -239,7 +239,7 @@ before.
 
 Each unit keeps its own copy of a waveform another unit also holds. Impulse Tracker stores that table as
 written; FastTracker 2 gives every instrument its own copies regardless (see
-[`formats/README.md`](formats/README.md)).
+[`formats/README.md`](../formats/README.md)).
 
 A unit is also what a format stores on its own, as an `.iti` or an `.xi`:
 
@@ -280,8 +280,9 @@ song: 2 order positions naming no stored pattern dropped
 ```
 
 Which values a given format repairs is stated in its own document, under the section that reads them.
-[`conventions.md`](conventions.md) states the rule the three mechanisms follow: a bound reports a quantity,
-a `ValueError` refuses content with no encoding, and a repair reads a file as it stands.
+[`architecture.md`](../contributing/architecture.md) states the rule the three mechanisms follow: a bound
+reports a quantity, a `ValueError` refuses content with no encoding, and a repair reads a file as it
+stands.
 
 ## Timing
 
