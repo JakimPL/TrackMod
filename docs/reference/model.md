@@ -46,11 +46,11 @@ A song carries one or the other, because a file is in one mode throughout. Both 
 questions, so the common path branches nowhere:
 
 - `slots` — how many values the instrument column may name;
-- `samples` — the waveforms, which is what sizing and serialisation ask for.
+- `samples` — the waveforms, which is what sizing and serialization ask for.
 
 Under `SampleVoices` a key plays its waveform at the pitch it was pressed at, so what a voice does is
 decided by the sample alone. Under `InstrumentVoices` the cell reaches an instrument first, and the
-keymap, envelopes, fadeout, levels and note behaviours it carries shape every voice it starts.
+keymap, envelopes, fadeout, levels and note behaviors it carries shape every voice it starts.
 
 **Conversion is a call the caller makes.** `trackmod.core.voices.convert` holds the pair:
 
@@ -79,7 +79,7 @@ note  instrument  volume  effect  parameter
 Keeping the columns apart is what gives per-column presence. A key-off
 carries a note and nothing else; a mid-pattern tempo change carries only an effect. It also lets the
 packers and the size models read whole planes at once, which is why measuring a pattern's packed length
-costs one vectorised pass.
+costs one vectorized pass.
 
 `Pattern` is frozen. Authoring happens through `trackmod.core.patterns.builder.PatternBuilder`, which
 fills the grid cell by cell and freezes it with `build()`. Beyond `place(row, channel, cell)` it offers
@@ -152,7 +152,7 @@ with room for neither leaves them at their default of an empty name and no vibra
 ## Instruments
 
 `Instrument` is a named routing of keys onto samples, plus the envelopes every voice it starts follows, a
-fadeout, a level, a panning and the new-note and duplicate behaviours.
+fadeout, a level, a panning and the new-note and duplicate behaviors.
 
 A `Keymap` is exactly 120 entries, one per key, each either `None` or a `KeyAssignment`:
 
@@ -195,7 +195,7 @@ curve reaching past the last tick a format counts is drawn back into the ticks t
 a curve stays stated. `envelope_seconds(envelope, tempo=…)` is the way back, for measuring what a stored
 curve does against the trajectory it was fitted to.
 
-Because those ticks belong to a tempo, an instrument travelling on its own is worth keeping beside the
+Because those ticks belong to a tempo, an instrument traveling on its own is worth keeping beside the
 tempo its envelopes were fitted at: an `.iti` or an `.xi` carries a curve and no clock to read it by.
 
 ### Fading a released voice
@@ -227,13 +227,13 @@ reach, numbered from zero — and `trackmod.core.instruments.transfer` moves uni
 
 ```python
 unit = extract(song.voices, 0)     # the instrument and the waveforms it sounds
-units = held(song.voices)          # the same, for every instrument the table numbers
+held = units(song.voices)          # the same, for every instrument the table numbers
 voices = combine([unit, other])    # one table, each keymap restated against the samples behind it
 ```
 
 `combine` returns exactly the `voices=` table `Song` takes, and all three work on `InstrumentVoices`,
 since a voice a cell names directly is a plain sample and travels as one. The renumbering itself is
-`Instrument.rerouted(positions)`, which moves the routing and leaves every envelope, level and behaviour
+`Instrument.rerouted(positions)`, which moves the routing and leaves every envelope, level and behavior
 as stated — so an instrument lifted out of one module and written into another sounds what it sounded
 before.
 
@@ -262,7 +262,7 @@ voices = parse_voices(data, extension=".it")    # every voice a module numbers
 
 What comes back says which kind of table it is, so the container stops mattering at the point the bytes
 are read. `MODULE_EXTENSIONS` and `INSTRUMENT_EXTENSIONS` name which suffix is which, in either
-capitalisation, which is what lets a consumer accept whichever container a producer ships.
+capitalization, which is what lets a consumer accept whichever container a producer ships.
 
 ## Reading a file that states something odd
 

@@ -65,7 +65,7 @@ def flattened(voices: InstrumentVoices) -> SampleVoices:
 
     Each instrument contributes the waveform its keys reach, at the position the instrument itself held,
     so every cell keeps naming the voice it named before. The routing is what travels: the envelopes,
-    fadeout, levels and note behaviours an instrument carries stay behind, which is what a table of
+    fadeout, levels and note behaviors an instrument carries stay behind, which is what a table of
     samples holds room for.
 
     Raises:

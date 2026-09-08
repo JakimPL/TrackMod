@@ -135,7 +135,7 @@ def test_a_sample_this_format_keeps_no_field_for_is_refused() -> None:
         (unstorable(depth=BitDepth.SIXTEEN, pcm=lattice(np.linspace(-1.0, 1.0, 16))), "stores eight"),
         (unstorable(panning=64), "panning"),
         (unstorable(sustain_loop=Loop(begin=0, end=8, mode=LoopMode.FORWARD)), "sustain loop"),
-        (unstorable(loop=Loop(begin=0, end=8, mode=LoopMode.PING_PONG)), "loops forwards"),
+        (unstorable(loop=Loop(begin=0, end=8, mode=LoopMode.PING_PONG)), "loops forward"),
     )
     for sample, reason in refused:
         with pytest.raises(ValueError, match=reason):

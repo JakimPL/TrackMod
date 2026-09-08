@@ -42,7 +42,7 @@ def stated_blocks(data: bytes) -> Iterator[tuple[bytes, bytes]]:
     Trackers also place content of their own in this region — plugin settings and the properties a later
     writer keeps for itself — which is laid out as that writer pleases rather than as blocks. The walk
     therefore runs while the bytes describe whole blocks and stops where they stop doing so, which is
-    what leaves the blocks a reader does recognise reachable in the files that carry them.
+    what leaves the blocks a reader does recognize reachable in the files that carry them.
     """
     at = 0
     while at + BLOCK_HEADER_BYTES <= len(data):

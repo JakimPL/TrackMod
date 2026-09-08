@@ -152,7 +152,7 @@ def test_a_record_states_how_many_bytes_its_waveform_takes_across_every_channel(
     [
         ("panning", CENTRE_PANNING, "pans by channel"),
         ("sustain_loop", Loop(begin=0, end=8, mode=LoopMode.FORWARD), "sustain loop"),
-        ("loop", Loop(begin=0, end=8, mode=LoopMode.PING_PONG), "loops forwards"),
+        ("loop", Loop(begin=0, end=8, mode=LoopMode.PING_PONG), "loops forward"),
     ],
 )
 def test_a_sample_this_format_keeps_no_field_for_is_refused(field: str, value: object, message: str) -> None:

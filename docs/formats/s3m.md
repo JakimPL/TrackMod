@@ -47,7 +47,7 @@ states `SCRM` at 44. The global volume, the speed, the tempo and the mixing byte
 and the mixing byte spends its seven low bits on the level and the one above them on stereo playback.
 
 **A module states its width in a table.** Thirty-two bytes from offset 64 give each channel a mixer slot —
-`0` to `7` on the left, `8` to `15` on the right, the numbers above them the synthesiser's own channels,
+`0` to `7` on the left, `8` to `15` on the right, the numbers above them the synthesizer's own channels,
 `0x80` added to mute a slot and `0xFF` for a channel this module leaves out. A cell names its channel by
 the slot it takes here, so the last slot the table names is how wide every pattern reads.
 
@@ -159,7 +159,7 @@ ends meet repeats nothing and plays through once, a waveform the file stops insi
 holds, and a rate of zero reads as 8363 Hz; all are reported.
 
 **A record may describe an OPL patch where a sampled one points at frames.** Scream Tracker 3 played six
-kinds of them — a melodic voice and five drums — and spends the eighty bytes on the synthesiser's
+kinds of them — a melodic voice and five drums — and spends the eighty bytes on the synthesizer's
 registers. Such a record is refused by name. Sounding one means a patch held beside the sample table,
 where a waveform sits inside it, which is the shape the model leaves room for.
 
@@ -193,7 +193,7 @@ says a writer attached a block of its own, which the word at offset 62 points at
 | `0x01` | Scream Tracker 2's vibrato | `0x10` | Amiga period limits |
 | `0x02` | Scream Tracker 2's tempo | `0x20` | the filter |
 | `0x04` | Amiga slides | `0x40` | Scream Tracker 3's own volume slides |
-| `0x08` | the zero-volume optimisation | `0x80` | a block of the writer's own |
+| `0x08` | the zero-volume optimization | `0x80` | a block of the writer's own |
 
 ## Timing
 
@@ -238,7 +238,7 @@ puts the floor there.
 | A note off or a note fade in the note column | `ValueError` |
 | A per-sample panning | `ValueError` |
 | A sustain loop | `ValueError` |
-| A loop that plays backwards | `ValueError` |
+| A loop that plays backward | `ValueError` |
 | A volume-column intent this format leaves unnamed | `ValueError` |
 | A song whose cells name instruments | `ValueError` |
 | A record describing an OPL patch | `ValueError` |

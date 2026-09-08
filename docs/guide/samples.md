@@ -17,7 +17,7 @@ for sample in load_module(Path("song.it")).song.voices.samples:
 ```
 
 `sample.pcm` is a `numpy` array shaped `(frames,)` for a mono waveform or `(frames, 2)` for a stereo one,
-left channel first — ready to resample, analyse or feed to anything that takes float audio.
+left channel first — ready to resample, analyze or feed to anything that takes float audio.
 
 ## Writing a waveform as a `.wav`
 

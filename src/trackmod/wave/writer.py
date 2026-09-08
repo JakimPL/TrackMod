@@ -174,7 +174,7 @@ def name_bytes(sample: Sample) -> bytes:
 
 
 def write_sample(sample: Sample) -> bytes:
-    """Serialise one waveform as a RIFF audio file, carrying how a tracker sounds it.
+    """Serialize one waveform as a RIFF audio file, carrying how a tracker sounds it.
 
     Beside the frames the file states the loops, the pitch the waveform sounds unaltered, the level and
     the position it plays at, its auto-vibrato and its two names -- the settings OpenMPT writes into a
@@ -196,5 +196,5 @@ def write_sample(sample: Sample) -> bytes:
 
 
 def save_sample(sample: Sample, path: Path) -> None:
-    """Serialise one waveform and write it to ``path``."""
+    """Serialize one waveform and write it to ``path``."""
     path.write_bytes(write_sample(sample))

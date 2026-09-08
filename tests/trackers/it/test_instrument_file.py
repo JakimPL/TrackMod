@@ -70,7 +70,7 @@ def test_a_written_instrument_parses_back_to_the_same_voice(song: Song) -> None:
 
 
 def test_the_file_states_the_version_its_envelopes_are_laid_out_by(song: Song) -> None:
-    # A module hands its loader the version its own file header carries; an instrument travelling alone
+    # A module hands its loader the version its own file header carries; an instrument traveling alone
     # carries the only copy of it, and a reader taking this field for a 1.x instrument looks for the
     # envelopes where that version kept them and finds none.
     data = instrument_file(router(song)).to_bytes()

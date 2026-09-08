@@ -7,7 +7,7 @@ from trackmod.core.envelopes.span import EnvelopeSpan
 POINTS = (EnvelopePoint(tick=0, value=64), EnvelopePoint(tick=10, value=0))
 
 
-def test_envelope_ticks_run_forwards() -> None:
+def test_envelope_ticks_run_forward() -> None:
     with pytest.raises(ValueError):
         Envelope(points=(EnvelopePoint(tick=10, value=64), EnvelopePoint(tick=0, value=0)))
 
@@ -32,7 +32,7 @@ def test_an_envelope_needs_at_least_one_point() -> None:
         Envelope(points=())
 
 
-def test_a_backwards_span_is_rejected() -> None:
+def test_a_backward_span_is_rejected() -> None:
     with pytest.raises(ValueError):
         EnvelopeSpan(begin=2, end=1)
 

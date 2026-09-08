@@ -16,7 +16,7 @@ same field means two things.
 ## Where they disagree about the same field
 
 Almost everything a song carries means the same thing in every format and is written by each in its own
-bytes. These are the exceptions — one name, several behaviours — and they are what to check when one piece
+bytes. These are the exceptions — one name, several behaviors — and they are what to check when one piece
 is written to more than one of them.
 
 | Field | Impulse Tracker | FastTracker 2 | Amiga ProTracker | Scream Tracker 3 | Soundtracker |

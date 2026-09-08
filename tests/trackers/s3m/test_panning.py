@@ -4,7 +4,7 @@ from trackmod.trackers.s3m.panning import shared_panning, stored_panning, stored
 
 # A channel's table entry holds sixteen positions and the effect that moves it mid-song counts in a
 # hundred and twenty-nine, so the shared 0..255 range lands on each of them differently. The numbers
-# below are those positions, stated rather than computed: rounding a centred channel down instead of to
+# below are those positions, stated rather than computed: rounding a centered channel down instead of to
 # the nearest of them would open it at 119 of 255.
 
 STORED = ((0, 0), (128, 8), (255, 15))

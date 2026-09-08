@@ -32,7 +32,7 @@ def order_table(order: OrderList) -> bytes:
 
 
 def written_module(song: Song, *, table: bytes, sequence: bytes) -> bytes:
-    """Serialise a song as a whole module of this lineage, behind the header block its format states.
+    """Serialize a song as a whole module of this lineage, behind the header block its format states.
 
     The header is a fixed slab of a known length, so everything after it is found by walking what came
     before: every pattern at its fixed size, then every waveform in the order its record was written.

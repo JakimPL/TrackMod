@@ -140,7 +140,7 @@ def unpack_cells(stream: bytes, *, rows: int, subject: str, repairs: Repairs) ->
 
     A row naming a channel without a mask byte carries on with the mask that channel last stated, which
     starts out naming no columns -- so such a cell reads as the silence already sitting there, and the
-    channel still counts towards the width.
+    channel still counts toward the width.
 
     A mask says how many bytes its cell spends, so a stream stopping inside one leaves that cell silent
     along with the rows after it, and a marker naming a channel below the first leaves its cell silent

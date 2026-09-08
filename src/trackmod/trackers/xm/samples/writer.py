@@ -19,7 +19,7 @@ LOOP_TYPES: Final[dict[LoopMode, LoopType]] = {
 
 
 def sample_bytes(sample: Sample) -> bytes:
-    """Serialise a sample's waveform as this format stores it: signed frames, stored as differences."""
+    """Serialize a sample's waveform as this format stores it: signed frames, stored as differences."""
     return encode_pcm(sample.pcm, depth=sample.depth, encoding=PCM_ENCODING, sign=PCM_SIGN)
 
 
@@ -39,7 +39,7 @@ def loop_type(sample: Sample) -> LoopType:
 
 
 def reject_stereo(sample: Sample) -> None:
-    """Refuse to serialise a sample this format has no encoding for.
+    """Refuse to serialize a sample this format has no encoding for.
 
     Raises:
         ValueError: when the sample is stereo, which this format cannot store.
@@ -49,7 +49,7 @@ def reject_stereo(sample: Sample) -> None:
 
 
 def sample_header(sample: Sample, *, tuning: Tuning) -> bytes:
-    """Serialise a sample header, whose lengths count bytes rather than frames."""
+    """Serialize a sample header, whose lengths count bytes rather than frames."""
     reject_stereo(sample)
     stride = sample.depth.bytes_per_frame
     flags = int(loop_type(sample))

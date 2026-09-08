@@ -14,7 +14,7 @@ from trackmod.trackers.st.spec.effects import (
 class STEffects:
     """The shared effect vocabulary as the fifteen-sample trackers spell it.
 
-    Seven commands is the whole of it, so this catalogue spells the three intents they cover and names
+    Seven commands is the whole of it, so this catalog spells the three intents they cover and names
     the five they leave to the trackers that came after. A caller reaching for one of those five is told
     which command it would need and which format numbers it, which is what makes the gap legible rather
     than a cell that plays as something else.

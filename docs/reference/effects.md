@@ -17,7 +17,7 @@ command 15 (`F`). One song therefore carries effects for one format at a time.
 ## The shared vocabulary
 
 `trackmod.core.effects.catalog.EffectCatalog` is a protocol naming the intents every format expresses, and
-each format implements it. Authoring through a catalogue is what makes the intent portable and the
+each format implements it. Authoring through a catalog is what makes the intent portable and the
 parameter checked:
 
 ```python
@@ -51,7 +51,7 @@ kept it whole; Scream Tracker 3 gave each clock a command of its own, `Axx` and 
 Impulse Tracker inherited.
 
 **Four of the five read a pattern break as decimal digits**, inherited from Amiga ProTracker, which
-printed the parameter rather than counting it. Impulse Tracker reads the row itself. The catalogue
+printed the parameter rather than counting it. Impulse Tracker reads the row itself. The catalog
 converts, so a caller says the row it means:
 
 ```python
@@ -60,12 +60,12 @@ XM_EFFECTS.pattern_break(16).parameter == 0x16
 ```
 
 **A volume slide runs one way.** The parameter packs the up amount into the high nibble and the down
-amount into the low one, and a tracker reading both set does something undefined. Every catalogue raises
+amount into the low one, and a tracker reading both set does something undefined. Every catalog raises
 on the pair.
 
 ## The full command set
 
-Beyond the catalogue, each format exposes its native commands as an `IntEnum` —
+Beyond the catalog, each format exposes its native commands as an `IntEnum` —
 `trackmod.trackers.it.effects.command.ITEffect` and its `XMEffect`, `MODEffect`, `S3MEffect` and
 `STEffect` counterparts. The four whose cells hold an extended command carry an `Extended` companion
 beside it, for the sub-commands one command selects with its high nibble; Soundtracker names seven

@@ -33,11 +33,11 @@ def stored_bytes(sample: Sample) -> int:
 
 
 def reject_unstorable(sample: Sample) -> None:
-    """Refuse to serialise a sample this lineage has no records for.
+    """Refuse to serialize a sample this lineage has no records for.
 
     Raises:
         ValueError: when the sample is stereo, stored at sixteen bits, panned, or carries a sustain loop,
-            a loop that plays backwards, or a loop over a waveform of a single pair of frames — each of
+            a loop that plays backward, or a loop over a waveform of a single pair of frames — each of
             which this lineage keeps no field for.
     """
     if sample.channels == STEREO_CHANNELS:
@@ -53,7 +53,7 @@ def reject_unstorable(sample: Sample) -> None:
         raise ValueError(f"sample {sample.name!r} carries a sustain loop, which this format cannot store")
 
     if sample.loop is not None and sample.loop.mode is not LoopMode.FORWARD:
-        raise ValueError(f"sample {sample.name!r} loops {sample.loop.mode}, and this format loops forwards")
+        raise ValueError(f"sample {sample.name!r} loops {sample.loop.mode}, and this format loops forward")
 
     if sample.loop is not None and stored_frames(sample.frames) < MIN_LOOP_FRAMES:
         raise ValueError(
@@ -63,7 +63,7 @@ def reject_unstorable(sample: Sample) -> None:
 
 
 def sample_bytes(sample: Sample) -> bytes:
-    """Serialise a waveform as this lineage stores it: one channel of signed frames, as they sound.
+    """Serialize a waveform as this lineage stores it: one channel of signed frames, as they sound.
 
     A waveform of an odd length is closed by one silent frame, because a record counts its length in
     pairs of frames.
@@ -90,7 +90,7 @@ def stored_loop(loop: Loop, *, frames: int, begin_unit: int) -> tuple[int, int]:
 
 
 def sample_header(sample: Sample, *, begin_unit: int) -> bytes:
-    """Serialise a sample record, whose stored length counts pairs of frames."""
+    """Serialize a sample record, whose stored length counts pairs of frames."""
     reject_unstorable(sample)
     loop = sample.loop
     begin, length = (
@@ -109,7 +109,7 @@ def sample_header(sample: Sample, *, begin_unit: int) -> bytes:
 
 
 def empty_header() -> bytes:
-    """Serialise the record of a slot holding no waveform, which every module writes all of."""
+    """Serialize the record of a slot holding no waveform, which every module writes all of."""
     return SAMPLE_HEADER.pack(
         {
             "name": encode_name("", NAME_BYTES),

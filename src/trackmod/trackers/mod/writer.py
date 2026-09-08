@@ -37,7 +37,7 @@ def stated_restart(song: Song, settings: MODSettings) -> int:
 
 
 def sequence(song: Song, settings: MODSettings, dialect: Dialect) -> bytes:
-    """Serialise the block that closes the header: how far the order runs, the order itself, and the tag."""
+    """Serialize the block that closes the header: how far the order runs, the order itself, and the tag."""
     return SEQUENCE.pack(
         {
             "order_count": song.order.length,
@@ -49,7 +49,7 @@ def sequence(song: Song, settings: MODSettings, dialect: Dialect) -> bytes:
 
 
 def write_module(song: Song, settings: MODSettings) -> bytes:
-    """Serialise a song and its settings as a whole Amiga ProTracker file."""
+    """Serialize a song and its settings as a whole Amiga ProTracker file."""
     voices = sampled(song)
     return written_module(
         song,

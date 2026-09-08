@@ -11,7 +11,7 @@ def tick_seconds(tempo: int) -> float:
 
     The tick is the unit a tracker counts envelope breakpoints and note fades in, so a curve written
     for one tempo runs at another rate under a different one. Everything stating an instrument's
-    behaviour in time reads a tick's length from here, which is what lets the tempo a curve was fitted at
+    behavior in time reads a tick's length from here, which is what lets the tempo a curve was fitted at
     be named once and travel with it.
 
     Raises:
@@ -42,9 +42,9 @@ def elapsed_ticks(seconds: float, tempo: int) -> int:
     """How many whole ticks ``seconds`` spans at ``tempo``, to the nearest one.
 
     Raises:
-        ValueError: when ``seconds`` runs backwards, or ``tempo`` is below the slowest clock.
+        ValueError: when ``seconds`` runs backward, or ``tempo`` is below the slowest clock.
     """
     if seconds < 0.0:
-        raise ValueError(f"{seconds} seconds runs backwards")
+        raise ValueError(f"{seconds} seconds runs backward")
 
     return round(seconds / tick_seconds(tempo))

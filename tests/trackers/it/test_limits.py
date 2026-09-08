@@ -47,7 +47,7 @@ def test_the_channel_count_is_the_one_capability_with_headroom() -> None:
     assert extended.maximum == EXTENDED_MAX_CHANNELS
 
 
-def test_the_fadeout_the_tracker_honours_stops_short_of_what_its_field_holds() -> None:
+def test_the_fadeout_the_tracker_honors_stops_short_of_what_its_field_holds() -> None:
     # The header keeps a word, and Impulse Tracker's own editor counts a fadeout up to 128.
     assert it_limits(Compliance.CANONICAL).bound(Capability.FADEOUT).maximum == CANONICAL_MAX_FADEOUT
     assert it_limits(Compliance.EXTENDED).bound(Capability.FADEOUT).maximum == WORD_MAX
@@ -93,11 +93,11 @@ def test_a_rate_past_the_tracker_is_reported_and_still_stored(song: Song) -> Non
 
 
 def test_the_song_wide_levels_stop_where_the_tracker_did_and_their_bytes_hold_more() -> None:
-    for capability, honoured in (
+    for capability, honored in (
         (Capability.SONG_VOLUME, MAX_GLOBAL_VOLUME),
         (Capability.MIX_VOLUME, MAX_MIX_VOLUME),
     ):
-        assert it_limits(Compliance.EXTENDED).bound(capability).maximum == honoured
+        assert it_limits(Compliance.EXTENDED).bound(capability).maximum == honored
         assert it_limits(Compliance.STRUCTURAL).bound(capability).maximum == BYTE_MAX
 
 

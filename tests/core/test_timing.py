@@ -85,12 +85,12 @@ def test_nearest_timing_picks_the_closest_row_when_there_is_no_tie() -> None:
 
 @pytest.mark.parametrize("candidate", [0, -1, 13])
 def test_a_candidate_outside_the_dividend_is_refused(candidate: int) -> None:
-    # The two neighbours are divisors of the dividend, so a candidate outside it has no side to fall on.
+    # The two neighbors are divisors of the dividend, so a candidate outside it has no side to fall on.
     with pytest.raises(ValueError, match="must be in 1..12"):
         neighbor_divisors(candidate, 12)
 
 
-def test_a_candidate_that_divides_is_its_own_neighbour_on_both_sides() -> None:
+def test_a_candidate_that_divides_is_its_own_neighbor_on_both_sides() -> None:
     assert neighbor_divisors(4, 12) == (4, 4)
 
 

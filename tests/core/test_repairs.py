@@ -54,7 +54,7 @@ def test_an_envelope_span_past_the_points_is_drawn_onto_the_last_one() -> None:
 
 
 def test_an_envelope_span_ending_before_it_begins_closes_onto_its_end() -> None:
-    # The pair is taken as the two numbers the record holds: a span that runs backwards is one this
+    # The pair is taken as the two numbers the record holds: a span that runs backward is one this
     # model states no span for, so it can only be read from the raw bytes.
     repairs = Repairs()
     assert repaired_span((5, 2), points=8, name="loop", subject=SUBJECT, repairs=repairs) == EnvelopeSpan(
@@ -148,7 +148,7 @@ def test_an_instrument_reaching_only_stored_samples_is_left_as_it_is() -> None:
     assert repairs.entries == ()
 
 
-def test_a_behaviour_byte_naming_none_of_them_is_read_as_the_one_a_fresh_instrument_carries() -> None:
+def test_a_behavior_byte_naming_none_of_them_is_read_as_the_one_a_fresh_instrument_carries() -> None:
     repairs = Repairs()
     action = stated_behaviour(
         200,
@@ -162,7 +162,7 @@ def test_a_behaviour_byte_naming_none_of_them_is_read_as_the_one_a_fresh_instrum
     assert repairs.entries == (("instrument 0", "duplicate action 200 read as CUT"),)
 
 
-def test_a_behaviour_byte_the_format_numbers_is_read_as_that_behaviour() -> None:
+def test_a_behavior_byte_the_format_numbers_is_read_as_that_behavior() -> None:
     repairs = Repairs()
     action = stated_behaviour(
         int(DuplicateAction.FADE),

@@ -90,7 +90,7 @@ def test_the_tag_a_file_carried_is_the_tag_it_is_written_back_under(mod_song: So
 
 
 def test_a_tag_stating_another_width_than_the_song_holds_is_refused_where_it_is_bound(mod_song: Song) -> None:
-    # A module that reports itself writable and then refuses to serialise is a module a caller cannot
+    # A module that reports itself writable and then refuses to serialize is a module a caller cannot
     # act on, so the disagreement is met where the two are put together.
     stated = MODSettings(dialect=DIALECTS[b"6CHN"])
     with pytest.raises(ValueError, match="states 6 channels"):

@@ -30,7 +30,7 @@ class InstrumentVoices(BaseModel):
 
     This is what FastTracker 2 holds, and what Impulse Tracker holds while its header switches
     instruments on: the cells address ``instruments``, each of which carries a keymap into ``samples``
-    together with the envelopes and behaviours every voice it starts follows.
+    together with the envelopes and behaviors every voice it starts follows.
     """
 
     model_config = FROZEN

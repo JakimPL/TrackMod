@@ -14,7 +14,7 @@ The library is layered downward: every package reads its own layer and the ones 
 | `trackmod/schema` | Pydantic plumbing: the frozen model config, the constrained scalar aliases, the numpy array annotations |
 | `trackmod/limits` | The capability vocabulary, bounds, compliance levels, violations |
 | `trackmod/core` | The format-agnostic music: notes, patterns, samples, instruments, envelopes, voices, songs, timing |
-| `trackmod/binary` | Byte-level machinery: declarative records, a cursor, fixed-width text, PCM quantisation and encoding |
+| `trackmod/binary` | Byte-level machinery: declarative records, a cursor, fixed-width text, PCM quantization and encoding |
 | `trackmod/wave` | The RIFF audio container: its chunk layouts, and a sample written and read as a `.wav` |
 | `trackmod/module` | What a format binding offers: the size report, the storage table, how far a file's values reach, and the `TrackerModule` and `InstrumentFile` protocols |
 | `trackmod/trackers/<lineage>` | What a family of formats inherited from the one that settled it: the Amiga period tables, the fixed cell, the thirty-byte sample record |
@@ -34,7 +34,7 @@ from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.trackers.s3m.settings import S3MSettings
 ```
 
-Patterns, cells, envelopes, timing, the settings models, the effect catalogues, the storage and size
+Patterns, cells, envelopes, timing, the settings models, the effect catalogs, the storage and size
 reports and everything under `binary` keep their module paths. They belong to callers building songs
 rather than reading them, and the root stays a surface a newcomer can read in one screen. The root stands
 above every layer and reads all of them; every other `__init__.py` is empty.
@@ -47,10 +47,10 @@ Each format package repeats the same internal shape, so knowing one is knowing t
 <format>/
   spec/         constants only: identity sizes ranges defaults flags cells effects storage capacities
   layout/       the record layouts, as data: file pattern sample instrument envelope
-  effects/      the command enumeration and the catalogue that spells the shared vocabulary
+  effects/      the command enumeration and the catalog that spells the shared vocabulary
   patterns/     packer, parser, and the size model that is their exact counterpart
-  samples/      waveform and header serialisation
-  instruments/  header serialisation, keymaps, envelopes, the standalone instrument file
+  samples/      waveform and header serialization
+  instruments/  header serialization, keymaps, envelopes, the standalone instrument file
   detection limits timing settings sizing writer parser module
 ```
 
@@ -96,7 +96,7 @@ way*. A repair says *the file stated something odd, and this is what was heard*.
 
 ## Types
 
-- Every validated or serialised type is a **frozen** Pydantic model. Bounds live in `Field(...)`
+- Every validated or serialized type is a **frozen** Pydantic model. Bounds live in `Field(...)`
   constraints, and cross-field rules in `model_validator(mode="after")`.
 - Constants live in `spec/` packages and nowhere else, so the constants read as the specification.
 - Protocols are preferred to base classes, and composition to inheritance. `Reaching` is the one mixin,

@@ -112,7 +112,7 @@ def parse_module(
     What comes back answers :class:`~trackmod.module.protocol.TrackerModule`, so a caller reading a whole
     collection holds every format the same way and reaches the song, the provenance and the size report
     of each through one surface. Which format wrote them is what the extension states, in either
-    capitalisation, and the two sharing ``.mod`` are told apart from the bytes.
+    capitalization, and the two sharing ``.mod`` are told apart from the bytes.
 
     Raises:
         ValueError: when no module format writes that extension, or the data reads as another one.
@@ -147,7 +147,7 @@ def parse_voices(data: bytes, *, extension: str) -> Voices:
     back says which kind of table it is: a song whose cells name samples reads back as
     :class:`~trackmod.core.voices.voices.SampleVoices`, and one whose cells name instruments as
     :class:`~trackmod.core.voices.voices.InstrumentVoices`. Which format wrote them is what the
-    extension states, in either capitalisation.
+    extension states, in either capitalization.
 
     Raises:
         ValueError: when no format writes that extension, or the data reads as another one.
@@ -182,7 +182,7 @@ def load_voices(path: Path) -> Voices:
 def parse_provenance(data: bytes, *, extension: str) -> Provenance | None:
     """What the bytes state about the program that wrote them, or ``None`` for a format stating none.
 
-    Which format wrote them is what the extension states, in either capitalisation, and the two sharing
+    Which format wrote them is what the extension states, in either capitalization, and the two sharing
     ``.mod`` are told apart from the bytes as :func:`parse_voices` tells them apart. The tag is what the
     newer of those two states and the whole of what it has, and the older one states nothing at all, so
     which layout the bytes hold is what settles whether there is an answer.
@@ -197,7 +197,7 @@ def detected(data: bytes) -> str:
     """The extension the bytes themselves state, whatever name they arrived under.
 
     Every format but one opens a file with a tag or a name of its own, and the one that opens with
-    neither is recognised by its records adding up to the length of the file. The strongest statement
+    neither is recognized by its records adding up to the length of the file. The strongest statement
     wins, so a tag a reader knows settles the answer before the arithmetic is asked.
 
     The two formats sharing ``.mod`` both answer with that suffix, and which of them holds the bytes

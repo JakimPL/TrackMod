@@ -5,7 +5,7 @@ from trackmod.schema.scalars import Frames, Speed, Tempo
 
 
 class Timing(BaseModel):
-    """A row length realised exactly: ``speed`` ticks at ``tempo`` span whole ``row_frames`` frames."""
+    """A row length realized exactly: ``speed`` ticks at ``tempo`` span whole ``row_frames`` frames."""
 
     model_config = FROZEN
 

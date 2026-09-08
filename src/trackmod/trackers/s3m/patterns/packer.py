@@ -62,7 +62,7 @@ def encode_cell(note: int, instrument: int, volume: int, command: int, parameter
 
 
 def pack_cells(pattern: Pattern) -> bytes:
-    """Serialise a pattern grid into this format's channel-marker byte stream.
+    """Serialize a pattern grid into this format's channel-marker byte stream.
 
     A row names only the channels that carry something and closes with a zero byte, so a silent channel
     costs nothing and a silent row costs the one byte that ends it.
@@ -97,7 +97,7 @@ def pack_cells(pattern: Pattern) -> bytes:
 
 
 def pack_pattern(pattern: Pattern) -> bytes:
-    """Serialise a pattern: the length of the whole block, then the packed cell stream."""
+    """Serialize a pattern: the length of the whole block, then the packed cell stream."""
     stream = pack_cells(pattern)
     header = PATTERN_HEADER.pack({"block_size": PATTERN_LENGTH_BYTES + len(stream)})
     return header + stream

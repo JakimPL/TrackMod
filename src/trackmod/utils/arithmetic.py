@@ -23,7 +23,7 @@ def divisors(number: int) -> list[int]:
 def neighbor_divisors(candidate: int, dividend: int) -> tuple[int | None, int | None]:
     """The divisors of ``dividend`` that ``candidate`` falls between, as the pair below it and above it.
 
-    A candidate that divides the dividend is its own neighbour on both sides. Each side is answered
+    A candidate that divides the dividend is its own neighbor on both sides. Each side is answered
     separately, and a side with no divisor on it is answered as absent.
 
     Raises:

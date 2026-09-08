@@ -14,7 +14,7 @@ def encode_pcm(
     encoding: PcmEncoding,
     sign: PcmSign,
 ) -> bytes:
-    """Serialise float PCM in ``[-1, 1]`` to stored frames.
+    """Serialize float PCM in ``[-1, 1]`` to stored frames.
 
     The amplitudes are placed in the stored range before they are differenced, which is the order the
     two axes compose in: a player integrates in the width it reads, so the differences it sums are

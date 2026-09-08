@@ -132,7 +132,7 @@ def test_stored_end_reads_a_single_channel_of_a_compressed_mono_sample() -> None
     assert stored_end(values, data) == len(data)
 
 
-def test_a_header_stating_unsigned_frames_reads_them_centred_on_silence() -> None:
+def test_a_header_stating_unsigned_frames_reads_them_centered_on_silence() -> None:
     # Scream Tracker 3 wrote every waveform this way, and this header can state it too: 0x80 is silence.
     depth = BitDepth.EIGHT
     data = bytes([0x80, 0xC0, 0x40, 0xFF, 0x00])
@@ -196,7 +196,7 @@ def test_a_written_header_states_the_signed_amplitudes_the_writer_stores() -> No
 
 
 def test_a_convert_byte_naming_a_storage_this_reader_leaves_out_reads_signed_amplitudes() -> None:
-    # A byte of 0xFF claims big-endian frames, ADPCM and a synthesiser's own waveform all at once.
+    # A byte of 0xFF claims big-endian frames, ADPCM and a synthesizer's own waveform all at once.
     depth = BitDepth.EIGHT
     data = bytes([0x00, 0x40, 0xC0, 0x7F, 0x80])
     values = _values(flags=SampleFlag.DATA, length=len(data), convert=SampleConvert(0xFF))
@@ -243,7 +243,7 @@ def test_a_stereo_waveform_the_file_stops_inside_reads_as_far_as_both_channels_r
 
 
 def test_both_loops_read_back_at_the_direction_their_own_flag_states() -> None:
-    # The flag byte carries a direction bit for each loop, so a sample may run one forwards and the
+    # The flag byte carries a direction bit for each loop, so a sample may run one forward and the
     # other back and forth, which is the pair this format is alone in storing.
     sample = Sample(
         name="looped",

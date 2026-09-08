@@ -198,7 +198,7 @@ def portable_song(catalog: EffectCatalog, envelope: Envelope, *, seed: int) -> S
     so the format that keeps no shared sample table stores each waveform once.
 
     The effect column is the one column a song carries for a single format at a time, because an
-    ``Effect`` holds the command byte its own format numbers. The catalogue that spells the intent is
+    ``Effect`` holds the command byte its own format numbers. The catalog that spells the intent is
     therefore what a caller picks, and it is a parameter here.
     """
     samples = portable_samples()
@@ -487,7 +487,7 @@ def recovered_song(binding: Binding, song: Song) -> Song:
 
 
 def written(module: TrackerModule) -> bytes:
-    """Serialise a module held only as the shared protocol, which is how a caller stays format-agnostic."""
+    """Serialize a module held only as the shared protocol, which is how a caller stays format-agnostic."""
     return module.to_bytes()
 
 
@@ -1180,7 +1180,7 @@ def test_the_format_stating_no_width_holds_the_one_its_machine_played() -> None:
         assert bound.minimum == bound.maximum
 
 
-def test_each_catalogue_spells_one_intent_in_its_own_bytes() -> None:
+def test_each_catalog_spells_one_intent_in_its_own_bytes() -> None:
     impulse, fast_tracker = IT_EFFECTS.set_tempo(140), XM_EFFECTS.set_tempo(140)
     assert impulse.command != fast_tracker.command
     assert impulse.parameter == fast_tracker.parameter == 140

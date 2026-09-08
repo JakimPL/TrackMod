@@ -1,7 +1,7 @@
 # Limits and compliance
 
 A tracker format has three ceilings, and they are rarely the same one. There is what the tracker the
-format was written for honoured in its own editor. There is what the players that came after it read,
+format was written for honored in its own editor. There is what the players that came after it read,
 which is what a module needs in order to play at all. And there is what the record layout physically
 holds, past which a value has no bytes to sit in. FastTracker 2 edits patterns of 256 rows, the players
 descended from it read 1024, and the pattern header states the count in sixteen bits. `trackmod` states

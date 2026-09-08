@@ -31,7 +31,7 @@ docstring, beside the code that picked one.
 
 ## Positive voice
 
-State what a record, a class or a function **does**. Every negation is reframed into the behaviour that
+State what a record, a class or a function **does**. Every negation is reframed into the behavior that
 actually happens: "there is no shared sample table" is written "each instrument carries its own copies of
 the samples its keys reach".
 

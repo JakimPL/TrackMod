@@ -37,7 +37,7 @@ def waveform() -> NDArray[np.float64]:
 @pytest.mark.parametrize("depth", DEPTHS, ids=lambda depth: f"{depth}bit")
 @pytest.mark.parametrize("encoding", ENCODINGS, ids=lambda encoding: str(encoding))
 @pytest.mark.parametrize("sign", SIGNS, ids=lambda sign: str(sign))
-def test_stored_frames_read_back_within_one_quantisation_step(
+def test_stored_frames_read_back_within_one_quantization_step(
     waveform: NDArray[np.float64], depth: BitDepth, encoding: PcmEncoding, sign: PcmSign
 ) -> None:
     stored = encode_pcm(waveform, depth=depth, encoding=encoding, sign=sign)
@@ -119,7 +119,7 @@ def test_a_delta_that_overshoots_the_stored_width_wraps_back_on_the_running_sum(
 
 
 @pytest.mark.parametrize("depth", DEPTHS, ids=lambda depth: f"{depth}bit")
-def test_quantisation_saturates_at_the_signed_range(depth: BitDepth) -> None:
+def test_quantization_saturates_at_the_signed_range(depth: BitDepth) -> None:
     quantised = quantise(np.asarray([-2.0, -1.0, 0.0, 1.0, 2.0]), depth)
     assert quantised.min() == -depth.scale
     assert quantised.max() == depth.scale - 1

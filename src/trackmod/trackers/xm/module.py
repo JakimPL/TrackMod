@@ -133,11 +133,11 @@ class XMModule(BaseModel, Reaching):
         return violations(self.song, limits=xm_limits(Compliance.CANONICAL))
 
     def size(self) -> SizeReport:
-        """How many bytes the module occupies, without serialising it."""
+        """How many bytes the module occupies, without serializing it."""
         return module_bytes(self.song)
 
     def to_bytes(self) -> bytes:
-        """Serialise the whole module.
+        """Serialize the whole module.
 
         A bound this format leaves room for is reported rather than raised, so a caller sees every
         problem at once. Content it has no encoding for at all — a note cut, a sustain loop, a pitch
@@ -153,5 +153,5 @@ class XMModule(BaseModel, Reaching):
         return write_module(self.song, self.settings)
 
     def save(self, path: Path) -> None:
-        """Serialise the module and write it to ``path``."""
+        """Serialize the module and write it to ``path``."""
         path.write_bytes(self.to_bytes())

@@ -14,7 +14,7 @@ module.song.patterns[0].cell(row=0, channel=3)
 
 `load_module` reads the format out of the bytes, so a file that was renamed, repacked or shared under a
 habit rather than a rule still opens as what it is. Every format but one opens a file with a tag or a name
-of its own, and the one that opens with neither is recognised by its records adding up to the length of
+of its own, and the one that opens with neither is recognized by its records adding up to the length of
 the file.
 
 Naming a format yourself is the other way in, and it takes the bytes directly:

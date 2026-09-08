@@ -14,7 +14,7 @@ from trackmod.schema.config import FROZEN
 class Record(BaseModel):
     """A fixed-size binary record described as data: a byte size plus the fields laid out within it.
 
-    Stating the layout declaratively keeps every byte offset in one place, so the serialisers supply
+    Stating the layout declaratively keeps every byte offset in one place, so the serializers supply
     field values and never arithmetic. Offsets a record leaves undescribed are reserved and stay zero
     when packing.
     """
@@ -38,7 +38,7 @@ class Record(BaseModel):
         return self
 
     def pack(self, values: RecordValues) -> bytes:
-        """Serialise ``values`` into exactly :attr:`size` bytes.
+        """Serialize ``values`` into exactly :attr:`size` bytes.
 
         Raises:
             KeyError: when a described field has no value.

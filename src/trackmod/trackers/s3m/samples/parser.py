@@ -84,7 +84,7 @@ def reject_adlib(values: RecordValues, *, subject: str) -> None:
     """Refuse a record describing an OPL patch rather than a waveform.
 
     Raises:
-        ValueError: when the record names one of the synthesiser kinds, which carry registers in place
+        ValueError: when the record names one of the synthesizer kinds, which carry registers in place
             of frames.
     """
     kind = record_type(values, subject=subject)

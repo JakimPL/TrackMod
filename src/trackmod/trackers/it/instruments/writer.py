@@ -20,14 +20,14 @@ from trackmod.trackers.it.spec.sizes import (
 
 
 def instrument_header(instrument: Instrument, *, samples: int) -> bytes:
-    """Serialise an instrument header, its keyboard routing and its three envelopes.
+    """Serialize an instrument header, its keyboard routing and its three envelopes.
 
     ``samples`` is how many sample slots the container behind this header holds for the instrument,
     which a module reads off its own table and a standalone file reads off this count alone.
 
     The header states the version it was written to (:data:`~trackmod.trackers.it.spec.identity
     .CREATED_WITH`), which is what a standalone instrument file is read by: a module hands its loader the
-    version its own file header carries, while an instrument travelling on its own carries the only copy
+    version its own file header carries, while an instrument traveling on its own carries the only copy
     of it, and the versions from 2.00 onward are the ones laying the envelopes out where this writer puts
     them.
     """
@@ -62,7 +62,7 @@ def instrument_header(instrument: Instrument, *, samples: int) -> bytes:
 
 
 def write_instrument_file(unit: InstrumentUnit) -> bytes:
-    """Serialise one unit as a whole standalone Impulse Tracker instrument file.
+    """Serialize one unit as a whole standalone Impulse Tracker instrument file.
 
     The file is the instrument header, then a header for each sample the unit holds, then the waveforms,
     with each header pointing at frames counted from the start of the file — the same records and the

@@ -139,16 +139,16 @@ class S3MModule(BaseModel, Reaching):
         return violations(self.song, self.settings, limits=s3m_limits(Compliance.CANONICAL))
 
     def size(self) -> SizeReport:
-        """How many bytes the module occupies, without serialising it."""
+        """How many bytes the module occupies, without serializing it."""
         return module_bytes(self.song)
 
     def to_bytes(self) -> bytes:
-        """Serialise the whole module.
+        """Serialize the whole module.
 
         A bound this format leaves room for is reported rather than raised, so a caller sees every
         problem at once. Content it has no encoding for at all — a note command other than a cut, a key
         below the octave its cells count from, a per-sample panning, a sustain loop, or a loop that
-        plays backwards — is not a quantity to bound and raises where it is met.
+        plays backward — is not a quantity to bound and raises where it is met.
 
         Raises:
             LimitError: when the song carries values this format refuses at its compliance level.
@@ -158,5 +158,5 @@ class S3MModule(BaseModel, Reaching):
         return write_module(self.song, self.settings)
 
     def save(self, path: Path) -> None:
-        """Serialise the module and write it to ``path``."""
+        """Serialize the module and write it to ``path``."""
         path.write_bytes(self.to_bytes())

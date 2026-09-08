@@ -26,7 +26,7 @@ song = Song(name="grafted", channels=4, patterns=..., order=..., voices=combine(
 ```
 
 The renumbering itself is `Instrument.rerouted(positions)`, which moves the routing and leaves every
-envelope, level and behaviour as stated — so an instrument lifted out of one module and written into
+envelope, level and behavior as stated — so an instrument lifted out of one module and written into
 another sounds what it sounded before. Each unit keeps its own copy of a waveform another unit also holds.
 
 ## Writing one instrument as a file
@@ -51,7 +51,7 @@ The surface mirrors a module's, so the two are read the same way, and `Instrumen
 caller names to hold one of either format. The bounds are the format's own, so what an instrument can
 carry is the same question in either container.
 
-An instrument travelling on its own is worth keeping beside the tempo its envelopes were fitted at: an
+An instrument traveling on its own is worth keeping beside the tempo its envelopes were fitted at: an
 `.iti` or an `.xi` carries a curve and no clock to read it by. See
 [`../reference/model.md`](../reference/model.md).
 
@@ -83,5 +83,5 @@ voices = load_voices(path)
 
 What comes back is the voice table the format that wrote the bytes addresses, so the choice of container
 stops mattering at the point the bytes are read. `parse_voices` takes the bytes and an extension where you
-already know it, matched in either capitalisation; `EXTENSIONS`, `MODULE_EXTENSIONS` and
+already know it, matched in either capitalization; `EXTENSIONS`, `MODULE_EXTENSIONS` and
 `INSTRUMENT_EXTENSIONS` state which suffixes are read, so the suffix table lives in one place.

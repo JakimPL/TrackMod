@@ -30,7 +30,7 @@ def stated_tempo(settings: STSettings) -> int:
 
 
 def sequence(song: Song, settings: STSettings) -> bytes:
-    """Serialise the block that closes the header: how far the order runs, the speed byte, and the order."""
+    """Serialize the block that closes the header: how far the order runs, the speed byte, and the order."""
     return SEQUENCE.pack(
         {
             "order_count": song.order.length,
@@ -41,7 +41,7 @@ def sequence(song: Song, settings: STSettings) -> bytes:
 
 
 def write_module(song: Song, settings: STSettings) -> bytes:
-    """Serialise a song and its settings as a whole fifteen-sample Soundtracker file."""
+    """Serialize a song and its settings as a whole fifteen-sample Soundtracker file."""
     voices = sampled(song)
     reject_restart(song.order)
     return written_module(

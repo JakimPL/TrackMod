@@ -32,7 +32,7 @@ def test_a_loop_past_the_end_of_the_waveform_is_rejected() -> None:
         Sample(name="s", pcm=np.zeros(8), rate=RATE, loop=Loop(begin=0, end=9))
 
 
-def test_a_backwards_loop_is_rejected() -> None:
+def test_a_backward_loop_is_rejected() -> None:
     with pytest.raises(ValueError):
         Loop(begin=4, end=4)
 

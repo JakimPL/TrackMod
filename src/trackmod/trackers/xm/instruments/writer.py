@@ -74,7 +74,7 @@ def empty_header(instrument: Instrument, group: SampleGroup) -> bytes:
 
 
 def instrument_header(instrument: Instrument, group: SampleGroup) -> bytes:
-    """Serialise an instrument header, its keyboard routing and its two envelopes.
+    """Serialize an instrument header, its keyboard routing and its two envelopes.
 
     An instrument that owns no samples is written in the short form the format reserves for it, which
     stops after the sample count rather than reserving room for a keymap nothing would route through.
@@ -95,7 +95,7 @@ def instrument_header(instrument: Instrument, group: SampleGroup) -> bytes:
 
 
 def instrument_file_header(instrument: Instrument, group: SampleGroup) -> bytes:
-    """Serialise the header a standalone instrument file opens with.
+    """Serialize the header a standalone instrument file opens with.
 
     A file of one instrument names itself and the tracker that wrote it where a module's header states a
     size and a type, and it counts its samples last; behind that, the two lay out the same body.
@@ -127,7 +127,7 @@ def instrument_block(instrument: Instrument, group: SampleGroup) -> bytes:
 
 
 def write_instrument_file(unit: InstrumentUnit) -> bytes:
-    """Serialise one unit as a whole standalone FastTracker 2 instrument file.
+    """Serialize one unit as a whole standalone FastTracker 2 instrument file.
 
     The unit's samples are grouped the way a stored instrument owns them, so the file carries the same
     waveforms, transpositions and keymap positions a module writing this instrument would.

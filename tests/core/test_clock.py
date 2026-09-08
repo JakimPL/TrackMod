@@ -42,6 +42,6 @@ def test_a_row_of_no_ticks_is_refused() -> None:
         row_seconds(0, 125)
 
 
-def test_a_duration_running_backwards_is_refused() -> None:
+def test_a_duration_running_backward_is_refused() -> None:
     with pytest.raises(ValueError):
         elapsed_ticks(-0.5, 125)

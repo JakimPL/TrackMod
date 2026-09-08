@@ -23,7 +23,7 @@ class Sample(BaseModel):
 
     ``pcm`` is float in ``[-1, 1]`` and ``rate`` is the frequency in hertz at which it plays back
     unaltered. Formats reach that rate differently — one stores the frequency outright, another tunes the
-    triggering key towards it — so the intent is recorded here in hertz and each writer derives its own
+    triggering key toward it — so the intent is recorded here in hertz and each writer derives its own
     encoding. A sample with no frames is a placeholder slot for a waveform a tracker will supply later.
 
     ``pcm`` is shaped ``(frames,)`` for a mono waveform or ``(frames, 2)`` for a stereo one, left channel

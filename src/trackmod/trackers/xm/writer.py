@@ -24,7 +24,7 @@ def order_table(order: OrderList) -> bytes:
 
 
 def file_header(song: Song, settings: XMSettings) -> bytes:
-    """Serialise the header that opens the module, ahead of the order table it declares the size of."""
+    """Serialize the header that opens the module, ahead of the order table it declares the size of."""
     return FILE_HEADER.pack(
         {
             "magic": MAGIC,
@@ -46,7 +46,7 @@ def file_header(song: Song, settings: XMSettings) -> bytes:
 
 
 def write_module(song: Song, settings: XMSettings) -> bytes:
-    """Serialise a song and its settings as a whole FastTracker 2 file.
+    """Serialize a song and its settings as a whole FastTracker 2 file.
 
     The format keeps no offset tables: every section is found by walking the sizes of the ones before
     it, so the whole file is one concatenation in the order a reader consumes it.

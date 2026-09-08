@@ -233,7 +233,7 @@ def test_a_stored_loop_reaching_no_further_than_it_begins_reads_as_none() -> Non
 
 
 def test_a_stored_transposition_travels_as_the_rate_it_reaches() -> None:
-    # One format tunes the triggering key towards the pitch instead of naming the rate outright; the
+    # One format tunes the triggering key toward the pitch instead of naming the rate outright; the
     # rate is what that arithmetic arrives at, and it is what an audio file states.
     tuned = Sample(name="lead", pcm=waveform(), rate=RATE, relative_note=12, finetune=64)
     read = parse_sample(write_sample(tuned))

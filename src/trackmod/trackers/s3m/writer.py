@@ -85,7 +85,7 @@ def stated_mix_volume(settings: S3MSettings) -> int:
 
 
 def file_header(song: Song, settings: S3MSettings, *, patterns: int) -> bytes:
-    """Serialise the file header that opens the module, which states every count the tables hold."""
+    """Serialize the file header that opens the module, which states every count the tables hold."""
     return FILE_HEADER.pack(
         {
             "name": encode_name(song.name, NAME_BYTES),
@@ -156,7 +156,7 @@ def body(
 
 
 def write_module(song: Song, settings: S3MSettings) -> bytes:
-    """Serialise a song and its settings as a whole Scream Tracker 3 file.
+    """Serialize a song and its settings as a whole Scream Tracker 3 file.
 
     Every record, pattern and waveform is found through a table of paragraph numbers, so where each
     block lands is settled before any of them is written and the tables state what the placement

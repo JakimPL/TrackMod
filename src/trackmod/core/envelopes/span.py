@@ -17,6 +17,6 @@ class EnvelopeSpan(BaseModel):
     @model_validator(mode="after")
     def _forwards(self) -> EnvelopeSpan:
         if self.end < self.begin:
-            raise ValueError(f"envelope span {self.begin}..{self.end} runs backwards")
+            raise ValueError(f"envelope span {self.begin}..{self.end} runs backward")
 
         return self

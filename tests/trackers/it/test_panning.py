@@ -24,7 +24,7 @@ def test_a_stored_position_opens_back_onto_the_shared_range(stored: int, panning
     assert shared_panning(stored) == panning
 
 
-def test_a_module_stating_nothing_opens_every_channel_centred_and_at_full_volume() -> None:
+def test_a_module_stating_nothing_opens_every_channel_centered_and_at_full_volume() -> None:
     # The header carries a table per channel whatever a song says about them, so the values a tracker
     # fills them with are what a module built from nothing states.
     settings = ITSettings()

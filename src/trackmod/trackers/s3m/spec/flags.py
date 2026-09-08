@@ -31,7 +31,7 @@ class RecordType(IntEnum):
 
     A record of the first two kinds is read here: an empty slot keeps a song's numbering while it holds
     no waveform, and a sampled one carries the frames a cell sounds. The kinds above them describe an
-    OPL patch by its registers instead of a waveform, which is a synthesiser this library sounds no
+    OPL patch by its registers instead of a waveform, which is a synthesizer this library sounds no
     part of.
     """
 

@@ -17,11 +17,11 @@ NO_POINTER: Final = 0
 
 
 def reject_unstorable(sample: Sample) -> None:
-    """Refuse to serialise a sample this format keeps no field for.
+    """Refuse to serialize a sample this format keeps no field for.
 
     Raises:
         ValueError: when the sample is panned, carries a sustain loop, or loops in a direction other
-            than forwards -- none of which an instrument record here has room to state.
+            than forward -- none of which an instrument record here has room to state.
     """
     if sample.panning is not None:
         raise ValueError(f"sample {sample.name!r} carries a panning, and this format pans by channel")
@@ -30,11 +30,11 @@ def reject_unstorable(sample: Sample) -> None:
         raise ValueError(f"sample {sample.name!r} carries a sustain loop, which this format cannot store")
 
     if sample.loop is not None and sample.loop.mode is not LoopMode.FORWARD:
-        raise ValueError(f"sample {sample.name!r} loops {sample.loop.mode}, and this format loops forwards")
+        raise ValueError(f"sample {sample.name!r} loops {sample.loop.mode}, and this format loops forward")
 
 
 def sample_bytes(sample: Sample) -> bytes:
-    """Serialise a waveform as this format stores it: frames shifted into the positive half of their range.
+    """Serialize a waveform as this format stores it: frames shifted into the positive half of their range.
 
     A stereo waveform is stored a channel at a time, the left in full before the right, so each is
     encoded from its own slice.
@@ -74,7 +74,7 @@ def sample_flags(sample: Sample) -> SampleFlag:
 
 
 def sample_record(sample: Sample, *, data_offset: int) -> bytes:
-    """Serialise an instrument record pointing at the paragraph its frames begin on.
+    """Serialize an instrument record pointing at the paragraph its frames begin on.
 
     A slot holding no frames states so in the byte it opens with, which keeps the numbering the cells
     count on while the file spends nothing on a waveform.

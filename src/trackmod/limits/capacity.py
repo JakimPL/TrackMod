@@ -9,7 +9,7 @@ from trackmod.schema.config import FROZEN
 class Capacity(BaseModel):
     """The three ceilings one format states for one quantity, from the tightest to the widest.
 
-    ``canonical`` is what the tracker the format names honoured in its own editor, ``extended`` what the
+    ``canonical`` is what the tracker the format names honored in its own editor, ``extended`` what the
     players descended from it read, and ``structural`` what the record layout physically holds. Each
     contains the one before it, so a value passing a wider bound has already passed the tighter ones and
     the level it breaks is the one worth reporting.

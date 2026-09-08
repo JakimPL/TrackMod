@@ -29,7 +29,7 @@ class Envelope(BaseModel):
     def _consistent(self) -> Envelope:
         ticks = [point.tick for point in self.points]
         if any(later < earlier for earlier, later in itertools.pairwise(ticks)):
-            raise ValueError(f"envelope ticks run backwards: {ticks}")
+            raise ValueError(f"envelope ticks run backward: {ticks}")
 
         for name, span in (("loop", self.loop), ("sustain", self.sustain)):
             if span is not None and span.end >= self.length:

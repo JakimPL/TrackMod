@@ -111,7 +111,7 @@ def stored_parameter(command: int, parameter: int) -> int:
 
 
 def pack_cells(pattern: Pattern) -> bytes:
-    """Serialise a pattern grid into this format's channel-marker byte stream.
+    """Serialize a pattern grid into this format's channel-marker byte stream.
 
     A row lists only the channels that carry something and ends with a zero byte, so a silent channel
     costs nothing. Each listed channel spends a mask byte only when its mask differs from the one it
@@ -166,7 +166,7 @@ def pack_cells(pattern: Pattern) -> bytes:
 
 
 def pack_pattern(pattern: Pattern) -> bytes:
-    """Serialise a pattern: its header, then the packed cell stream."""
+    """Serialize a pattern: its header, then the packed cell stream."""
     stream = pack_cells(pattern)
     header = PATTERN_HEADER.pack(
         {

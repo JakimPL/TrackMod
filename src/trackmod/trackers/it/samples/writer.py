@@ -16,7 +16,7 @@ from trackmod.trackers.it.spec.storage import PCM_ENCODING, PCM_SIGN
 
 
 def sample_bytes(sample: Sample) -> bytes:
-    """Serialise a sample's waveform as this format stores it: signed frames, no differencing.
+    """Serialize a sample's waveform as this format stores it: signed frames, no differencing.
 
     A stereo waveform is stored planar, so each channel is encoded from its own 1-D slice and the two
     are placed one after the other, which is the order a reader of this format walks them in.
@@ -61,7 +61,7 @@ def loop_bounds(loop: Loop | None) -> tuple[int, int]:
 
 
 def sample_header(sample: Sample, *, data_offset: int) -> bytes:
-    """Serialise a sample header pointing at where its frames sit in the file."""
+    """Serialize a sample header pointing at where its frames sit in the file."""
     flags = SampleFlag.DATA | loop_flags(sample)
     if sample.depth is BitDepth.SIXTEEN:
         flags |= SampleFlag.SIXTEEN_BIT

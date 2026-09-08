@@ -88,11 +88,11 @@ class XMInstrumentFile(BaseModel, Reaching):
         return instrument_violations(self.unit, limits=xm_limits(Compliance.CANONICAL))
 
     def size(self) -> SizeReport:
-        """How many bytes the file occupies, without serialising it."""
+        """How many bytes the file occupies, without serializing it."""
         return instrument_file_bytes(self.unit)
 
     def to_bytes(self) -> bytes:
-        """Serialise the whole file.
+        """Serialize the whole file.
 
         A bound this format leaves room for is reported rather than raised, so a caller sees every
         problem at once. Content it has no encoding for at all — a sustain loop, a pitch envelope, or a
@@ -107,5 +107,5 @@ class XMInstrumentFile(BaseModel, Reaching):
         return write_instrument_file(self.unit)
 
     def save(self, path: Path) -> None:
-        """Serialise the file and write it to ``path``."""
+        """Serialize the file and write it to ``path``."""
         path.write_bytes(self.to_bytes())

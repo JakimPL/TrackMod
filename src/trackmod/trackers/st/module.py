@@ -127,16 +127,16 @@ class STModule(BaseModel, Reaching):
         return violations(self.song, limits=st_limits(Compliance.CANONICAL))
 
     def size(self) -> SizeReport:
-        """How many bytes the module occupies, without serialising it."""
+        """How many bytes the module occupies, without serializing it."""
         return module_bytes(self.song)
 
     def to_bytes(self) -> bytes:
-        """Serialise the whole module.
+        """Serialize the whole module.
 
         A bound this format leaves room for is reported rather than raised, so a caller sees every
         problem at once. Content it has no encoding for at all — a volume column, a note command, a
         restart position, a stereo or sixteen-bit waveform, a per-sample panning, a sustain loop, a loop
-        that plays backwards, or an effect command past the four bits a cell holds — is not a quantity
+        that plays backward, or an effect command past the four bits a cell holds — is not a quantity
         to bound and raises where it is met.
 
         Raises:
@@ -147,5 +147,5 @@ class STModule(BaseModel, Reaching):
         return write_module(self.song, self.settings)
 
     def save(self, path: Path) -> None:
-        """Serialise the module and write it to ``path``."""
+        """Serialize the module and write it to ``path``."""
         path.write_bytes(self.to_bytes())

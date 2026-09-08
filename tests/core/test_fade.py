@@ -30,7 +30,7 @@ def test_a_fade_in_seconds_is_its_ticks_on_the_clock() -> None:
     assert fade_seconds(32, counter=COUNTER, tempo=TEMPO) == pytest.approx(32 * tick_seconds(TEMPO))
 
 
-def test_a_rate_running_backwards_is_refused() -> None:
+def test_a_rate_running_backward_is_refused() -> None:
     with pytest.raises(ValueError):
         fade_ticks(-1, counter=COUNTER)
 

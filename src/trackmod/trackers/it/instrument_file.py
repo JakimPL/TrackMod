@@ -88,11 +88,11 @@ class ITInstrumentFile(BaseModel, Reaching):
         return instrument_violations(self.unit, limits=it_limits(Compliance.CANONICAL))
 
     def size(self) -> SizeReport:
-        """How many bytes the file occupies, without serialising it."""
+        """How many bytes the file occupies, without serializing it."""
         return instrument_file_bytes(self.unit)
 
     def to_bytes(self) -> bytes:
-        """Serialise the whole file.
+        """Serialize the whole file.
 
         Raises:
             LimitError: when the unit carries values this format refuses at its compliance level.
@@ -101,5 +101,5 @@ class ITInstrumentFile(BaseModel, Reaching):
         return write_instrument_file(self.unit)
 
     def save(self, path: Path) -> None:
-        """Serialise the file and write it to ``path``."""
+        """Serialize the file and write it to ``path``."""
         path.write_bytes(self.to_bytes())

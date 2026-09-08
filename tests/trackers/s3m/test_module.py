@@ -145,7 +145,7 @@ def test_a_module_stating_no_panning_leaves_every_channel_on_its_own_side(s3m_so
 
 
 def test_a_channel_table_of_another_width_than_the_song_is_refused_where_it_is_bound(s3m_song: Song) -> None:
-    # A module that reports itself writable and then refuses to serialise is a module a caller cannot
+    # A module that reports itself writable and then refuses to serialize is a module a caller cannot
     # act on, so the disagreement is met where the two are put together.
     settings = S3MSettings(channels=tuple(range(8)) + (0xFF,) * (CHANNELS_STORED - 8))
     with pytest.raises(ValueError, match="8 channels"):

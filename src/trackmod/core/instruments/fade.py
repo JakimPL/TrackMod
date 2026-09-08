@@ -18,7 +18,7 @@ def fade_ticks(fadeout: int, *, counter: int) -> float:
     sounds and reads here as a fade of unbounded length.
 
     Raises:
-        ValueError: when ``fadeout`` runs backwards, or ``counter`` is empty.
+        ValueError: when ``fadeout`` runs backward, or ``counter`` is empty.
     """
     if fadeout < MIN_FADEOUT:
         raise ValueError(f"fadeout {fadeout} is below {MIN_FADEOUT}")
@@ -33,7 +33,7 @@ def fade_seconds(fadeout: int, *, counter: int, tempo: int) -> float:
     """How long a fading voice takes to reach silence at ``tempo``.
 
     Raises:
-        ValueError: when ``fadeout`` runs backwards, ``counter`` is empty, or ``tempo`` is below the
+        ValueError: when ``fadeout`` runs backward, ``counter`` is empty, or ``tempo`` is below the
             slowest clock the shared model counts.
     """
     return fade_ticks(fadeout, counter=counter) * tick_seconds(tempo)

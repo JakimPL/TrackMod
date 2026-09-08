@@ -10,7 +10,7 @@ NO_BIAS: Final = 0
 class PcmSign(StrEnum):
     """Which stored value a frame of silence sits on.
 
-    Signed storage centres silence on zero, so a frame runs from ``-scale`` to ``scale - 1``. Unsigned
+    Signed storage centers silence on zero, so a frame runs from ``-scale`` to ``scale - 1``. Unsigned
     storage carries the same amplitudes shifted up by ``scale``, so silence sits in the middle of the
     range and every stored value is positive.
     """

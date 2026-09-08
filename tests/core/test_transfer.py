@@ -11,7 +11,7 @@ from trackmod.core.voices.voices import InstrumentVoices, SampleVoices
 
 
 def test_a_unit_carries_only_the_samples_its_keys_reach(voices: InstrumentVoices) -> None:
-    # The router names samples 1 and 2 of the table's three, so the third has no business travelling.
+    # The router names samples 1 and 2 of the table's three, so the third has no business traveling.
     unit = extract(voices, 1)
     assert len(unit.samples) == 2
     assert unit.samples == (voices.samples[1], voices.samples[2])

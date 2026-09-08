@@ -35,10 +35,10 @@ def stated_behaviour[Behaviour: IntEnum](
     subject: str,
     repairs: Repairs,
 ) -> Behaviour:
-    """The behaviour a stored byte names, or the one a fresh instrument carries where it names none.
+    """The behavior a stored byte names, or the one a fresh instrument carries where it names none.
 
-    Files carry bytes past the behaviours a format numbers, most often where a field was left as it was
-    found in memory, so such a byte is read as the behaviour a tracker starts an instrument with.
+    Files carry bytes past the behaviors a format numbers, most often where a field was left as it was
+    found in memory, so such a byte is read as the behavior a tracker starts an instrument with.
     """
     numbered = {int(member): member for member in among}
     behaviour = numbered.get(value)

@@ -46,10 +46,10 @@ class InstrumentFile(Protocol):
         """
 
     def size(self) -> SizeReport:
-        """How many bytes the file occupies, without serialising it."""
+        """How many bytes the file occupies, without serializing it."""
 
     def to_bytes(self) -> bytes:
-        """Serialise the whole file."""
+        """Serialize the whole file."""
 
     def save(self, path: Path) -> None:
-        """Serialise the file and write it to ``path``."""
+        """Serialize the file and write it to ``path``."""

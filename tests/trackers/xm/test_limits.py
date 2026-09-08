@@ -39,7 +39,7 @@ from trackmod.trackers.xm.spec.ranges import (
 
 
 def test_the_tempo_word_is_where_this_format_has_its_headroom() -> None:
-    # The header stores the tempo in sixteen bits while the tracker honours one byte of it, which is
+    # The header stores the tempo in sixteen bits while the tracker honors one byte of it, which is
     # the whole reason a caller reaching for a shorter row chooses this format. The players descended
     # from it stop partway up that word, so all three ceilings differ here.
     assert xm_limits(Compliance.CANONICAL).bound(Capability.TEMPO).maximum == CANONICAL_MAX_TEMPO
@@ -86,7 +86,7 @@ def test_more_patterns_than_the_tracker_edited_are_reported_and_the_word_still_h
     assert reported.level is Compliance.EXTENDED
 
 
-def test_the_fadeout_the_tracker_honours_stops_short_of_what_its_field_holds() -> None:
+def test_the_fadeout_the_tracker_honors_stops_short_of_what_its_field_holds() -> None:
     # The header keeps a word, and FastTracker 2's own editor counts a fadeout up to 0xFFF.
     assert xm_limits(Compliance.CANONICAL).bound(Capability.FADEOUT).maximum == CANONICAL_MAX_FADEOUT
     assert xm_limits(Compliance.EXTENDED).bound(Capability.FADEOUT).maximum == WORD_MAX

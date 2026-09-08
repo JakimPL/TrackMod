@@ -56,7 +56,7 @@ def unit_rate(units: int) -> int:
 def tuning_for(rate: int, *, key: Note, sounded: Note) -> Tuning:
     """The transposition that sounds a sample recorded at ``rate`` as ``sounded`` when ``key`` is pressed.
 
-    The remainder is taken towards negative infinity, so the finetune trim is always positive and a
+    The remainder is taken toward negative infinity, so the finetune trim is always positive and a
     whole-semitone tuning spends nothing on it.
 
     Raises:

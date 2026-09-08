@@ -14,7 +14,7 @@ print(module.violations())          # every bound the song breaks, empty when it
 module.save(Path("song.it"))
 ```
 
-`size()` answers before anything is serialised, and `violations()` lists every bound the song breaks at
+`size()` answers before anything is serialized, and `violations()` lists every bound the song breaks at
 the level you chose. `to_bytes()` and `save()` refuse a song with any violation, raising one `LimitError`
 carrying all of them. See [`../reference/limits.md`](../reference/limits.md) for what the three levels
 mean and how to choose one.

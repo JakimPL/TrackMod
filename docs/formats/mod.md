@@ -189,7 +189,7 @@ own range, which is one parameter byte.
 | A sixteen-bit waveform | `ValueError` |
 | A per-sample panning | `ValueError` |
 | A sustain loop | `ValueError` |
-| A loop that plays backwards | `ValueError` |
+| A loop that plays backward | `ValueError` |
 | A loop over a waveform of one pair of frames | `ValueError` |
 | An effect command past the four bits a cell holds | `ValueError` |
 | A song whose cells name instruments | `ValueError` |

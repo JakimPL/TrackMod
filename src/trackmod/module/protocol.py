@@ -55,10 +55,10 @@ class TrackerModule(Protocol):
         """
 
     def size(self) -> SizeReport:
-        """How many bytes the module occupies, without serialising it."""
+        """How many bytes the module occupies, without serializing it."""
 
     def to_bytes(self) -> bytes:
-        """Serialise the whole module."""
+        """Serialize the whole module."""
 
     def save(self, path: Path) -> None:
-        """Serialise the module and write it to ``path``."""
+        """Serialize the module and write it to ``path``."""

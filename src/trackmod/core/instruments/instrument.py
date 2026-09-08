@@ -64,7 +64,7 @@ class Instrument(BaseModel):
 
         A keymap indexes into the sample table of the song it belongs to, so carrying an instrument to
         another table means restating those positions. The routing is the only part that moves: the
-        keys, the notes they sound, and every envelope, level and behaviour stay as stated.
+        keys, the notes they sound, and every envelope, level and behavior stay as stated.
 
         Raises:
             KeyError: when a sample the keymap reaches is left unnamed by ``positions``.

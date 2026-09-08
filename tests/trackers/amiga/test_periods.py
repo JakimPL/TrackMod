@@ -50,7 +50,7 @@ def test_every_tabulated_key_keeps_the_period_the_tracker_stated() -> None:
 
 def test_a_key_an_octave_up_sounds_at_half_the_period() -> None:
     # This is what carries the three tabulated octaves to the rest of the keyboard, and it has to hold
-    # to within the tolerance a period is read at, or a scaled key would read back as its neighbour.
+    # to within the tolerance a period is read at, or a scaled key would read back as its neighbor.
     for note in SOUNDED_KEYS:
         lower = note - NOTES_PER_OCTAVE
         if lower >= 0 and PERIODS[lower]:

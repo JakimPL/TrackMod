@@ -67,7 +67,7 @@ def encode_cell(note: int, instrument: int, volume: int, command: int, parameter
 
 
 def pack_cells(pattern: Pattern) -> bytes:
-    """Serialise a pattern grid into this lineage's stream of fixed cells."""
+    """Serialize a pattern grid into this lineage's stream of fixed cells."""
     notes, instruments = pattern.note, pattern.instrument
     volumes, commands, parameters = (
         pattern.volume,
@@ -90,5 +90,5 @@ def pack_cells(pattern: Pattern) -> bytes:
 
 
 def pack_pattern(pattern: Pattern) -> bytes:
-    """Serialise a pattern, which is its cells and nothing else — this lineage writes no pattern header."""
+    """Serialize a pattern, which is its cells and nothing else — this lineage writes no pattern header."""
     return pack_cells(pattern)

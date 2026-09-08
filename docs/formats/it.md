@@ -120,14 +120,14 @@ The bytes between the runs read as an absent volume, reported once for a whole p
 ## Instruments
 
 A 554-byte instrument header carries a name, a DOS filename, a fadeout, a global volume, a default
-panning, the new-note and duplicate behaviours, three envelopes and a keymap.
+panning, the new-note and duplicate behaviors, three envelopes and a keymap.
 
 The keymap is 120 pairs of (sounded note, sample number) at offset 64, one per key. Sample numbers are
 one-based, so zero silences a key, and an unmapped key names its own pitch. Separating the pressed key from
 the sounded note lets one instrument route keys onto different samples and transpose each independently.
 
 A key routed to a missing sample is left silent, a sounded note past the last key is drawn onto it, and a
-behaviour byte this format leaves unnamed reads as that field's default. All three are reported.
+behavior byte this format leaves unnamed reads as that field's default. All three are reported.
 
 ### Envelopes
 
@@ -169,7 +169,7 @@ as 8363 Hz; all three are reported.
 **The convert byte says how the frames are read.** Its low bit distinguishes signed amplitudes, which
 Impulse Tracker itself writes, from unsigned ones, which sit a full scale higher and are common in files
 converted from Scream Tracker 3. Its third bit marks the frames as differences a player sums. Any other bit
-names storage this reader has no rendering for — big-endian frames, ADPCM, a synthesiser's own waveform —
+names storage this reader has no rendering for — big-endian frames, ADPCM, a synthesizer's own waveform —
 and reads as signed amplitudes, reported.
 
 **Waveforms may be compressed**, which is what nearly every module a modern tracker writes carries. Each

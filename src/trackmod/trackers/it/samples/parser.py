@@ -51,7 +51,7 @@ def stored_convert(values: RecordValues, *, subject: str, repairs: Repairs) -> S
     """How a sample header states its frames are to be read, as far as this reader names the bits.
 
     The byte reserves further bits for storage this reader has no rendering for -- big-endian frames,
-    ADPCM, a synthesiser's own waveform. A header setting one of those is read the way this format's own
+    ADPCM, a synthesizer's own waveform. A header setting one of those is read the way this format's own
     tracker wrote its samples, as signed amplitudes, and the byte is reported.
     """
     convert = SampleConvert(read_int(values, "convert"))

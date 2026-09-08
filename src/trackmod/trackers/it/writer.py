@@ -69,7 +69,7 @@ def file_header(
     pattern_count: int,
     message: MessageBlock,
 ) -> bytes:
-    """Serialise the file header that opens the module.
+    """Serialize the file header that opens the module.
 
     The message block is passed in already placed, because the header points at bytes that sit past
     everything else the file stores.
@@ -103,7 +103,7 @@ def file_header(
 
 
 def write_module(song: Song, settings: ITSettings) -> bytes:
-    """Serialise a song and its settings as a whole Impulse Tracker file.
+    """Serialize a song and its settings as a whole Impulse Tracker file.
 
     The song message follows the frames the sample headers point at, so every offset the header states is
     settled before the block that follows them all is placed. Whatever a writer appended past this

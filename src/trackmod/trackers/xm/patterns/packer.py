@@ -38,7 +38,7 @@ def encode_cell(note: int, instrument: int, volume: int, command: int, parameter
 
 
 def pack_cells(pattern: Pattern) -> bytes:
-    """Serialise a pattern grid into this format's mask-byte stream.
+    """Serialize a pattern grid into this format's mask-byte stream.
 
     Every position of every row is written and nothing terminates a row, so a player reads exactly rows
     times channels cells. A channel carrying nothing still costs the one byte its empty mask occupies,
@@ -67,7 +67,7 @@ def pack_cells(pattern: Pattern) -> bytes:
 
 
 def pack_pattern(pattern: Pattern) -> bytes:
-    """Serialise a pattern: its header, then the packed cell stream."""
+    """Serialize a pattern: its header, then the packed cell stream."""
     stream = pack_cells(pattern)
     header = PATTERN_HEADER.pack(
         {
