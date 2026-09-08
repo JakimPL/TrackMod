@@ -2,6 +2,10 @@
 test:
 	uv run pytest
 
+.PHONY: test-docs
+test-docs:
+	uv run pytest --doctest-modules src/trackmod
+
 .PHONY: coverage
 coverage:
 	uv run pytest --cov

@@ -6,6 +6,7 @@
 make format     # isort + black
 make lint       # mypy --strict + pylint
 make test       # pytest
+make test-docs  # the examples in docstrings, through --doctest-modules
 make coverage   # pytest with a coverage report
 ```
 
@@ -13,7 +14,7 @@ Dependencies are managed with `uv`, and the package is built with `hatchling`. E
 through `uv run`, so a checkout needs no environment of its own.
 
 `pre-commit` runs the same checks on the files a commit touches: trailing whitespace, `isort`, `black`,
-`mypy` and `pylint`, with the full test suite as a pre-push hook. Install it once with
+`mypy`, `pylint` and `make test-docs`, with the full test suite as a pre-push hook. Install it once with
 `uv run pre-commit install`, and run it over everything with `uv run pre-commit run --all-files`.
 
 ## Typing
@@ -64,6 +65,9 @@ that starts repairing something new is caught where it happens. Coverage gates a
 - The library carries no module docstrings and no code comments. Class and function docstrings state
   intent; the domain and format narrative lives in these documents. A comment is for a tensor shape, a
   third-party quirk, or an invariant the code cannot show on its own.
+- An example in a docstring is written as a doctest, so `make test-docs` runs it. Write one only where it
+  is self-contained: `filterwarnings = ["error"]` applies there too, so an example that trips a
+  `RepairWarning` fails.
 
 ## Commit messages
 

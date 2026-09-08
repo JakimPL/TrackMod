@@ -6,7 +6,13 @@ from trackmod.spec.width import BITS_PER_BYTE
 
 @unique
 class BitDepth(IntEnum):
-    """How many bits one stored frame of PCM occupies."""
+    """How many bits one stored frame of PCM occupies.
+
+    >>> BitDepth.SIXTEEN.bytes_per_frame
+    2
+    >>> BitDepth.EIGHT.scale
+    128.0
+    """
 
     EIGHT = 8
     SIXTEEN = 16

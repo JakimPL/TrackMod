@@ -17,7 +17,13 @@ class LoopMode(StrEnum):
 
 
 class Loop(BaseModel):
-    """A half-open frame range ``[begin, end)`` playback repeats once it reaches ``end``."""
+    """A half-open frame range ``[begin, end)`` playback repeats once it reaches ``end``.
+
+    >>> Loop(begin=8, end=64).frames
+    56
+    >>> Loop(begin=8, end=64).mode
+    <LoopMode.FORWARD: 'forward'>
+    """
 
     model_config = FROZEN
 
