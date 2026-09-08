@@ -6,13 +6,13 @@ from trackmod.binary.records.values import (
 )
 from trackmod.binary.text import decode_name
 from trackmod.core.envelopes.kind import EnvelopeKind
-from trackmod.core.instruments.behaviour import (
+from trackmod.core.instruments.behavior import (
     DuplicateAction,
     DuplicateCheck,
     NewNoteAction,
 )
 from trackmod.core.instruments.instrument import Instrument
-from trackmod.core.instruments.repair import stated_behaviour
+from trackmod.core.instruments.repair import stated_behavior
 from trackmod.core.instruments.unit import InstrumentUnit
 from trackmod.core.repairs.report import Repairs
 from trackmod.trackers.it.instruments.envelope import parse_envelope
@@ -40,7 +40,7 @@ def parse_instrument(values: RecordValues, *, subject: str, repairs: Repairs) ->
         fadeout=read_int(values, "fadeout"),
         global_volume=read_int(values, "global_volume"),
         panning=(None if panning & SamplePanning.ENABLED else shared_panning(panning)),
-        new_note_action=stated_behaviour(
+        new_note_action=stated_behavior(
             read_int(values, "new_note_action"),
             among=NewNoteAction,
             default=NewNoteAction.CUT,
@@ -48,7 +48,7 @@ def parse_instrument(values: RecordValues, *, subject: str, repairs: Repairs) ->
             subject=subject,
             repairs=repairs,
         ),
-        duplicate_check=stated_behaviour(
+        duplicate_check=stated_behavior(
             read_int(values, "duplicate_check"),
             among=DuplicateCheck,
             default=DuplicateCheck.OFF,
@@ -56,7 +56,7 @@ def parse_instrument(values: RecordValues, *, subject: str, repairs: Repairs) ->
             subject=subject,
             repairs=repairs,
         ),
-        duplicate_action=stated_behaviour(
+        duplicate_action=stated_behavior(
             read_int(values, "duplicate_action"),
             among=DuplicateAction,
             default=DuplicateAction.CUT,

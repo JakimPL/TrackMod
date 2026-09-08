@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from trackmod.binary.pcm.codec import decode_pcm, encode_pcm
 from trackmod.binary.pcm.encoding import PcmEncoding
-from trackmod.binary.pcm.quantise import quantise
+from trackmod.binary.pcm.quantize import quantize
 from trackmod.binary.pcm.sign import NO_BIAS, PcmSign, bias, dtype_for
 from trackmod.core.samples.depth import BitDepth
 
@@ -105,7 +105,7 @@ def test_the_first_delta_is_the_first_stored_amplitude(depth: BitDepth) -> None:
     pcm = np.asarray([0.5, 0.5, 0.5])
     stored = encode_pcm(pcm, depth=depth, encoding=PcmEncoding.DELTA, sign=PcmSign.SIGNED)
     delta = np.frombuffer(stored, dtype=dtype_for(depth, sign=PcmSign.SIGNED))
-    assert delta[0] == quantise(pcm, depth)[0]
+    assert delta[0] == quantize(pcm, depth)[0]
     assert np.all(delta[1:] == 0)
 
 
@@ -120,6 +120,6 @@ def test_a_delta_that_overshoots_the_stored_width_wraps_back_on_the_running_sum(
 
 @pytest.mark.parametrize("depth", DEPTHS, ids=lambda depth: f"{depth}bit")
 def test_quantization_saturates_at_the_signed_range(depth: BitDepth) -> None:
-    quantised = quantise(np.asarray([-2.0, -1.0, 0.0, 1.0, 2.0]), depth)
-    assert quantised.min() == -depth.scale
-    assert quantised.max() == depth.scale - 1
+    quantized = quantize(np.asarray([-2.0, -1.0, 0.0, 1.0, 2.0]), depth)
+    assert quantized.min() == -depth.scale
+    assert quantized.max() == depth.scale - 1

@@ -26,24 +26,24 @@ def routed_within(instrument: Instrument, *, samples: int, subject: str, repairs
     return instrument.model_copy(update={"keymap": keymap})
 
 
-def stated_behaviour[Behaviour: IntEnum](
+def stated_behavior[Behavior: IntEnum](
     value: int,
     *,
-    among: type[Behaviour],
-    default: Behaviour,
+    among: type[Behavior],
+    default: Behavior,
     name: str,
     subject: str,
     repairs: Repairs,
-) -> Behaviour:
+) -> Behavior:
     """The behavior a stored byte names, or the one a fresh instrument carries where it names none.
 
     Files carry bytes past the behaviors a format numbers, most often where a field was left as it was
     found in memory, so such a byte is read as the behavior a tracker starts an instrument with.
     """
     numbered = {int(member): member for member in among}
-    behaviour = numbered.get(value)
-    if behaviour is not None:
-        return behaviour
+    behavior = numbered.get(value)
+    if behavior is not None:
+        return behavior
 
     repairs.made(f"{name} {value} read as {default.name}", subject=subject)
     return default

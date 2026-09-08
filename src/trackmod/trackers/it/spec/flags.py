@@ -6,7 +6,7 @@ class HeaderFlag(IntFlag):
     """The song-wide switches the file header carries."""
 
     STEREO = 0x01
-    VOLUME_ZERO_OPTIMISATION = 0x02
+    VOLUME_ZERO_OPTIMIZATION = 0x02
     USE_INSTRUMENTS = 0x04
     LINEAR_SLIDES = 0x08
     OLD_EFFECTS = 0x10

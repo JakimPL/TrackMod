@@ -7,7 +7,7 @@ from trackmod.binary.pcm.codec import encode_pcm
 from trackmod.binary.text import encode_name, encode_text
 from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.sample import Sample
-from trackmod.spec.levels import CENTRE_PANNING
+from trackmod.spec.levels import CENTER_PANNING
 from trackmod.spec.pitch import RATE_NOTE
 from trackmod.wave.chunks import tagged, wrapped
 from trackmod.wave.layout import (
@@ -150,7 +150,7 @@ def extra_bytes(sample: Sample) -> bytes:
     The two names follow the record, which is where a tracker reading this container looks for the name
     it shows and the filename it remembers.
     """
-    panning = CENTRE_PANNING if sample.panning is None else sample.panning
+    panning = CENTER_PANNING if sample.panning is None else sample.panning
     flags = NO_FLAGS if sample.panning is None else PANNING_SET
     record = EXTRA_CHUNK.pack(
         {

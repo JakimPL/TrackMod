@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
-from trackmod.binary.pcm.quantise import dequantise, quantise
+from trackmod.binary.pcm.quantize import dequantize, quantize
 from trackmod.core.effects.effect import Effect
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.point import EnvelopePoint
@@ -60,7 +60,7 @@ def keyed(sample: int) -> Keymap:
 
 def lattice(values: NDArray[np.float64], depth: BitDepth = BitDepth.SIXTEEN) -> NDArray[np.float64]:
     """A waveform pulled onto the integer lattice its depth stores, so storing it changes nothing."""
-    return dequantise(quantise(values, depth), depth)
+    return dequantize(quantize(values, depth), depth)
 
 
 def make_sample(name: str, *, frames: int = 32, depth: BitDepth = BitDepth.SIXTEEN, seed: int = 0) -> Sample:

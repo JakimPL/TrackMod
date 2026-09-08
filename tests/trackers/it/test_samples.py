@@ -2,7 +2,7 @@ import numpy as np
 
 from tests.trackers.it.conftest import stated
 from trackmod.binary.pcm.encoding import PcmEncoding
-from trackmod.binary.pcm.quantise import dequantise
+from trackmod.binary.pcm.quantize import dequantize
 from trackmod.binary.pcm.sign import PcmSign
 from trackmod.binary.records.values import RecordValues
 from trackmod.core.repairs.report import Repairs
@@ -100,8 +100,8 @@ def test_a_compressed_stereo_sample_is_decoded_as_two_independent_streams() -> N
     pcm = stored_pcm(values, data, depth=depth, subject=SUBJECT, repairs=Repairs())
 
     assert pcm.shape == (5, 2)
-    assert np.allclose(pcm[:, 0], dequantise(np.cumsum(left_differences), depth))
-    assert np.allclose(pcm[:, 1], dequantise(np.cumsum(right_differences), depth))
+    assert np.allclose(pcm[:, 0], dequantize(np.cumsum(left_differences), depth))
+    assert np.allclose(pcm[:, 1], dequantize(np.cumsum(right_differences), depth))
 
 
 def test_stored_end_sums_both_channels_of_a_compressed_stereo_sample() -> None:
@@ -121,7 +121,7 @@ def test_a_compressed_mono_sample_is_decoded() -> None:
     pcm = stored_pcm(values, data, depth=depth, subject=SUBJECT, repairs=Repairs())
 
     assert pcm.shape == (3,)
-    assert np.allclose(pcm, dequantise(np.cumsum(differences), depth))
+    assert np.allclose(pcm, dequantize(np.cumsum(differences), depth))
 
 
 def test_stored_end_reads_a_single_channel_of_a_compressed_mono_sample() -> None:
@@ -141,7 +141,7 @@ def test_a_header_stating_unsigned_frames_reads_them_centered_on_silence() -> No
     assert stored_sign(_convert(values)) is PcmSign.UNSIGNED
     pcm = stored_pcm(values, data, depth=depth, subject=SUBJECT, repairs=Repairs())
 
-    assert np.allclose(pcm, dequantise(np.asarray([0, 64, -64, 127, -128]), depth))
+    assert np.allclose(pcm, dequantize(np.asarray([0, 64, -64, 127, -128]), depth))
 
 
 def test_a_header_stating_signed_frames_reads_them_where_they_sit() -> None:
@@ -152,7 +152,7 @@ def test_a_header_stating_signed_frames_reads_them_where_they_sit() -> None:
     assert stored_sign(_convert(values)) is PcmSign.SIGNED
     pcm = stored_pcm(values, data, depth=depth, subject=SUBJECT, repairs=Repairs())
 
-    assert np.allclose(pcm, dequantise(np.asarray([0, 64, -64, 127, -128]), depth))
+    assert np.allclose(pcm, dequantize(np.asarray([0, 64, -64, 127, -128]), depth))
 
 
 def test_a_header_stating_raw_differences_reads_them_as_a_running_sum() -> None:
@@ -168,7 +168,7 @@ def test_a_header_stating_raw_differences_reads_them_as_a_running_sum() -> None:
     assert stored_encoding(_convert(values)) is PcmEncoding.DELTA
     pcm = stored_pcm(values, data, depth=depth, subject=SUBJECT, repairs=Repairs())
 
-    assert np.allclose(pcm, dequantise(np.cumsum(differences), depth))
+    assert np.allclose(pcm, dequantize(np.cumsum(differences), depth))
 
 
 def test_a_compressed_header_stating_differences_sums_its_blocks_twice() -> None:
@@ -184,7 +184,7 @@ def test_a_compressed_header_stating_differences_sums_its_blocks_twice() -> None
 
     pcm = stored_pcm(values, data, depth=depth, subject=SUBJECT, repairs=Repairs())
 
-    assert np.allclose(pcm, dequantise(np.cumsum(np.cumsum(differences)), depth))
+    assert np.allclose(pcm, dequantize(np.cumsum(np.cumsum(differences)), depth))
 
 
 def test_a_written_header_states_the_signed_amplitudes_the_writer_stores() -> None:
@@ -204,7 +204,7 @@ def test_a_convert_byte_naming_a_storage_this_reader_leaves_out_reads_signed_amp
 
     pcm = stored_pcm(values, data, depth=depth, subject=SUBJECT, repairs=repairs)
 
-    assert np.allclose(pcm, dequantise(np.asarray([0, 64, -64, 127, -128]), depth))
+    assert np.allclose(pcm, dequantize(np.asarray([0, 64, -64, 127, -128]), depth))
     assert repairs.entries == ((SUBJECT, "a convert byte of 0xff reads as signed amplitudes"),)
 
 
@@ -247,7 +247,7 @@ def test_both_loops_read_back_at_the_direction_their_own_flag_states() -> None:
     # other back and forth, which is the pair this format is alone in storing.
     sample = Sample(
         name="looped",
-        pcm=dequantise(np.arange(-8, 8, dtype=np.int8), BitDepth.EIGHT),
+        pcm=dequantize(np.arange(-8, 8, dtype=np.int8), BitDepth.EIGHT),
         rate=RATE,
         depth=BitDepth.EIGHT,
         loop=Loop(begin=2, end=10, mode=LoopMode.FORWARD),

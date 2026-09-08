@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.kind import EnvelopeKind
-from trackmod.core.instruments.behaviour import (
+from trackmod.core.instruments.behavior import (
     DuplicateAction,
     DuplicateCheck,
     NewNoteAction,

@@ -36,7 +36,7 @@ from trackmod.limits.table import Limits
 from trackmod.module.instrument import InstrumentFile
 from trackmod.module.protocol import TrackerModule
 from trackmod.module.storage import NO_PADDING, Storage
-from trackmod.spec.levels import CENTRE_PANNING, MAX_VOLUME
+from trackmod.spec.levels import CENTER_PANNING, MAX_VOLUME
 from trackmod.spec.pitch import NO_TRANSPOSITION, RATE_NOTE, REFERENCE_RATE
 from trackmod.spec.width import NIBBLE_MAX
 from trackmod.trackers.amiga.patterns.sizing import packed_bytes as mod_packed_bytes
@@ -171,20 +171,20 @@ def portable_samples() -> tuple[Sample, ...]:
             name="lead",
             pcm=lattice(np.linspace(-1.0, 1.0, 32)),
             rate=portable_rate(FRAME_RATE),
-            panning=CENTRE_PANNING,
+            panning=CENTER_PANNING,
         ),
         Sample(
             name="bass",
             pcm=lattice(np.sin(np.linspace(0.0, 4.0 * np.pi, 40))),
             rate=portable_rate(FRAME_RATE // 2),
             volume=48,
-            panning=CENTRE_PANNING,
+            panning=CENTER_PANNING,
         ),
         Sample(
             name="pad",
             pcm=lattice(np.linspace(1.0, -1.0, 24)),
             rate=portable_rate(FRAME_RATE),
-            panning=CENTRE_PANNING,
+            panning=CENTER_PANNING,
         ),
     )
 

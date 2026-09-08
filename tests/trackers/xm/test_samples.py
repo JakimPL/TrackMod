@@ -12,7 +12,7 @@ from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
 from trackmod.trackers.xm.tuning import Tuning
 
 RATE = 44100
-CENTRE_PANNING = 128  # the middle of the byte this format gives every sample its own place on
+CENTER_PANNING = 128  # the middle of the byte this format gives every sample its own place on
 from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
 
 
@@ -47,7 +47,7 @@ def test_a_sample_stating_no_place_of_its_own_is_written_to_the_middle_of_the_fi
     values = SAMPLE_HEADER.unpack(sample_header(sample, tuning=Tuning(relative_note=0, finetune=0)))
 
     assert sample.panning is None
-    assert values["panning"] == CENTRE_PANNING
+    assert values["panning"] == CENTER_PANNING
 
 
 def test_a_group_holds_one_tuning_for_every_sample_it_carries(xm_voices: InstrumentVoices) -> None:

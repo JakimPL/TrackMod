@@ -6,7 +6,7 @@ from trackmod.trackers.it.settings import ITSettings
 # This format holds a channel anywhere across sixty-five positions, so the shared 0..255 range lands on
 # it four steps at a time. The numbers below are those positions, stated rather than computed.
 
-CENTRE = 32
+CENTER = 32
 FULL_VOLUME = 64
 CHANNELS = 64
 
@@ -28,5 +28,5 @@ def test_a_module_stating_nothing_opens_every_channel_centered_and_at_full_volum
     # The header carries a table per channel whatever a song says about them, so the values a tracker
     # fills them with are what a module built from nothing states.
     settings = ITSettings()
-    assert settings.channel_panning == (CENTRE,) * CHANNELS
+    assert settings.channel_panning == (CENTER,) * CHANNELS
     assert settings.channel_volume == (FULL_VOLUME,) * CHANNELS

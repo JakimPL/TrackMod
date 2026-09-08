@@ -31,7 +31,7 @@ from trackmod.limits.compliance import Compliance
 from trackmod.module.provenance import Evidence
 from trackmod.spec.application import APPLICATION_MARK
 from trackmod.spec.grid import MIN_CHANNELS
-from trackmod.spec.levels import CENTRE_PANNING, MAX_PANNING
+from trackmod.spec.levels import CENTER_PANNING, MAX_PANNING
 from trackmod.spec.pitch import REFERENCE_RATE
 from trackmod.trackers.s3m.layout.file import FILE_HEADER
 from trackmod.trackers.s3m.layout.instrument import INSTRUMENT_RECORD
@@ -121,13 +121,13 @@ def test_the_header_states_the_counts_and_the_clock_the_song_holds(s3m_song: Son
 
 
 def test_the_settings_a_module_carries_survive_being_written_and_read_back(s3m_song: Song) -> None:
-    centre = shared_panning(stored_panning(CENTRE_PANNING))
+    center = shared_panning(stored_panning(CENTER_PANNING))
     settings = S3MSettings(
         global_volume=48,
         mix_volume=64,
         stereo=False,
         flags=HeaderFlag.AMIGA_LIMITS | HeaderFlag.ST3_VOLUME_SLIDES,
-        channel_panning=(centre, 0, MAX_PANNING, centre) + (None,) * (CHANNELS_STORED - 4),
+        channel_panning=(center, 0, MAX_PANNING, center) + (None,) * (CHANNELS_STORED - 4),
         created_with=0x1321,
     )
     recovered = S3MModule.parse(written(s3m_song, settings)).settings
@@ -239,11 +239,11 @@ def test_a_panning_slot_claiming_nothing_reads_as_a_channel_stating_none() -> No
 
 
 def test_a_position_between_the_sixteen_a_channel_states_lands_on_the_nearest_of_them(s3m_song: Song) -> None:
-    settings = S3MSettings(channel_panning=(CENTRE_PANNING,) + (None,) * (CHANNELS_STORED - 1))
+    settings = S3MSettings(channel_panning=(CENTER_PANNING,) + (None,) * (CHANNELS_STORED - 1))
     assert FILE_HEADER.unpack(written(s3m_song, settings))["default_panning"] == PANNING_TABLE
     recovered = S3MModule.parse(written(s3m_song, settings)).settings.channel_panning
     assert recovered is not None
-    assert recovered[0] == shared_panning(stored_panning(CENTRE_PANNING))
+    assert recovered[0] == shared_panning(stored_panning(CENTER_PANNING))
 
 
 def test_a_clock_below_the_floor_the_format_starts_at_reads_as_the_one_it_starts_on() -> None:

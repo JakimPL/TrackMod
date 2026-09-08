@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 from trackmod.binary.pcm.blocks import paired_channels, whole_frames
 from trackmod.binary.pcm.codec import decode_pcm
 from trackmod.binary.pcm.encoding import PcmEncoding
-from trackmod.binary.pcm.quantise import dequantise
+from trackmod.binary.pcm.quantize import dequantize
 from trackmod.binary.pcm.sign import PcmSign
 from trackmod.binary.records.values import RecordValues, read_bytes, read_int
 from trackmod.binary.text import decode_name
@@ -171,7 +171,7 @@ def stored_pcm(
                 subject=subject,
                 repairs=repairs,
             )
-            return dequantise(frames, depth)
+            return dequantize(frames, depth)
 
         return decode_pcm(
             whole_frames(data, depth=depth),
@@ -198,7 +198,7 @@ def stored_pcm(
             subject=subject,
             repairs=repairs,
         )
-        return dequantise(np.stack([left, right], axis=1), depth)
+        return dequantize(np.stack([left, right], axis=1), depth)
 
     left_block, right_block = paired_channels(data, block=length * depth.bytes_per_frame, depth=depth)
     left_pcm = decode_pcm(left_block, depth=depth, encoding=encoding, sign=sign)

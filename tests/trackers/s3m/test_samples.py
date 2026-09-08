@@ -9,7 +9,7 @@ from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.sample import Sample
-from trackmod.spec.levels import CENTRE_PANNING
+from trackmod.spec.levels import CENTER_PANNING
 from trackmod.spec.pitch import REFERENCE_RATE
 from trackmod.trackers.s3m.layout.instrument import INSTRUMENT_RECORD
 from trackmod.trackers.s3m.samples.parser import (
@@ -150,7 +150,7 @@ def test_a_record_states_how_many_bytes_its_waveform_takes_across_every_channel(
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
-        ("panning", CENTRE_PANNING, "pans by channel"),
+        ("panning", CENTER_PANNING, "pans by channel"),
         ("sustain_loop", Loop(begin=0, end=8, mode=LoopMode.FORWARD), "sustain loop"),
         ("loop", Loop(begin=0, end=8, mode=LoopMode.PING_PONG), "loops forward"),
     ],

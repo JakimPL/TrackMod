@@ -5,10 +5,10 @@ import pytest
 from trackmod.core.envelopes.point import EnvelopePoint
 from trackmod.core.envelopes.repair import repaired_points, repaired_span
 from trackmod.core.envelopes.span import EnvelopeSpan
-from trackmod.core.instruments.behaviour import DuplicateAction
+from trackmod.core.instruments.behavior import DuplicateAction
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.keymap import KeyAssignment, pitched_keymap, routed_keymap
-from trackmod.core.instruments.repair import routed_within, stated_behaviour
+from trackmod.core.instruments.repair import routed_within, stated_behavior
 from trackmod.core.notes.pitch import Note
 from trackmod.core.patterns.builder import PatternBuilder
 from trackmod.core.patterns.cell import Cell
@@ -150,7 +150,7 @@ def test_an_instrument_reaching_only_stored_samples_is_left_as_it_is() -> None:
 
 def test_a_behavior_byte_naming_none_of_them_is_read_as_the_one_a_fresh_instrument_carries() -> None:
     repairs = Repairs()
-    action = stated_behaviour(
+    action = stated_behavior(
         200,
         among=DuplicateAction,
         default=DuplicateAction.CUT,
@@ -164,7 +164,7 @@ def test_a_behavior_byte_naming_none_of_them_is_read_as_the_one_a_fresh_instrume
 
 def test_a_behavior_byte_the_format_numbers_is_read_as_that_behavior() -> None:
     repairs = Repairs()
-    action = stated_behaviour(
+    action = stated_behavior(
         int(DuplicateAction.FADE),
         among=DuplicateAction,
         default=DuplicateAction.CUT,

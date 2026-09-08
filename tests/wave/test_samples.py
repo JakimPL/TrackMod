@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
-from trackmod.binary.pcm.quantise import dequantise, quantise
+from trackmod.binary.pcm.quantize import dequantize, quantize
 from trackmod.binary.records.values import read_int
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
@@ -35,7 +35,7 @@ CHANNEL_COUNTS = [1, STEREO_CHANNELS]
 
 def stored(values: NDArray[np.float64], depth: BitDepth) -> NDArray[np.float64]:
     """A waveform pulled onto the integer lattice its depth stores, so storing it changes nothing."""
-    return dequantise(quantise(values, depth), depth)
+    return dequantize(quantize(values, depth), depth)
 
 
 def waveform(*, channels: int = 1, depth: BitDepth = BitDepth.SIXTEEN, seed: int = 1) -> NDArray[np.float64]:
@@ -159,7 +159,7 @@ def test_a_stereo_waveform_stores_one_frame_of_each_channel_in_turn() -> None:
     sample = make_sample(channels=STEREO_CHANNELS, depth=BitDepth.EIGHT)
     frames = np.frombuffer(unwrapped(write_sample(sample))[DATA_TAG], dtype="<u1")
     assert frames.size == FRAMES * STEREO_CHANNELS
-    assert np.array_equal(frames.reshape(-1, STEREO_CHANNELS), quantise(sample.pcm, BitDepth.EIGHT) + 128)
+    assert np.array_equal(frames.reshape(-1, STEREO_CHANNELS), quantize(sample.pcm, BitDepth.EIGHT) + 128)
 
 
 def test_a_file_carrying_frames_alone_sounds_at_full_level() -> None:

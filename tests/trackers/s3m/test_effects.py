@@ -1,7 +1,7 @@
 import pytest
 
 from trackmod.binary.nibble import split_nibbles
-from trackmod.spec.levels import CENTRE_PANNING, MAX_PANNING
+from trackmod.spec.levels import CENTER_PANNING, MAX_PANNING
 from trackmod.trackers.s3m.effects.catalog import S3M_EFFECTS
 from trackmod.trackers.s3m.effects.command import S3MEffect, S3MExtended
 from trackmod.trackers.s3m.spec.ranges import POSITION_MAX
@@ -52,7 +52,7 @@ def test_a_slide_runs_one_way_at_a_time() -> None:
 def test_panning_counts_the_field_in_the_finer_of_the_two_grids_this_format_states() -> None:
     assert S3M_EFFECTS.set_panning(0).parameter == 0
     assert S3M_EFFECTS.set_panning(MAX_PANNING).parameter == POSITION_MAX
-    assert S3M_EFFECTS.set_panning(CENTRE_PANNING).parameter == POSITION_MAX // 2
+    assert S3M_EFFECTS.set_panning(CENTER_PANNING).parameter == POSITION_MAX // 2
 
 
 @pytest.mark.parametrize(

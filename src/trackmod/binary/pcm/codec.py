@@ -2,7 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from trackmod.binary.pcm.encoding import PcmEncoding
-from trackmod.binary.pcm.quantise import dequantise, quantise
+from trackmod.binary.pcm.quantize import dequantize, quantize
 from trackmod.binary.pcm.sign import PcmSign, bias, dtype_for
 from trackmod.core.samples.depth import BitDepth
 
@@ -24,7 +24,7 @@ def encode_pcm(
     stored range wraps exactly as the player's running sum unwraps it. The first stored delta is taken
     against zero, which makes it the waveform's first stored amplitude.
     """
-    amplitudes = quantise(pcm, depth) + bias(depth, sign=sign)
+    amplitudes = quantize(pcm, depth) + bias(depth, sign=sign)
     match encoding:
         case PcmEncoding.ABSOLUTE:
             stored = amplitudes
@@ -50,4 +50,4 @@ def decode_pcm(
         case PcmEncoding.DELTA:
             frames = np.cumsum(stored, dtype=dtype)
 
-    return dequantise(frames.astype(np.int64) - bias(depth, sign=sign), depth)
+    return dequantize(frames.astype(np.int64) - bias(depth, sign=sign), depth)
