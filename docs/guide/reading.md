@@ -1,7 +1,10 @@
 # Reading a module
 
-Open a file and you get a module: the song inside it, what the file said about itself, and how far its
-values reach past the tracker its format names.
+`load_module` opens a file and gives you a module. A module holds three things:
+
+* `song` — the music: the patterns, their order, the instruments and the waveforms,
+* `provenance` — what the file says about the program that wrote it,
+* `reach` — how far its values go past what its own tracker allowed.
 
 ```python
 from pathlib import Path
@@ -12,12 +15,11 @@ module = load_module(Path("song.it"))
 module.song.patterns[0].cell(row=0, channel=3)
 ```
 
-`load_module` reads the format out of the bytes, so a file that was renamed, repacked or shared under a
-habit rather than a rule still opens as what it is. Every format but one opens a file with a tag or a name
-of its own, and the one that opens with neither is recognized by its records adding up to the length of
-the file.
+TrackMod reads the format from the file contents, not from its name, so a file that was renamed or saved
+with the wrong extension still opens. Four of the five formats begin with a tag or a name of their own. The
+fifth has neither, and TrackMod recognizes it because its records add up to the length of the file.
 
-Naming a format yourself is the other way in, and it takes the bytes directly:
+If you already know the format, name it yourself and pass the bytes directly:
 
 ```python
 from trackmod import ITModule, parse_module
@@ -26,42 +28,53 @@ module = ITModule.load(Path("song.it"))
 module = parse_module(data, extension=".it")
 ```
 
-Parsing yields the same `Song` a writer consumes, so a module read from one format can be written to
-another. What survives that trip is what both ends carry — see [`../reference/limits.md`](../reference/limits.md).
+Reading gives you the same `Song` that writing takes, so you can read a file in one format and write it in
+another. What survives the trip is what both formats support. See
+[`../reference/limits.md`](../reference/limits.md).
 
-## What the file stated about itself
+## What the file says about itself
 
-`module.provenance` names the program that wrote the bytes, where the file states one, and says which kind
-of statement carried it: a name the header spells outright, a mark a writer signed into bytes the format
-reserves, a program number above a version, or the tag naming the family that settled the layout. It is
-`None` for the one format whose files name their writer nowhere.
+`module.provenance` names the program that wrote the file, when the file says so. It also says how the file
+stated it:
 
-`module.reach` is the strictest of the three compliance levels the file's values fit inside — or `None`
-for a song carrying a value no record layout holds — and `module.exceeded()` is which ceilings it passed
-to get there. See [`../reference/limits.md`](../reference/limits.md).
+* a name written into the header,
+* a mark the writer signed into bytes the format reserves,
+* a program number above a version,
+* the tag naming the format family.
 
-## When a file states something odd
+It is `None` for the one format whose files never name their writer.
 
-A file written by a real tracker states values the model holds no room for: an envelope loop ending before
-it begins, a sample loop reaching past the waveform, an order naming a pattern the file leaves out. The
-parser draws each of those into range and gathers what it did, reporting everything as one `RepairWarning`:
+`module.reach` is the strictest compliance level the file's values fit inside. It is `None` when the song
+carries a value no format layout can hold. `module.exceeded()` lists the limits the file passed to get
+there. See [`../reference/limits.md`](../reference/limits.md).
+
+## When a file holds something odd
+
+Real trackers write values the model has no room for:
+
+* an envelope loop that ends before it begins,
+* a sample loop that reaches past the waveform,
+* an order position naming a pattern the file does not store.
+
+TrackMod pulls each value back into range, collects what it changed, and reports it all as one
+`RepairWarning`:
 
 ```
 RepairWarning: values drawn into range as the file was read: sample 3: rate 0 read as 8363 Hz;
 song: 2 order positions naming no stored pattern dropped
 ```
 
-Which values a given format repairs is stated in its own document, under the section that reads them.
+Each format document lists the values that format repairs.
 
-## Two formats share one suffix
+## Two formats share the `.mod` extension
 
-`.mod` names two layouts, because the older of them was written before a name carried an extension at all,
-so that suffix is read from the bytes rather than the name: a file carrying a tag states which tracker
-wrote it and is read as Amiga ProTracker, and a file whose own records add up to its length behind a
-600-byte header is read as Soundtracker. This is the one place that knows both, which is what keeps either
-format free of the other.
+`.mod` names two layouts. The older one was written before file names carried extensions at all, so TrackMod
+tells the two apart by their contents:
 
-`detected` answers the same question on its own, for a caller holding bytes rather than a path:
+* a file with a tag says which tracker wrote it, and is read as Amiga ProTracker,
+* a file whose records add up to its length behind a 600-byte header is read as Soundtracker.
+
+`detected` answers the same question on its own, for when you hold bytes rather than a path:
 
 ```python
 from trackmod import detected, parse_module
@@ -70,5 +83,5 @@ data = path.read_bytes()
 module = parse_module(data, extension=detected(data))
 ```
 
-Each format states its own answer, so the tag offsets stay with the format that chose them, and the
-strongest statement is asked first. Bytes stating none of the formats are refused by name.
+Each format checks its own bytes, and the strongest signal wins. Bytes matching no format raise a
+`ValueError`.

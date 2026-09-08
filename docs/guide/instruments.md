@@ -1,23 +1,22 @@
 # Taking instruments out of a module
 
-An instrument's keymap names positions in the sample table of the song it belongs to, so an instrument on
-its own is half a voice. `InstrumentUnit` holds the other half — the samples its keys reach, numbered from
-zero — which is what makes it portable.
+An instrument's keymap names positions in the sample table of the song it belongs to. On its own, then, an
+instrument is only half a voice. `InstrumentUnit` holds the other half: the samples its keys reach, numbered
+from zero. That is what makes it portable.
 
 ```python
 from trackmod import extract, units
 
-unit = extract(song.voices, 0)     # the instrument at that position, and the waveforms it sounds
-held = units(song.voices)          # the same, for every voice the table numbers
+unit = extract(song.voices, 0)     # the instrument at that position, and the waveforms it plays
+held = units(song.voices)          # the same, for every voice in the table
 ```
 
-`units` works whichever way the song addresses its voices. A table whose cells name samples is raised onto
-instruments first, so each sample arrives as the instrument sounding it at the pressed key's pitch — which
-is what lets one call reach the voices of an `.it`, an `.xm`, a `.mod`, an `.s3m` and a Soundtracker
-module alike.
+`units` works for every format. If a song's cells name samples, TrackMod first raises them onto instruments,
+so each sample arrives as an instrument that plays it at the pressed key's pitch. One call therefore reaches
+the voices of an `.it`, an `.xm`, a `.mod`, an `.s3m` and a Soundtracker module alike.
 
-`combine` is the way back: it returns exactly the `voices=` table `Song` takes, with each keymap restated
-against the samples behind it.
+`combine` is the way back. It returns exactly the `voices=` table that `Song` takes, with each keymap
+renumbered against the samples behind it:
 
 ```python
 from trackmod import Song, combine
@@ -25,14 +24,14 @@ from trackmod import Song, combine
 song = Song(name="grafted", channels=4, patterns=..., order=..., voices=combine([unit, other]), playback=...)
 ```
 
-The renumbering itself is `Instrument.rerouted(positions)`, which moves the routing and leaves every
-envelope, level and behavior as stated — so an instrument lifted out of one module and written into
-another sounds what it sounded before. Each unit keeps its own copy of a waveform another unit also holds.
+`Instrument.rerouted(positions)` does the renumbering. It moves the routing and leaves every envelope, level
+and behavior unchanged, so an instrument lifted out of one module and written into another sounds the same.
+Each unit keeps its own copy of a waveform, even when another unit holds the same one.
 
-## Writing one instrument as a file
+## Saving one instrument as a file
 
-The two formats that keep instrument records also store a single voice as a file of its own — `.iti` and
-`.xi` — which is what a producer of sampled instruments ships when the instrument is the product.
+Two formats store a single voice as a file of its own: `.iti` and `.xi`. This is what you ship when the
+instrument, rather than the song, is the product.
 
 ```python
 from pathlib import Path
@@ -41,21 +40,21 @@ from trackmod import Compliance, ITInstrumentFile, XMInstrumentFile
 
 instrument = ITInstrumentFile.load(Path("piano.iti"))
 print(instrument.unit.instrument.name, len(instrument.unit.samples))
-print(instrument.size().total)      # the file length, counted from the tables
-print(instrument.violations())      # every bound the unit breaks, empty when it is writable
+print(instrument.size().total)      # how many bytes the file will take
+print(instrument.violations())      # values the format cannot store, empty when it is writable
 
 XMInstrumentFile.from_unit(instrument.unit, compliance=Compliance.CANONICAL).save(Path("piano.xi"))
 ```
 
-The surface mirrors a module's, so the two are read the same way, and `InstrumentFile` is the protocol a
-caller names to hold one of either format. The bounds are the format's own, so what an instrument can
-carry is the same question in either container.
+The interface matches a module's, so you read both the same way. `InstrumentFile` is the protocol to name
+when you want to hold either format. The limits are the format's own, so an instrument can carry the same
+values in either container.
 
-An instrument traveling on its own is worth keeping beside the tempo its envelopes were fitted at: an
-`.iti` or an `.xi` carries a curve and no clock to read it by. See
+Envelope times are measured in ticks, and a tick's length follows the tempo. An `.iti` or `.xi` file stores
+no tempo, so record the tempo alongside any instrument you save on its own. See
 [`../reference/model.md`](../reference/model.md).
 
-## Emptying a whole collection
+## Emptying a whole folder
 
 ```python
 from pathlib import Path
@@ -70,10 +69,10 @@ for path in Path("modules").iterdir():
         instrument.save(sounds / f"{path.stem}-{index:02d}{instrument.extension}")
 ```
 
-## Reading whichever container a producer ships
+## Reading whichever container you are given
 
-A producer picks the container: a whole module, or one voice on its own, in either format. `load_voices`
-reads them all the same way, from the bytes rather than the name:
+A file may hold a whole module, or one voice on its own, in either format. `load_voices` reads them all the
+same way, from the contents rather than the name:
 
 ```python
 from trackmod import load_voices
@@ -81,7 +80,7 @@ from trackmod import load_voices
 voices = load_voices(path)
 ```
 
-What comes back is the voice table the format that wrote the bytes addresses, so the choice of container
-stops mattering at the point the bytes are read. `parse_voices` takes the bytes and an extension where you
-already know it, matched in either capitalization; `EXTENSIONS`, `MODULE_EXTENSIONS` and
-`INSTRUMENT_EXTENSIONS` state which suffixes are read, so the suffix table lives in one place.
+You get the voice table the format uses, so the choice of container stops mattering once the file is read.
+
+`parse_voices` takes bytes and an extension, when you already know it, in either upper or lower case.
+`EXTENSIONS`, `MODULE_EXTENSIONS` and `INSTRUMENT_EXTENSIONS` list which extensions are read.

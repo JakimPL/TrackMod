@@ -1,9 +1,11 @@
 # TrackMod
 
-A tracker module is a whole piece of music in one file: the notes, the effects and the recorded sounds all
-travel together. TrackMod opens those files, hands you what is inside them, and writes them back out.
+A tracker module is a complete piece of music in one file. It holds the notes, the effects and the recorded
+sounds together. TrackMod reads these files, gives you what is inside, and writes them back.
 
-| Tracker | Module | One instrument on its own |
+TrackMod supports five formats:
+
+| Tracker | Module | Single instrument |
 |---|---|---|
 | Impulse Tracker | `.it` | `.iti` |
 | FastTracker 2 | `.xm` | `.xi` |
@@ -11,36 +13,39 @@ travel together. TrackMod opens those files, hands you what is inside them, and 
 | Scream Tracker 3 | `.s3m` | — |
 | Soundtracker | `.mod` | — |
 
-Underneath the five formats there is one model of a song, and each format binds to it. That is what lets
-you open a file written by one tracker and save it for another, and what lets you ask — before writing
-anything — whether the music fits inside the format you are aiming at.
+All five formats share one model of a song. This lets you:
 
-Sounding the music is a player's job. TrackMod hands you the notes, the settings and the waveforms.
+* open a file written by one tracker and save it for another,
+* check whether a song fits a format before you write it.
+
+TrackMod does not play audio. It gives you the notes, the settings and the waveforms. Use a player to hear
+them.
 
 ## What you can do with it
 
-- **Open a module** and reach the song inside it: the patterns, the order they play in, the instruments
-  and the recorded waveforms.
-- **Write a song out** in whichever format you name, learning first how large the file will be and which
-  values, if any, that format has no room for.
-- **Move a song between formats**, carrying whatever both ends hold.
-- **Take the sounds out**: each instrument as an `.iti` or `.xi` file a tracker opens, and each waveform as
-  an ordinary `.wav` carrying its loop points, its tuning and its level.
+* Read a module and get the song inside: its patterns, their order, the instruments and the waveforms.
+* Write a song in any of the five formats.
+* Check the file size and find values the format cannot store, before you write.
+* Convert a song from one format to another.
+* Save an instrument as an `.iti` or `.xi` file.
+* Save a waveform as a `.wav` file.
 
-## What it needs
+## Requirements
 
-Python 3.12 or newer, `numpy` and `pydantic`.
+* Python 3.12 or newer
+* `numpy`
+* `pydantic`
 
-## Installing it
+## Installing
 
-Add TrackMod as a git submodule, which pins the exact revision you build against:
+Add TrackMod as a git submodule. This pins the exact version you build against.
 
 ```bash
 git submodule add git@github.com:JakimPL/TrackMod.git TrackMod
 git submodule update --init
 ```
 
-Then point your project at the checkout:
+Then point your project at it:
 
 ```toml
 [project]
@@ -50,10 +55,28 @@ dependencies = ["trackmod"]
 trackmod = { path = "TrackMod", editable = true }
 ```
 
-## Writing a song to a file
+## Reading a file
 
-Binding a song to a format gives you a module: something that knows how large the file will be, which of
-the song's values that format has room for, and how to write the bytes.
+```python
+from pathlib import Path
+
+from trackmod import load_module
+
+module = load_module(Path("song.it"))
+print(module.song.name)
+print(module.song.patterns[0].cell(row=0, channel=3))
+```
+
+TrackMod reads the format from the file contents, not from its name. A file with a wrong or missing
+extension still opens.
+
+## Writing a song
+
+Pass a song to a format class. You get a module, which can:
+
+* tell you how large the file will be,
+* list the values the format cannot store,
+* write the file.
 
 ```python
 from pathlib import Path
@@ -61,12 +84,14 @@ from pathlib import Path
 from trackmod import Compliance, ITModule
 
 module = ITModule.from_song(song, compliance=Compliance.CANONICAL)
-print(module.size().total)          # the file length, counted from the tables
-print(module.violations())          # every bound the song breaks, empty when it is writable
+print(module.size().total)     # how many bytes the file will take
+print(module.violations())     # values the format cannot store, empty when the song is writable
 module.save(Path("song.it"))
 ```
 
-Name another class to write the same song in another format:
+`Compliance` sets how strict the check is. See [`docs/reference/limits.md`](docs/reference/limits.md).
+
+To write the same song in another format, use another class:
 
 ```python
 from trackmod import XMModule
@@ -74,7 +99,7 @@ from trackmod import XMModule
 XMModule.from_song(song, compliance=Compliance.EXTENDED).save(Path("song.xm"))
 ```
 
-## Taking the sounds out of a collection
+## Saving instruments and waveforms
 
 ```python
 from pathlib import Path
@@ -92,19 +117,20 @@ for path in Path("modules").iterdir():
         save_sample(sample, sounds / f"{path.stem}-{index:02d}.wav")
 ```
 
-`load_module` reads the format out of the bytes, so a file that arrived under the wrong name still opens.
-`units` hands you each instrument together with the waveforms its keys reach, whichever way the song
-addresses them — so the same loop runs over a `.mod`, whose cells name samples, and over an `.it`, whose
-cells name instruments.
+`units` gives you every instrument with the waveforms it plays. It works the same for all five formats.
 
-The `.wav` files carry the loop points, the tuning, the level, the position and the auto-vibrato in the
-chunks OpenMPT writes, so a waveform exported here opens in a tracker as the sample it came from, and in
-any audio editor as an ordinary sound file.
+Each `.wav` file keeps the loop points, the tuning, the volume, the panning and the auto-vibrato. You can
+open these files in a tracker or in any audio editor.
 
-## Where to read next
+## Documentation
 
-See [`docs/`](docs/) for the rest: a guide to each task, a reference for the model and its limits, and
-one document per format describing its bytes. Start at [`docs/README.md`](docs/README.md).
+See [`docs/`](docs/):
+
+* [`docs/guide/`](docs/guide/) — how to do each task,
+* [`docs/reference/`](docs/reference/) — the song model and the format limits,
+* [`docs/formats/`](docs/formats/) — the byte layout of each format.
+
+Start at [`docs/README.md`](docs/README.md).
 
 ## Development
 

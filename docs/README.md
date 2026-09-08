@@ -1,33 +1,36 @@
 # Documentation
 
-TrackMod reads and writes tracker modules through one format-agnostic model of a piece of music. These
-documents take that apart from three directions: how to use it, what the model holds, and what each
-format can carry.
+TrackMod reads and writes tracker modules through one shared model of a song. These documents cover it from
+three sides: how to use the library, what the model holds, and what each format can store.
 
-## Start here
+## Guides
 
-| Document | What it covers |
-|---|---|
-| [`guide/reading.md`](guide/reading.md) | Open a file, whatever wrote it, and read what it holds |
-| [`guide/writing.md`](guide/writing.md) | Bind a song to a format, state its settings, write the bytes |
-| [`guide/converting.md`](guide/converting.md) | Move a song from one format to another, and hold either |
-| [`guide/instruments.md`](guide/instruments.md) | Take instruments out of a module and write them as files |
-| [`guide/samples.md`](guide/samples.md) | Reach the waveforms, and write them out as audio |
-| [`guide/budgeting.md`](guide/budgeting.md) | Ask what a file will cost before writing it |
-
-## The reference
+How to do each task.
 
 | Document | What it covers |
 |---|---|
-| [`reference/model.md`](reference/model.md) | The shared model: songs, patterns, voices, samples, instruments, timing |
+| [`guide/reading.md`](guide/reading.md) | Open a file and read what is inside it |
+| [`guide/writing.md`](guide/writing.md) | Write a song to a file in a format you choose |
+| [`guide/converting.md`](guide/converting.md) | Convert a song from one format to another |
+| [`guide/instruments.md`](guide/instruments.md) | Take instruments out of a module and save them as files |
+| [`guide/samples.md`](guide/samples.md) | Read the waveforms and save them as audio |
+| [`guide/budgeting.md`](guide/budgeting.md) | Find out how large a file will be before you write it |
+
+## Reference
+
+The shared model and its limits.
+
+| Document | What it covers |
+|---|---|
+| [`reference/model.md`](reference/model.md) | Songs, patterns, voices, samples, instruments, timing |
 | [`reference/limits.md`](reference/limits.md) | Capabilities, compliance levels, and where every bound comes from |
 | [`reference/effects.md`](reference/effects.md) | The effect column, and the one vocabulary each format spells its own way |
 | [`reference/volume.md`](reference/volume.md) | The volume column: one vocabulary, and what each format's byte reaches |
 
-## The formats
+## Formats
 
-See [`formats/README.md`](formats/README.md) for the five side by side, and where they disagree about one
-field. Each has a document of its own, describing what it stores and where every byte sits.
+The byte layout of each format. See [`formats/README.md`](formats/README.md) for the five side by side, and
+for the fields they disagree about.
 
 | Document | Format |
 |---|---|
