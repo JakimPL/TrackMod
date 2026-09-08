@@ -14,7 +14,10 @@ from trackmod.trackers.it.spec.identity import (
     COMPATIBLE_WITH,
     MAGIC_MODULE,
 )
-from trackmod.trackers.it.spec.orders import ORDER_TERMINATOR, ORDER_TERMINATOR_BYTES
+from trackmod.trackers.it.spec.orders import (
+    ORDER_TERMINATOR,
+    ORDER_TERMINATOR_BYTES,
+)
 from trackmod.trackers.it.spec.sizes import (
     FILE_HEADER_BYTES,
     NAME_BYTES,

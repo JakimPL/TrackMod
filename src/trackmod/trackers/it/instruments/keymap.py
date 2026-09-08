@@ -17,7 +17,7 @@ def note_map(keymap: Keymap) -> tuple[tuple[int, int], ...]:
     own pitch, which is the identity mapping a tracker writes for an instrument with nothing routed yet.
     """
     return tuple(
-        (key, NO_SAMPLE) if assignment is None else (assignment.note.value, assignment.sample + 1)
+        ((key, NO_SAMPLE) if assignment is None else (assignment.note.value, assignment.sample + 1))
         for key, assignment in enumerate(keymap)
     )
 
@@ -31,7 +31,10 @@ def sounded_note(played: int, *, subject: str, repairs: Repairs) -> Note:
     if played <= HIGHEST_KEY:
         return Note(played)
 
-    repairs.made(f"note map key sounding {played} drawn to {HIGHEST_KEY}", subject=subject)
+    repairs.made(
+        f"note map key sounding {played} drawn to {HIGHEST_KEY}",
+        subject=subject,
+    )
     return Note(HIGHEST_KEY)
 
 

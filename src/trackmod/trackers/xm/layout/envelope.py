@@ -49,11 +49,19 @@ def envelope_fields(kind: EnvelopeKind, *, origin: int) -> tuple[Field, ...]:
     """
     span = origin + SPAN_OFFSETS[kind]
     return (
-        Field(name=envelope_field(kind, "count"), offset=origin + COUNT_OFFSETS[kind], code="B"),
+        Field(
+            name=envelope_field(kind, "count"),
+            offset=origin + COUNT_OFFSETS[kind],
+            code="B",
+        ),
         Field(name=envelope_field(kind, "sustain"), offset=span + 0, code="B"),
         Field(name=envelope_field(kind, "loop_begin"), offset=span + 1, code="B"),
         Field(name=envelope_field(kind, "loop_end"), offset=span + 2, code="B"),
-        Field(name=envelope_field(kind, "flags"), offset=origin + FLAGS_OFFSETS[kind], code="B"),
+        Field(
+            name=envelope_field(kind, "flags"),
+            offset=origin + FLAGS_OFFSETS[kind],
+            code="B",
+        ),
     )
 
 

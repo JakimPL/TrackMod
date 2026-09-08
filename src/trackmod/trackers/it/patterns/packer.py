@@ -122,7 +122,11 @@ def pack_cells(pattern: Pattern) -> bytes:
     grid leaves it silent, which is what carries the width the pattern was built at.
     """
     notes, instruments = pattern.note, pattern.instrument
-    volumes, commands, parameters = pattern.volume, pattern.effect, pattern.parameter
+    volumes, commands, parameters = (
+        pattern.volume,
+        pattern.effect,
+        pattern.parameter,
+    )
     occupied = pattern.occupied
     memories = [ChannelMemory() for _ in range(pattern.channels)]
 

@@ -1,4 +1,9 @@
-from trackmod.binary.records.values import RecordValues, read_bytes, read_int, read_rows
+from trackmod.binary.records.values import (
+    RecordValues,
+    read_bytes,
+    read_int,
+    read_rows,
+)
 from trackmod.binary.text import decode_name
 from trackmod.core.envelopes.kind import EnvelopeKind
 from trackmod.core.instruments.behaviour import (
@@ -17,7 +22,10 @@ from trackmod.trackers.it.panning import shared_panning
 from trackmod.trackers.it.samples.parser import read_sample
 from trackmod.trackers.it.spec.flags import SamplePanning
 from trackmod.trackers.it.spec.identity import MAGIC_INSTRUMENT
-from trackmod.trackers.it.spec.sizes import INSTRUMENT_HEADER_BYTES, SAMPLE_HEADER_BYTES
+from trackmod.trackers.it.spec.sizes import (
+    INSTRUMENT_HEADER_BYTES,
+    SAMPLE_HEADER_BYTES,
+)
 
 
 def parse_instrument(values: RecordValues, *, subject: str, repairs: Repairs) -> Instrument:
@@ -31,7 +39,7 @@ def parse_instrument(values: RecordValues, *, subject: str, repairs: Repairs) ->
         pitch_envelope=parse_envelope(EnvelopeKind.PITCH, values, subject=subject, repairs=repairs),
         fadeout=read_int(values, "fadeout"),
         global_volume=read_int(values, "global_volume"),
-        panning=None if panning & SamplePanning.ENABLED else shared_panning(panning),
+        panning=(None if panning & SamplePanning.ENABLED else shared_panning(panning)),
         new_note_action=stated_behaviour(
             read_int(values, "new_note_action"),
             among=NewNoteAction,

@@ -10,7 +10,11 @@ from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.width import NIBBLE_MAX
 from trackmod.trackers.amiga.spec.defaults import NO_LOOP_LENGTH
 from trackmod.trackers.amiga.spec.sizes import WORD_BYTES
-from trackmod.trackers.amiga.spec.storage import PCM_DEPTH, PCM_ENCODING, PCM_SIGN
+from trackmod.trackers.amiga.spec.storage import (
+    PCM_DEPTH,
+    PCM_ENCODING,
+    PCM_SIGN,
+)
 from trackmod.trackers.amiga.tuning import finetune_rate
 
 
@@ -44,7 +48,14 @@ def read_volume(values: RecordValues, *, subject: str, repairs: Repairs) -> int:
     return MAX_VOLUME
 
 
-def parse_sample(values: RecordValues, data: bytes, *, begin_unit: int, subject: str, repairs: Repairs) -> Sample:
+def parse_sample(
+    values: RecordValues,
+    data: bytes,
+    *,
+    begin_unit: int,
+    subject: str,
+    repairs: Repairs,
+) -> Sample:
     """Rebuild a sample from its record and the frames the file holds for it.
 
     A record states no rate, only which of the sixteen tuning rows it plays on, so the rate is read back
@@ -58,7 +69,13 @@ def parse_sample(values: RecordValues, data: bytes, *, begin_unit: int, subject:
         rate=finetune_rate(read_int(values, "finetune") & NIBBLE_MAX),
         depth=PCM_DEPTH,
         volume=read_volume(values, subject=subject, repairs=repairs),
-        loop=repaired_loop(loop, frames=int(pcm.shape[0]), name="loop", subject=subject, repairs=repairs),
+        loop=repaired_loop(
+            loop,
+            frames=int(pcm.shape[0]),
+            name="loop",
+            subject=subject,
+            repairs=repairs,
+        ),
     )
 
 
@@ -69,5 +86,8 @@ def stated_frames(cursor: Cursor, values: RecordValues, *, subject: str, repairs
         return cursor.take(stated)
 
     held = cursor.remaining
-    repairs.made(f"waveform of {stated} bytes read as the {held} the file holds", subject=subject)
+    repairs.made(
+        f"waveform of {stated} bytes read as the {held} the file holds",
+        subject=subject,
+    )
     return cursor.take(held)

@@ -73,4 +73,10 @@ def write_instrument_file(unit: InstrumentUnit) -> bytes:
     headers = [
         sample_header(sample, data_offset=offset) for sample, offset in zip(unit.samples, offsets(frames, data_at))
     ]
-    return b"".join([instrument_header(unit.instrument, samples=len(unit.samples)), *headers, *frames])
+    return b"".join(
+        [
+            instrument_header(unit.instrument, samples=len(unit.samples)),
+            *headers,
+            *frames,
+        ]
+    )

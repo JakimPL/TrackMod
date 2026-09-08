@@ -13,13 +13,24 @@ from trackmod.binary.text import decode_name
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
-from trackmod.core.samples.repair import repaired_loop, repaired_rate, repaired_waveform
+from trackmod.core.samples.repair import (
+    repaired_loop,
+    repaired_rate,
+    repaired_waveform,
+)
 from trackmod.core.samples.sample import STEREO_CHANNELS, Sample
 from trackmod.core.samples.vibrato import Vibrato
 from trackmod.trackers.it.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.it.panning import shared_panning
-from trackmod.trackers.it.samples.compression import compressed_bytes, decompress
-from trackmod.trackers.it.spec.flags import SampleConvert, SampleFlag, SamplePanning
+from trackmod.trackers.it.samples.compression import (
+    compressed_bytes,
+    decompress,
+)
+from trackmod.trackers.it.spec.flags import (
+    SampleConvert,
+    SampleFlag,
+    SamplePanning,
+)
 
 MONO_CHANNELS: Final = 1
 
@@ -45,7 +56,10 @@ def stored_convert(values: RecordValues, *, subject: str, repairs: Repairs) -> S
     """
     convert = SampleConvert(read_int(values, "convert"))
     if int(convert) & ~int(READ_CONVERT):
-        repairs.made(f"a convert byte of {int(convert):#04x} reads as signed amplitudes", subject=subject)
+        repairs.made(
+            f"a convert byte of {int(convert):#04x} reads as signed amplitudes",
+            subject=subject,
+        )
         return SampleConvert.SIGNED
 
     return convert
@@ -107,7 +121,10 @@ def stored_end(values: RecordValues, data: bytes) -> int:
         return start + stored_bytes(values)
 
     extents = _compressed_extents(
-        data[start:], frames=read_int(values, "length"), depth=stored_depth(values), channels=stored_channels(values)
+        data[start:],
+        frames=read_int(values, "length"),
+        depth=stored_depth(values),
+        channels=stored_channels(values),
     )
     return start + sum(extents)
 
@@ -146,16 +163,40 @@ def stored_pcm(
     encoding, sign = stored_encoding(convert), stored_sign(convert)
     if stored_channels(values) == MONO_CHANNELS:
         if is_compressed(values):
-            frames = decompress(data, frames=length, depth=depth, doubled=doubled, subject=subject, repairs=repairs)
+            frames = decompress(
+                data,
+                frames=length,
+                depth=depth,
+                doubled=doubled,
+                subject=subject,
+                repairs=repairs,
+            )
             return dequantise(frames, depth)
 
-        return decode_pcm(whole_frames(data, depth=depth), depth=depth, encoding=encoding, sign=sign)
+        return decode_pcm(
+            whole_frames(data, depth=depth),
+            depth=depth,
+            encoding=encoding,
+            sign=sign,
+        )
 
     if is_compressed(values):
         left_bytes, _ = _compressed_extents(data, frames=length, depth=depth, channels=STEREO_CHANNELS)
-        left = decompress(data, frames=length, depth=depth, doubled=doubled, subject=subject, repairs=repairs)
+        left = decompress(
+            data,
+            frames=length,
+            depth=depth,
+            doubled=doubled,
+            subject=subject,
+            repairs=repairs,
+        )
         right = decompress(
-            data[left_bytes:], frames=length, depth=depth, doubled=doubled, subject=subject, repairs=repairs
+            data[left_bytes:],
+            frames=length,
+            depth=depth,
+            doubled=doubled,
+            subject=subject,
+            repairs=repairs,
         )
         return dequantise(np.stack([left, right], axis=1), depth)
 
@@ -175,7 +216,12 @@ def parse_sample(values: RecordValues, data: bytes, *, subject: str, repairs: Re
     depth = stored_depth(values)
     panning = read_int(values, "default_pan")
     loop = (
-        read_loop(values, begin="loop_begin", end="loop_end", mode=loop_mode(flags, SampleFlag.PING_PONG_LOOP))
+        read_loop(
+            values,
+            begin="loop_begin",
+            end="loop_end",
+            mode=loop_mode(flags, SampleFlag.PING_PONG_LOOP),
+        )
         if SampleFlag.LOOP in flags
         else None
     )
@@ -203,9 +249,15 @@ def parse_sample(values: RecordValues, data: bytes, *, subject: str, repairs: Re
         depth=depth,
         volume=read_int(values, "default_volume"),
         gain=read_int(values, "global_volume"),
-        panning=shared_panning(panning & ~SamplePanning.ENABLED) if panning & SamplePanning.ENABLED else None,
+        panning=(shared_panning(panning & ~SamplePanning.ENABLED) if panning & SamplePanning.ENABLED else None),
         loop=repaired_loop(loop, frames=frames, name="loop", subject=subject, repairs=repairs),
-        sustain_loop=repaired_loop(sustain, frames=frames, name="sustain loop", subject=subject, repairs=repairs),
+        sustain_loop=repaired_loop(
+            sustain,
+            frames=frames,
+            name="sustain loop",
+            subject=subject,
+            repairs=repairs,
+        ),
         filename=decode_name(read_bytes(values, "filename")),
         vibrato=Vibrato(
             speed=read_int(values, "vibrato_speed"),
@@ -224,7 +276,10 @@ def read_sample(data: bytes, *, offset: int, subject: str, repairs: Repairs) -> 
     past the bytes the file holds names an empty slot, which keeps a song's numbering standing.
     """
     if offset + SAMPLE_HEADER.size > len(data):
-        repairs.made(f"a header at {offset} of {len(data)} bytes held reads as empty", subject=subject)
+        repairs.made(
+            f"a header at {offset} of {len(data)} bytes held reads as empty",
+            subject=subject,
+        )
 
     values = SAMPLE_HEADER.unpack_at(data, offset)
     start = read_int(values, "sample_pointer")

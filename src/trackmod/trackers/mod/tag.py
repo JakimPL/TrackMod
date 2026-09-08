@@ -7,7 +7,10 @@ from trackmod.trackers.mod.dialect import (
 )
 from trackmod.trackers.mod.spec.dialects import SPLIT_TAGS
 from trackmod.trackers.mod.spec.identity import TAG_BYTES, TAG_OFFSET
-from trackmod.trackers.mod.spec.ranges import CANONICAL_CHANNELS, TAGGED_MAX_PATTERNS
+from trackmod.trackers.mod.spec.ranges import (
+    CANONICAL_CHANNELS,
+    TAGGED_MAX_PATTERNS,
+)
 
 
 def stated_tag(data: bytes) -> bytes:

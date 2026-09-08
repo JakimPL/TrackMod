@@ -20,7 +20,11 @@ from trackmod.trackers.s3m.layout.instrument import INSTRUMENT_RECORD
 from trackmod.trackers.s3m.panning import shared_panning
 from trackmod.trackers.s3m.parapointers import pointed
 from trackmod.trackers.s3m.patterns.parser import unpack_pattern
-from trackmod.trackers.s3m.samples.parser import frame_sign, parse_sample, stated_frames
+from trackmod.trackers.s3m.samples.parser import (
+    frame_sign,
+    parse_sample,
+    stated_frames,
+)
 from trackmod.trackers.s3m.settings import S3MSettings
 from trackmod.trackers.s3m.spec.defaults import DEFAULT_SPEED, DEFAULT_TEMPO
 from trackmod.trackers.s3m.spec.flags import (
@@ -75,7 +79,12 @@ class ModuleReader:
             name=decode_name(read_bytes(self._header, "name")),
             channels=self._channels,
             patterns=voiced_patterns(patterns, slots=voices.slots, repairs=self._repairs),
-            order=repaired_order(self._order, patterns=len(patterns), subject="song", repairs=self._repairs),
+            order=repaired_order(
+                self._order,
+                patterns=len(patterns),
+                subject="song",
+                repairs=self._repairs,
+            ),
             voices=voices,
             playback=self._playback(),
         )
@@ -108,7 +117,10 @@ class ModuleReader:
         if width >= MIN_CHANNELS:
             return width, stated
 
-        self._repairs.made(f"a settings table naming {width} channels read as {MIN_CHANNELS}", subject="song")
+        self._repairs.made(
+            f"a settings table naming {width} channels read as {MIN_CHANNELS}",
+            subject="song",
+        )
         return MIN_CHANNELS, channel_table(MIN_CHANNELS)
 
     def _playback(self) -> Playback:
@@ -154,7 +166,7 @@ class ModuleReader:
         if len(stated) < CHANNELS_STORED:
             return None
 
-        return tuple(shared_panning(entry & PANNING_MASK) if entry & PANNING_STATED else None for entry in stated)
+        return tuple((shared_panning(entry & PANNING_MASK) if entry & PANNING_STATED else None) for entry in stated)
 
     def _samples(self) -> tuple[Sample, ...]:
         return tuple(
@@ -180,7 +192,10 @@ class ModuleReader:
         song's sample numbering standing whatever the pointer reached.
         """
         if offset + INSTRUMENT_RECORD_BYTES > len(self._data):
-            self._repairs.made(f"a record at {offset} of {len(self._data)} bytes held reads as empty", subject=subject)
+            self._repairs.made(
+                f"a record at {offset} of {len(self._data)} bytes held reads as empty",
+                subject=subject,
+            )
 
         return INSTRUMENT_RECORD.unpack_at(self._data, offset)
 
@@ -201,7 +216,10 @@ class ModuleReader:
             return Pattern.empty(rows=PATTERN_ROWS, channels=self._channels)
 
         if offset >= len(self._data):
-            self._repairs.made(f"a block at {offset} of {len(self._data)} bytes held reads as silence", subject=subject)
+            self._repairs.made(
+                f"a block at {offset} of {len(self._data)} bytes held reads as silence",
+                subject=subject,
+            )
             return Pattern.empty(rows=PATTERN_ROWS, channels=self._channels)
 
         cursor = Cursor(self._data)

@@ -10,12 +10,21 @@ from trackmod.core.samples.depth import BitDepth
 from trackmod.spec.width import BITS_PER_BYTE
 
 BLOCK_LENGTH_BYTES: Final = 2
-BLOCK_FRAMES: Final[dict[BitDepth, int]] = {BitDepth.EIGHT: 0x8000, BitDepth.SIXTEEN: 0x4000}
+BLOCK_FRAMES: Final[dict[BitDepth, int]] = {
+    BitDepth.EIGHT: 0x8000,
+    BitDepth.SIXTEEN: 0x4000,
+}
 
 _NARROW_WIDTH: Final = 7  # the widths below which a field of its own announces the next one
-_NARROW_BITS: Final[dict[BitDepth, int]] = {BitDepth.EIGHT: 3, BitDepth.SIXTEEN: 4}
+_NARROW_BITS: Final[dict[BitDepth, int]] = {
+    BitDepth.EIGHT: 3,
+    BitDepth.SIXTEEN: 4,
+}
 _SPREAD: Final[dict[BitDepth, int]] = {BitDepth.EIGHT: 4, BitDepth.SIXTEEN: 8}
-_STORED_DTYPES: Final[dict[BitDepth, type[np.signedinteger]]] = {BitDepth.EIGHT: np.int8, BitDepth.SIXTEEN: np.int16}
+_STORED_DTYPES: Final[dict[BitDepth, type[np.signedinteger]]] = {
+    BitDepth.EIGHT: np.int8,
+    BitDepth.SIXTEEN: np.int16,
+}
 
 
 def _widened(stated: int, width: int) -> int:
@@ -105,7 +114,10 @@ def _blocks(data: bytes, *, frames: int, depth: BitDepth) -> Iterator[tuple[byte
 
 def compressed_bytes(data: bytes, *, frames: int, depth: BitDepth) -> int:
     """How many bytes a block-compressed waveform occupies, read from the block lengths alone."""
-    return max((end for _, _, end in _blocks(data, frames=frames, depth=depth)), default=0)
+    return max(
+        (end for _, _, end in _blocks(data, frames=frames, depth=depth)),
+        default=0,
+    )
 
 
 def decompress(
@@ -131,9 +143,15 @@ def decompress(
     for payload, count, _ in _blocks(data, frames=frames, depth=depth):
         stated = np.asarray(_block_frames(BitReader(payload), count, depth=depth), dtype=dtype)
         summed = np.cumsum(stated, dtype=dtype)
-        block = np.asarray(np.cumsum(summed, dtype=dtype) if doubled else summed, dtype=np.int64)
+        block = np.asarray(
+            np.cumsum(summed, dtype=dtype) if doubled else summed,
+            dtype=np.int64,
+        )
         if block.size < count:
-            repairs.made(f"{count - block.size} frames past a block's fields read as silence", subject=subject)
+            repairs.made(
+                f"{count - block.size} frames past a block's fields read as silence",
+                subject=subject,
+            )
             block = np.concatenate([block, np.zeros(count - block.size, dtype=np.int64)])
 
         blocks.append(block)

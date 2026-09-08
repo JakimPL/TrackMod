@@ -20,7 +20,11 @@ def stated_counts(pattern: Pattern) -> NDArray[np.int64]:
 
 def cell_bytes(stated: NDArray[np.int64]) -> NDArray[np.int64]:
     """How many bytes each cell occupies, given how many columns it states."""
-    return np.where(stated == RAW_CELL_COLUMNS, RAW_CELL_BYTES, PACKED_BYTE + COLUMN_BYTE * stated)
+    return np.where(
+        stated == RAW_CELL_COLUMNS,
+        RAW_CELL_BYTES,
+        PACKED_BYTE + COLUMN_BYTE * stated,
+    )
 
 
 def packed_bytes(pattern: Pattern) -> int:

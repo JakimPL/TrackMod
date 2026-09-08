@@ -1,7 +1,11 @@
 from trackmod.core.songs.order import OrderList
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.convert import sampled
-from trackmod.trackers.amiga.writing import order_table, sample_table, written_module
+from trackmod.trackers.amiga.writing import (
+    order_table,
+    sample_table,
+    written_module,
+)
 from trackmod.trackers.st.layout.file import SEQUENCE
 from trackmod.trackers.st.settings import STSettings
 from trackmod.trackers.st.spec.defaults import DEFAULT_TEMPO_BYTE

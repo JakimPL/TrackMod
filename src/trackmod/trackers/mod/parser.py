@@ -23,7 +23,10 @@ from trackmod.trackers.amiga.spec.ranges import PATTERN_ROWS
 from trackmod.trackers.amiga.spec.sizes import MODULE_NAME_BYTES
 from trackmod.trackers.mod.layout.file import SEQUENCE
 from trackmod.trackers.mod.settings import MODSettings
-from trackmod.trackers.mod.spec.ranges import EXTENDED_MAX_PATTERNS, LOOP_BEGIN_UNIT
+from trackmod.trackers.mod.spec.ranges import (
+    EXTENDED_MAX_PATTERNS,
+    LOOP_BEGIN_UNIT,
+)
 from trackmod.trackers.mod.spec.sizes import FILE_HEADER_BYTES, SAMPLE_SLOTS
 from trackmod.trackers.mod.tag import detected
 
@@ -50,7 +53,12 @@ class ModuleReader:
             channels=self._dialect.channels,
             repairs=self._repairs,
         )
-        self._samples = read_samples(cursor, self._records, begin_unit=LOOP_BEGIN_UNIT, repairs=self._repairs)
+        self._samples = read_samples(
+            cursor,
+            self._records,
+            begin_unit=LOOP_BEGIN_UNIT,
+            repairs=self._repairs,
+        )
 
     def song(self) -> Song:
         """The format-agnostic content the file carries, with whatever it stated out of range drawn in."""
@@ -59,7 +67,12 @@ class ModuleReader:
             name=decode_name(read_bytes(self._name, "name")),
             channels=self._dialect.channels,
             patterns=voiced_patterns(self._patterns, slots=voices.slots, repairs=self._repairs),
-            order=repaired_order(self._order, patterns=len(self._patterns), subject="song", repairs=self._repairs),
+            order=repaired_order(
+                self._order,
+                patterns=len(self._patterns),
+                subject="song",
+                repairs=self._repairs,
+            ),
             voices=voices,
             playback=Playback(speed=DEFAULT_SPEED, tempo=DEFAULT_TEMPO),
         )

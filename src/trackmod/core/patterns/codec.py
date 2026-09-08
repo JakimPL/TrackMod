@@ -25,7 +25,7 @@ def read_cell(columns: Columns, row: int, channel: int) -> Cell:
         note=None if note == EMPTY else decode_note(note),
         instrument=None if instrument == EMPTY else instrument,
         volume=None if volume == EMPTY else decode_volume(volume),
-        effect=None if command == EMPTY else Effect(command=command, parameter=max(parameter, 0)),
+        effect=(None if command == EMPTY else Effect(command=command, parameter=max(parameter, 0))),
     )
 
 

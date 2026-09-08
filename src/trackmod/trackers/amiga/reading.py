@@ -10,7 +10,11 @@ from trackmod.core.songs.order import OrderList
 from trackmod.spec.grid import EMPTY
 from trackmod.trackers.amiga.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.amiga.patterns.parser import unpack_pattern
-from trackmod.trackers.amiga.samples.parser import parse_sample, stated_frames, stored_bytes
+from trackmod.trackers.amiga.samples.parser import (
+    parse_sample,
+    stated_frames,
+    stored_bytes,
+)
 from trackmod.trackers.amiga.spec.ranges import MAX_ORDERS, PATTERN_ROWS
 from trackmod.trackers.amiga.spec.sizes import SAMPLE_TABLE_OFFSET
 
@@ -33,7 +37,10 @@ def read_order(sequence: RecordValues, *, repairs: Repairs) -> tuple[int, ...]:
     stated = read_int(sequence, "order_count")
     count = min(stated, MAX_ORDERS)
     if count != stated:
-        repairs.made(f"an order of {stated} positions read as the {MAX_ORDERS} the table holds", subject="song")
+        repairs.made(
+            f"an order of {stated} positions read as the {MAX_ORDERS} the table holds",
+            subject="song",
+        )
 
     return tuple(read_bytes(sequence, "orders")[:count])
 
@@ -68,7 +75,10 @@ def pattern_count(
     if counted <= reached:
         return counted
 
-    repairs.made(f"an order naming {counted} patterns read as the {reached} the file holds", subject="song")
+    repairs.made(
+        f"an order naming {counted} patterns read as the {reached} the file holds",
+        subject="song",
+    )
     return reached
 
 
@@ -115,7 +125,16 @@ def held_samples(samples: Sequence[Sample], patterns: Sequence[Pattern]) -> tupl
     past all of that state nothing and are left out, while the empty slots before them stay, because the
     cells number their samples by position.
     """
-    sounded = max((slot + 1 for slot, sample in enumerate(samples) if sample.frames), default=0)
-    named = max((slot + 1 for slot, sample in enumerate(samples) if sample.name), default=0)
-    highest = max((int(pattern.instrument.max()) for pattern in patterns if pattern.instrument.size), default=EMPTY)
+    sounded = max(
+        (slot + 1 for slot, sample in enumerate(samples) if sample.frames),
+        default=0,
+    )
+    named = max(
+        (slot + 1 for slot, sample in enumerate(samples) if sample.name),
+        default=0,
+    )
+    highest = max(
+        (int(pattern.instrument.max()) for pattern in patterns if pattern.instrument.size),
+        default=EMPTY,
+    )
     return tuple(samples[: max(sounded, named, highest + 1)])

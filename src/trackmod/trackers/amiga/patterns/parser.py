@@ -88,10 +88,16 @@ def unpack_cells(stream: bytes, *, rows: int, channels: int, subject: str, repai
 
     missing = rows * channels - held
     if missing > 0:
-        repairs.made(f"{missing} cells past the end of the file read as silence", subject=subject)
+        repairs.made(
+            f"{missing} cells past the end of the file read as silence",
+            subject=subject,
+        )
 
     if periods.drawn:
-        repairs.made(f"{periods.drawn} periods read as the key they come closest to", subject=subject)
+        repairs.made(
+            f"{periods.drawn} periods read as the key they come closest to",
+            subject=subject,
+        )
 
     unnamed.warn()
     return builder.build()

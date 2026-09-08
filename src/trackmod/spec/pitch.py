@@ -8,4 +8,17 @@ RATE_NOTE: Final = 60
 REFERENCE_RATE: Final = 8363
 NO_TRANSPOSITION: Final = 0
 
-PITCH_LABELS: Final = ("C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-")
+PITCH_LABELS: Final = (
+    "C-",
+    "C#",
+    "D-",
+    "D#",
+    "E-",
+    "F-",
+    "F#",
+    "G-",
+    "G#",
+    "A-",
+    "A#",
+    "B-",
+)

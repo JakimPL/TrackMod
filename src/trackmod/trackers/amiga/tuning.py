@@ -1,6 +1,9 @@
 from typing import Final
 
-from trackmod.trackers.amiga.spec.periods import FINETUNE_PERIODS, FINETUNE_RATES
+from trackmod.trackers.amiga.spec.periods import (
+    FINETUNE_PERIODS,
+    FINETUNE_RATES,
+)
 
 FINETUNES: Final = tuple(range(len(FINETUNE_PERIODS)))
 
@@ -22,4 +25,7 @@ def finetune_for(rate: int) -> int:
     :data:`~trackmod.limits.capability.Capability.SAMPLE_RATE`, which tells a caller to resample it to
     one the sixteen rows hold before writing.
     """
-    return min(FINETUNES, key=lambda finetune: max(rate / FINETUNE_RATES[finetune], FINETUNE_RATES[finetune] / rate))
+    return min(
+        FINETUNES,
+        key=lambda finetune: max(rate / FINETUNE_RATES[finetune], FINETUNE_RATES[finetune] / rate),
+    )

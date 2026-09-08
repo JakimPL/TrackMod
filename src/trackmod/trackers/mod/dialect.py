@@ -13,7 +13,10 @@ from trackmod.trackers.mod.spec.dialects import (
     WIDE_TAG,
 )
 from trackmod.trackers.mod.spec.identity import TAG_BYTES
-from trackmod.trackers.mod.spec.ranges import EXTENDED_MIN_CHANNELS, STRUCTURAL_MAX_CHANNELS
+from trackmod.trackers.mod.spec.ranges import (
+    EXTENDED_MIN_CHANNELS,
+    STRUCTURAL_MAX_CHANNELS,
+)
 
 
 class Dialect(BaseModel):

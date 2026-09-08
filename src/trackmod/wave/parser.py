@@ -13,7 +13,12 @@ from trackmod.core.samples.sample import MONO_CHANNELS, STEREO_CHANNELS, Sample
 from trackmod.core.samples.vibrato import Vibrato
 from trackmod.spec.levels import MAX_PANNING, MAX_VOLUME
 from trackmod.wave.chunks import formed, required, unwrapped
-from trackmod.wave.layout import EXTRA_CHUNK, FORMAT_CHUNK, SAMPLER_CHUNK, SAMPLER_LOOP
+from trackmod.wave.layout import (
+    EXTRA_CHUNK,
+    FORMAT_CHUNK,
+    SAMPLER_CHUNK,
+    SAMPLER_LOOP,
+)
 from trackmod.wave.settings import WaveSettings
 from trackmod.wave.spec import (
     DATA_TAG,
@@ -138,7 +143,7 @@ def stored_settings(payload: bytes) -> WaveSettings:
     return WaveSettings(
         volume=min(read_int(values, "volume") // STORED_VOLUME_SCALE, MAX_VOLUME),
         gain=min(read_int(values, "gain"), MAX_VOLUME),
-        panning=min(read_int(values, "panning"), MAX_PANNING) if placed else None,
+        panning=(min(read_int(values, "panning"), MAX_PANNING) if placed else None),
         vibrato=Vibrato(
             speed=read_int(values, "vibrato_rate"),
             depth=read_int(values, "vibrato_depth"),

@@ -13,7 +13,10 @@ from trackmod.core.songs.song import Song
 from trackmod.core.voices.voices import InstrumentVoices
 from trackmod.trackers.xm.instruments.parser import parse_instrument, parse_stub
 from trackmod.trackers.xm.layout.file import FILE_HEADER
-from trackmod.trackers.xm.layout.instrument import EMPTY_INSTRUMENT_HEADER, INSTRUMENT_HEADER
+from trackmod.trackers.xm.layout.instrument import (
+    EMPTY_INSTRUMENT_HEADER,
+    INSTRUMENT_HEADER,
+)
 from trackmod.trackers.xm.patterns.parser import unpack_pattern
 from trackmod.trackers.xm.samples.parser import read_samples
 from trackmod.trackers.xm.settings import XMSettings
@@ -53,7 +56,12 @@ class ModuleReader:
             name=decode_name(read_bytes(self._header, "name")),
             channels=self._channels,
             patterns=voiced_patterns(self._patterns, slots=voices.slots, repairs=self._repairs),
-            order=repaired_order(self._order, patterns=len(self._patterns), subject="song", repairs=self._repairs),
+            order=repaired_order(
+                self._order,
+                patterns=len(self._patterns),
+                subject="song",
+                repairs=self._repairs,
+            ),
             voices=voices,
             playback=self._playback(),
         )
@@ -86,7 +94,12 @@ class ModuleReader:
     def _read_patterns(self, cursor: Cursor) -> tuple[Pattern, ...]:
         count = read_int(self._header, "pattern_count")
         return tuple(
-            unpack_pattern(cursor, channels=self._channels, subject=f"pattern {index}", repairs=self._repairs)
+            unpack_pattern(
+                cursor,
+                channels=self._channels,
+                subject=f"pattern {index}",
+                repairs=self._repairs,
+            )
             for index in range(count)
         )
 
@@ -114,14 +127,24 @@ class ModuleReader:
         size = read_int(identity, "header_size")
         length = read_int(identity, "sample_count")
         if cursor.remaining < max(size, EMPTY_INSTRUMENT_HEADER_BYTES):
-            self._repairs.made("a header the file stops inside reads as far as it goes", subject=f"instrument {index}")
+            self._repairs.made(
+                "a header the file stops inside reads as far as it goes",
+                subject=f"instrument {index}",
+            )
 
         extended = length > 0
         values = INSTRUMENT_HEADER.unpack(cursor.peek_padded(INSTRUMENT_HEADER_BYTES)) if extended else identity
 
         cursor.take_at_most(size)
         offset = len(self._samples)
-        self._samples.extend(read_samples(cursor, count=length, subject=f"instrument {index}", repairs=self._repairs))
+        self._samples.extend(
+            read_samples(
+                cursor,
+                count=length,
+                subject=f"instrument {index}",
+                repairs=self._repairs,
+            )
+        )
         if not extended:
             return parse_stub(values)
 
@@ -135,6 +158,9 @@ class ModuleReader:
         )
         unreached = length - len(instrument.samples)
         if unreached:
-            self._repairs.made(f"{unreached} samples no key reaches are held outside this instrument", subject=subject)
+            self._repairs.made(
+                f"{unreached} samples no key reaches are held outside this instrument",
+                subject=subject,
+            )
 
         return instrument

@@ -1,4 +1,9 @@
-from trackmod.spec.clock import MIN_SPEED, MIN_TEMPO, TICK_DENOMINATOR, TICK_NUMERATOR
+from trackmod.spec.clock import (
+    MIN_SPEED,
+    MIN_TEMPO,
+    TICK_DENOMINATOR,
+    TICK_NUMERATOR,
+)
 
 
 def tick_seconds(tempo: int) -> float:

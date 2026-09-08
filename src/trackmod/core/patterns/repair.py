@@ -21,7 +21,10 @@ def voiced_within(pattern: Pattern, *, slots: int, subject: str, repairs: Repair
     if reaching == 0:
         return pattern
 
-    repairs.made(f"{reaching} cells naming a voice past the {slots} held carry their channel on", subject=subject)
+    repairs.made(
+        f"{reaching} cells naming a voice past the {slots} held carry their channel on",
+        subject=subject,
+    )
     return Pattern.from_columns({**pattern.columns, Column.INSTRUMENT: np.where(beyond, EMPTY, named)})
 
 

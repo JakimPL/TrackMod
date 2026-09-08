@@ -7,7 +7,10 @@ from trackmod.trackers.it.addressing import stored_instruments
 from trackmod.trackers.it.message import message_data
 from trackmod.trackers.it.patterns.sizing import packed_bytes
 from trackmod.trackers.it.settings import ITSettings
-from trackmod.trackers.it.spec.sizes import INSTRUMENT_HEADER_BYTES, SAMPLE_HEADER_BYTES
+from trackmod.trackers.it.spec.sizes import (
+    INSTRUMENT_HEADER_BYTES,
+    SAMPLE_HEADER_BYTES,
+)
 from trackmod.trackers.it.spec.storage import IT_STORAGE
 
 NO_PATTERNS: Final = 0

@@ -7,7 +7,11 @@ from trackmod.spec.grid import EMPTY
 from trackmod.spec.pitch import NOTE_COUNT, NOTES_PER_OCTAVE
 from trackmod.spec.width import NIBBLE_MAX
 from trackmod.trackers.s3m.spec.cells import UNSTORABLE, NoteByte
-from trackmod.trackers.s3m.spec.keys import BASE_NOTE, OCTAVE_SHIFT, SEMITONE_MASK
+from trackmod.trackers.s3m.spec.keys import (
+    BASE_NOTE,
+    OCTAVE_SHIFT,
+    SEMITONE_MASK,
+)
 
 COMMAND_BYTES: Final[dict[NoteCommand, NoteByte]] = {NoteCommand.CUT: NoteByte.CUT}
 BYTE_COMMANDS: Final[dict[int, NoteCommand]] = {int(byte): command for command, byte in COMMAND_BYTES.items()}

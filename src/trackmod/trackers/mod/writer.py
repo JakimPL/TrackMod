@@ -1,6 +1,10 @@
 from trackmod.core.songs.song import Song
 from trackmod.core.voices.convert import sampled
-from trackmod.trackers.amiga.writing import order_table, sample_table, written_module
+from trackmod.trackers.amiga.writing import (
+    order_table,
+    sample_table,
+    written_module,
+)
 from trackmod.trackers.mod.dialect import Dialect
 from trackmod.trackers.mod.layout.file import SEQUENCE
 from trackmod.trackers.mod.settings import MODSettings

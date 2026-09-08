@@ -4,7 +4,11 @@ from typing import Final
 from trackmod.limits.compliance import Compliance
 from trackmod.limits.violation import Violation
 
-LEVELS: Final = (Compliance.CANONICAL, Compliance.EXTENDED, Compliance.STRUCTURAL)
+LEVELS: Final = (
+    Compliance.CANONICAL,
+    Compliance.EXTENDED,
+    Compliance.STRUCTURAL,
+)
 
 
 def width(compliance: Compliance) -> int:

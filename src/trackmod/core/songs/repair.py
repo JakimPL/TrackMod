@@ -13,5 +13,8 @@ def repaired_order(order: OrderList, *, patterns: int, subject: str, repairs: Re
         return order
 
     dropped = len(order.entries) - len(entries)
-    repairs.made(f"{dropped} order positions naming no stored pattern dropped", subject=subject)
+    repairs.made(
+        f"{dropped} order positions naming no stored pattern dropped",
+        subject=subject,
+    )
     return OrderList(entries=entries, restart=min(order.restart, max(len(entries) - 1, 0)))

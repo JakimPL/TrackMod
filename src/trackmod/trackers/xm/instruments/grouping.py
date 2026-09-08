@@ -87,7 +87,7 @@ def group_samples(instrument: Instrument, samples: Sequence[Sample]) -> SampleGr
     owned = tuple(samples[index] for index in slots)
     tunings = tuple(slot_tuning(instrument, samples[index], index=index) for index in slots)
     keymap = tuple(
-        FIRST_SLOT if (assignment := instrument.keymap[key]) is None else slots[assignment.sample]
+        (FIRST_SLOT if (assignment := instrument.keymap[key]) is None else slots[assignment.sample])
         for key in range(KEYMAP_NOTES)
     )
     return SampleGroup(samples=owned, tunings=tunings, keymap=keymap)

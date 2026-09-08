@@ -72,7 +72,13 @@ def parse_sample(values: RecordValues, data: bytes, *, subject: str, repairs: Re
         depth=depth,
         volume=read_int(values, "volume"),
         panning=read_int(values, "panning"),
-        loop=repaired_loop(loop, frames=int(pcm.shape[0]), name="loop", subject=subject, repairs=repairs),
+        loop=repaired_loop(
+            loop,
+            frames=int(pcm.shape[0]),
+            name="loop",
+            subject=subject,
+            repairs=repairs,
+        ),
         relative_note=tuning.relative_note,
         finetune=tuning.finetune,
     )
@@ -90,7 +96,10 @@ def stated_frames(cursor: Cursor, values: RecordValues, *, subject: str, repairs
 
     stride = stored_depth(values).bytes_per_frame
     held = (cursor.remaining // stride) * stride
-    repairs.made(f"waveform of {stated} bytes read as the {held} the file holds", subject=subject)
+    repairs.made(
+        f"waveform of {stated} bytes read as the {held} the file holds",
+        subject=subject,
+    )
     frames = cursor.take(held)
     cursor.take_at_most(stated - held)
     return frames
@@ -117,7 +126,12 @@ def read_samples(cursor: Cursor, *, count: int, subject: str, repairs: Repairs) 
     return tuple(
         parse_sample(
             values,
-            stated_frames(cursor, values, subject=f"{subject} sample {index}", repairs=repairs),
+            stated_frames(
+                cursor,
+                values,
+                subject=f"{subject} sample {index}",
+                repairs=repairs,
+            ),
             subject=f"{subject} sample {index}",
             repairs=repairs,
         )

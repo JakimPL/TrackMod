@@ -114,7 +114,7 @@ def decode_cell(cursor: Cursor, memory: ChannelMemory, unnamed: UnnamedBytes) ->
     )
     return Cell(
         note=None if note == EMPTY else stated_note(note, unnamed),
-        instrument=None if instrument in (EMPTY, NO_INSTRUMENT) else instrument - INSTRUMENT_OFFSET,
+        instrument=(None if instrument in (EMPTY, NO_INSTRUMENT) else instrument - INSTRUMENT_OFFSET),
         volume=None if volume == EMPTY else stated_volume(volume, unnamed),
         effect=decode_effect(cursor, mask, memory),
     )
@@ -164,7 +164,10 @@ def unpack_cells(stream: bytes, *, rows: int, subject: str, repairs: Repairs) ->
             memory.mask = cursor.byte()
 
         if cursor.remaining < payload_bytes(memory.mask):
-            repairs.made("a cell the stream stops inside reads as silence", subject=subject)
+            repairs.made(
+                "a cell the stream stops inside reads as silence",
+                subject=subject,
+            )
             break
 
         cell = decode_cell(cursor, memory, unnamed)
@@ -175,10 +178,16 @@ def unpack_cells(stream: bytes, *, rows: int, subject: str, repairs: Repairs) ->
         placed.append((row, channel, cell))
 
     if row < rows:
-        repairs.made(f"{rows - row} rows past the end of the stream read as silence", subject=subject)
+        repairs.made(
+            f"{rows - row} rows past the end of the stream read as silence",
+            subject=subject,
+        )
 
     if unplaced:
-        repairs.made(f"{unplaced} cells naming no channel read as silence", subject=subject)
+        repairs.made(
+            f"{unplaced} cells naming no channel read as silence",
+            subject=subject,
+        )
 
     unnamed.warn()
     channels = max((channel for _, channel, _ in placed), default=0) + 1

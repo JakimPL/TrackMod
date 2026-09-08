@@ -1,6 +1,10 @@
 from typing import Final
 
-from trackmod.trackers.s3m.spec.flags import CHANNEL_RIGHT, CHANNEL_SIDE_WIDTH, CHANNEL_UNUSED
+from trackmod.trackers.s3m.spec.flags import (
+    CHANNEL_RIGHT,
+    CHANNEL_SIDE_WIDTH,
+    CHANNEL_UNUSED,
+)
 from trackmod.trackers.s3m.spec.sizes import CHANNELS_STORED
 
 SIDES: Final = 2
@@ -28,4 +32,7 @@ def stated_width(settings: tuple[int, ...]) -> int:
     A packed cell names its channel by the slot it takes in this table, so a table that leaves a gap in
     the middle still states every channel up to the last one it names.
     """
-    return max((channel + 1 for channel, entry in enumerate(settings) if entry != CHANNEL_UNUSED), default=0)
+    return max(
+        (channel + 1 for channel, entry in enumerate(settings) if entry != CHANNEL_UNUSED),
+        default=0,
+    )

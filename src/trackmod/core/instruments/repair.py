@@ -15,14 +15,17 @@ def routed_within(instrument: Instrument, *, samples: int, subject: str, repairs
     which is what a tracker plays for a key routed nowhere.
     """
     keymap = tuple(
-        assignment if assignment is not None and assignment.sample < samples else None
+        (assignment if assignment is not None and assignment.sample < samples else None)
         for assignment in instrument.keymap
     )
     silenced = sum(1 for before, after in zip(instrument.keymap, keymap) if before is not after)
     if silenced == 0:
         return instrument
 
-    repairs.made(f"{silenced} keys routed past the {samples} samples stored are left silent", subject=subject)
+    repairs.made(
+        f"{silenced} keys routed past the {samples} samples stored are left silent",
+        subject=subject,
+    )
     return instrument.model_copy(update={"keymap": keymap})
 
 

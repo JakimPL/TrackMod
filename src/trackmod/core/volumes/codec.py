@@ -1,4 +1,8 @@
-from trackmod.core.volumes.command import VolumeCommand, VolumeEffect, VolumeValue
+from trackmod.core.volumes.command import (
+    VolumeCommand,
+    VolumeEffect,
+    VolumeValue,
+)
 from trackmod.spec.volumes import AMOUNT_COUNT, LEVEL_COUNT
 
 

@@ -9,7 +9,10 @@ from trackmod.trackers.s3m.spec.sizes import (
     PARAPOINTER_BITS,
     WAVEFORM_POINTER_BITS,
 )
-from trackmod.trackers.s3m.spec.storage import CANONICAL_FRAME_BYTES, STRUCTURAL_FRAME_BYTES
+from trackmod.trackers.s3m.spec.storage import (
+    CANONICAL_FRAME_BYTES,
+    STRUCTURAL_FRAME_BYTES,
+)
 
 CANONICAL_MAX_CHANNELS: Final = 16
 STRUCTURAL_MAX_CHANNELS: Final = CHANNELS_STORED

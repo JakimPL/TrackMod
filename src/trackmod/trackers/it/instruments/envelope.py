@@ -79,16 +79,31 @@ def parse_envelope(
 
     nodes = read_rows(values, envelope_field(kind, "nodes"))[:count]
     points = repaired_points(
-        [EnvelopePoint(tick=tick, value=value) for value, tick in nodes], subject=subject, repairs=repairs
+        [EnvelopePoint(tick=tick, value=value) for value, tick in nodes],
+        subject=subject,
+        repairs=repairs,
     )
     spans: dict[str, tuple[int, int] | None] = {
         name: stored_span(kind, values, name=name) if flag in flags else None
-        for name, flag in (("loop", EnvelopeFlag.LOOP), ("sustain", EnvelopeFlag.SUSTAIN))
+        for name, flag in (
+            ("loop", EnvelopeFlag.LOOP),
+            ("sustain", EnvelopeFlag.SUSTAIN),
+        )
     }
     return Envelope(
         points=points,
-        loop=repaired_span(spans["loop"], points=len(points), name=f"{kind} loop", subject=subject, repairs=repairs),
+        loop=repaired_span(
+            spans["loop"],
+            points=len(points),
+            name=f"{kind} loop",
+            subject=subject,
+            repairs=repairs,
+        ),
         sustain=repaired_span(
-            spans["sustain"], points=len(points), name=f"{kind} sustain", subject=subject, repairs=repairs
+            spans["sustain"],
+            points=len(points),
+            name=f"{kind} sustain",
+            subject=subject,
+            repairs=repairs,
         ),
     )

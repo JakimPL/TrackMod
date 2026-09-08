@@ -1,4 +1,10 @@
-from trackmod.spec.width import BYTE_MAX, DECIMAL_BYTE_MAX, DECIMAL_RADIX, NIBBLE_BITS, NIBBLE_MAX
+from trackmod.spec.width import (
+    BYTE_MAX,
+    DECIMAL_BYTE_MAX,
+    DECIMAL_RADIX,
+    NIBBLE_BITS,
+    NIBBLE_MAX,
+)
 
 
 def split_nibbles(value: int) -> tuple[int, int]:

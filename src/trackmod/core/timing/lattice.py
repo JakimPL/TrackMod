@@ -115,5 +115,8 @@ def nearest_timing(
 
     return min(
         candidates,
-        key=lambda timing: (abs(timing.row_frames - target_frames), timing.row_frames),
+        key=lambda timing: (
+            abs(timing.row_frames - target_frames),
+            timing.row_frames,
+        ),
     )

@@ -32,7 +32,11 @@ def envelope_fields(kind: EnvelopeKind) -> tuple[Field, ...]:
         Field(name=envelope_field(kind, "count"), offset=base + 1, code="B"),
         Field(name=envelope_field(kind, "loop_begin"), offset=base + 2, code="B"),
         Field(name=envelope_field(kind, "loop_end"), offset=base + 3, code="B"),
-        Field(name=envelope_field(kind, "sustain_begin"), offset=base + 4, code="B"),
+        Field(
+            name=envelope_field(kind, "sustain_begin"),
+            offset=base + 4,
+            code="B",
+        ),
         Field(name=envelope_field(kind, "sustain_end"), offset=base + 5, code="B"),
     )
 

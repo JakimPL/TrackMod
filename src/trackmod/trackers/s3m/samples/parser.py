@@ -11,7 +11,11 @@ from trackmod.binary.text import decode_name
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
-from trackmod.core.samples.repair import repaired_loop, repaired_rate, repaired_waveform
+from trackmod.core.samples.repair import (
+    repaired_loop,
+    repaired_rate,
+    repaired_waveform,
+)
 from trackmod.core.samples.sample import STEREO_CHANNELS, Sample
 from trackmod.spec.levels import MAX_VOLUME
 from trackmod.trackers.s3m.parapointers import joined_pointer
@@ -114,9 +118,18 @@ def stored_pcm(values: RecordValues, data: bytes, *, depth: BitDepth, sign: PcmS
     inside sounds the frames it holds.
     """
     if stored_channels(values) == MONO_CHANNELS:
-        return decode_pcm(whole_frames(data, depth=depth), depth=depth, encoding=PCM_ENCODING, sign=sign)
+        return decode_pcm(
+            whole_frames(data, depth=depth),
+            depth=depth,
+            encoding=PCM_ENCODING,
+            sign=sign,
+        )
 
-    left, right = paired_channels(data, block=read_int(values, "length") * depth.bytes_per_frame, depth=depth)
+    left, right = paired_channels(
+        data,
+        block=read_int(values, "length") * depth.bytes_per_frame,
+        depth=depth,
+    )
     return np.stack(
         [
             decode_pcm(left, depth=depth, encoding=PCM_ENCODING, sign=sign),

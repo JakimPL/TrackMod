@@ -86,7 +86,10 @@ class ITModule(BaseModel, Reaching):
     @property
     def provenance(self) -> Provenance:
         """What this module states about the program that wrote it."""
-        return stated_provenance(created_with=self.settings.created_with, signature=self.settings.signature)
+        return stated_provenance(
+            created_with=self.settings.created_with,
+            signature=self.settings.signature,
+        )
 
     @property
     def limits(self) -> Limits:

@@ -5,7 +5,12 @@ from enum import IntEnum, unique
 from pydantic import Field, RootModel
 
 from trackmod.schema.config import FROZEN_ROOT
-from trackmod.spec.pitch import MIDI_OFFSET, NOTE_COUNT, NOTES_PER_OCTAVE, PITCH_LABELS
+from trackmod.spec.pitch import (
+    MIDI_OFFSET,
+    NOTE_COUNT,
+    NOTES_PER_OCTAVE,
+    PITCH_LABELS,
+)
 
 
 @unique

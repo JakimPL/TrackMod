@@ -65,7 +65,7 @@ def sample_header(sample: Sample, *, tuning: Tuning) -> bytes:
             "volume": sample.volume,
             "finetune": tuning.finetune,
             "type": flags,
-            "panning": DEFAULT_PANNING if sample.panning is None else sample.panning,
+            "panning": (DEFAULT_PANNING if sample.panning is None else sample.panning),
             "relative_note": tuning.relative_note,
             "reserved": 0,
             "name": encode_name(sample.name, NAME_BYTES),

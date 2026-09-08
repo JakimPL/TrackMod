@@ -73,7 +73,12 @@ class ModuleReader:
             name=decode_name(read_bytes(self._header, "name")),
             channels=channels,
             patterns=self._voiced(patterns, channels=channels, slots=voices.slots),
-            order=repaired_order(self._order, patterns=len(patterns), subject="song", repairs=self._repairs),
+            order=repaired_order(
+                self._order,
+                patterns=len(patterns),
+                subject="song",
+                repairs=self._repairs,
+            ),
             voices=voices,
             playback=Playback(
                 speed=read_int(self._header, "speed"),
@@ -112,11 +117,17 @@ class ModuleReader:
         """
         samples = self._samples()
         if names_instruments(HeaderFlag(read_int(self._header, "flags"))):
-            return InstrumentVoices(instruments=self._instruments(samples=len(samples)), samples=samples)
+            return InstrumentVoices(
+                instruments=self._instruments(samples=len(samples)),
+                samples=samples,
+            )
 
         held = len(self._instrument_offsets)
         if held:
-            self._repairs.made(f"{held} instruments left aside by a song whose cells name samples", subject="song")
+            self._repairs.made(
+                f"{held} instruments left aside by a song whose cells name samples",
+                subject="song",
+            )
 
         return SampleVoices(samples=samples)
 
@@ -127,7 +138,11 @@ class ModuleReader:
         A table entry of zero points at no record -- it is how this format states a pattern it stores
         nowhere -- so the first record is the nearest entry that names one.
         """
-        pointed = (*self._instrument_offsets, *self._sample_offsets, *self._pattern_offsets)
+        pointed = (
+            *self._instrument_offsets,
+            *self._sample_offsets,
+            *self._pattern_offsets,
+        )
         stored = tuple(offset for offset in pointed if offset != EMPTY_PATTERN_OFFSET)
         return min(stored, default=self._tables_end)
 
@@ -138,7 +153,10 @@ class ModuleReader:
         song's numbering standing whatever the entry reached.
         """
         if offset + record.size > len(self._data):
-            self._repairs.made(f"a record at {offset} of {len(self._data)} bytes held reads as empty", subject=subject)
+            self._repairs.made(
+                f"a record at {offset} of {len(self._data)} bytes held reads as empty",
+                subject=subject,
+            )
 
         return record.unpack_at(self._data, offset)
 
@@ -154,7 +172,10 @@ class ModuleReader:
         reaches += [offset + INSTRUMENT_HEADER_BYTES for offset in self._instrument_offsets]
         for offset in self._sample_offsets:
             values = SAMPLE_HEADER.unpack_at(self._data, offset)
-            reaches += [offset + SAMPLE_HEADER_BYTES, stored_end(values, self._data)]
+            reaches += [
+                offset + SAMPLE_HEADER_BYTES,
+                stored_end(values, self._data),
+            ]
 
         for offset in self._stored_patterns:
             header = PATTERN_HEADER.unpack_at(self._data, offset)
@@ -277,7 +298,10 @@ class ModuleReader:
             return Pattern.empty(rows=DEFAULT_ROWS, channels=MIN_CHANNELS)
 
         if offset > len(self._data):
-            self._repairs.made(f"a block at {offset} of {len(self._data)} bytes held reads as silence", subject=subject)
+            self._repairs.made(
+                f"a block at {offset} of {len(self._data)} bytes held reads as silence",
+                subject=subject,
+            )
             return Pattern.empty(rows=DEFAULT_ROWS, channels=MIN_CHANNELS)
 
         cursor = Cursor(self._data)

@@ -43,8 +43,18 @@ def sample_bytes(sample: Sample) -> bytes:
     if sample.channels != STEREO_CHANNELS:
         return encode_pcm(sample.pcm, depth=sample.depth, encoding=PCM_ENCODING, sign=PCM_SIGN)
 
-    left = encode_pcm(sample.pcm[:, 0], depth=sample.depth, encoding=PCM_ENCODING, sign=PCM_SIGN)
-    right = encode_pcm(sample.pcm[:, 1], depth=sample.depth, encoding=PCM_ENCODING, sign=PCM_SIGN)
+    left = encode_pcm(
+        sample.pcm[:, 0],
+        depth=sample.depth,
+        encoding=PCM_ENCODING,
+        sign=PCM_SIGN,
+    )
+    right = encode_pcm(
+        sample.pcm[:, 1],
+        depth=sample.depth,
+        encoding=PCM_ENCODING,
+        sign=PCM_SIGN,
+    )
     return left + right
 
 

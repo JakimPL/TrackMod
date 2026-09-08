@@ -10,7 +10,11 @@ from trackmod.trackers.amiga.layout.sample import SAMPLE_HEADER
 from trackmod.trackers.amiga.spec.defaults import NO_FINETUNE, NO_LOOP_LENGTH
 from trackmod.trackers.amiga.spec.ranges import MIN_LOOP_FRAMES
 from trackmod.trackers.amiga.spec.sizes import NAME_BYTES, WORD_BYTES
-from trackmod.trackers.amiga.spec.storage import PCM_DEPTH, PCM_ENCODING, PCM_SIGN
+from trackmod.trackers.amiga.spec.storage import (
+    PCM_DEPTH,
+    PCM_ENCODING,
+    PCM_SIGN,
+)
 from trackmod.trackers.amiga.tuning import finetune_for
 
 NO_LENGTH: Final = 0

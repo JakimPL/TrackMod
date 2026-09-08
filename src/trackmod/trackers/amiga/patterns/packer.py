@@ -69,7 +69,11 @@ def encode_cell(note: int, instrument: int, volume: int, command: int, parameter
 def pack_cells(pattern: Pattern) -> bytes:
     """Serialise a pattern grid into this lineage's stream of fixed cells."""
     notes, instruments = pattern.note, pattern.instrument
-    volumes, commands, parameters = pattern.volume, pattern.effect, pattern.parameter
+    volumes, commands, parameters = (
+        pattern.volume,
+        pattern.effect,
+        pattern.parameter,
+    )
 
     stream = bytearray()
     for row in range(pattern.rows):

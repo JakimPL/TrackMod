@@ -53,7 +53,7 @@ def decode_key(cursor: Cursor, unnamed: UnnamedBytes) -> tuple[NoteValue | None,
     """
     note = cursor.byte()
     sample = cursor.byte()
-    return stated_note(note, unnamed), None if sample == NO_SAMPLE else sample - SAMPLE_OFFSET
+    return stated_note(note, unnamed), (None if sample == NO_SAMPLE else sample - SAMPLE_OFFSET)
 
 
 def decode_effect(cursor: Cursor) -> Effect | None:
@@ -100,7 +100,10 @@ def unpack_cells(stream: bytes, *, rows: int, channels: int, subject: str, repai
             continue
 
         if cursor.remaining < payload_bytes(marker):
-            repairs.made("a cell the stream stops inside reads as silence", subject=subject)
+            repairs.made(
+                "a cell the stream stops inside reads as silence",
+                subject=subject,
+            )
             break
 
         cell = decode_cell(cursor, marker, unnamed)
@@ -111,10 +114,16 @@ def unpack_cells(stream: bytes, *, rows: int, channels: int, subject: str, repai
             beyond += 1
 
     if row < rows:
-        repairs.made(f"{rows - row} rows past the end of the stream read as silence", subject=subject)
+        repairs.made(
+            f"{rows - row} rows past the end of the stream read as silence",
+            subject=subject,
+        )
 
     if beyond:
-        repairs.made(f"{beyond} cells on channels past the {channels} stated read as silence", subject=subject)
+        repairs.made(
+            f"{beyond} cells on channels past the {channels} stated read as silence",
+            subject=subject,
+        )
 
     unnamed.warn()
     return builder.build()

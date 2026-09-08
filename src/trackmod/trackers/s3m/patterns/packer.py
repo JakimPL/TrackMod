@@ -25,7 +25,12 @@ def stored_sample(instrument: int) -> int:
 def key_bytes(note: int, instrument: int) -> bytes:
     """The two bytes a cell's first group holds: the key it presses and the sample that sounds it."""
     stated = stored_note(note)
-    return bytes((NoteByte.ABSENT if stated == EMPTY else stated, stored_sample(instrument)))
+    return bytes(
+        (
+            NoteByte.ABSENT if stated == EMPTY else stated,
+            stored_sample(instrument),
+        )
+    )
 
 
 def effect_bytes(command: int, parameter: int) -> bytes:
@@ -63,7 +68,11 @@ def pack_cells(pattern: Pattern) -> bytes:
     costs nothing and a silent row costs the one byte that ends it.
     """
     notes, instruments = pattern.note, pattern.instrument
-    volumes, commands, parameters = pattern.volume, pattern.effect, pattern.parameter
+    volumes, commands, parameters = (
+        pattern.volume,
+        pattern.effect,
+        pattern.parameter,
+    )
     occupied = pattern.occupied
 
     stream = bytearray()

@@ -1,6 +1,10 @@
 from pydantic import BaseModel
 
-from trackmod.core.timing.lattice import exact_timings, nearest_timing, row_frames
+from trackmod.core.timing.lattice import (
+    exact_timings,
+    nearest_timing,
+    row_frames,
+)
 from trackmod.core.timing.timing import Timing
 from trackmod.limits.bound import Bound
 from trackmod.schema.config import FROZEN
@@ -22,11 +26,22 @@ class Timings(BaseModel):
 
     def row_frames(self, speed: int, tempo: int, *, frame_rate: int) -> int:
         """The frames one row spans, bound to this format's speed and tempo ranges."""
-        return row_frames(speed, tempo, frame_rate=frame_rate, speed_bound=self.speed, tempo_bound=self.tempo)
+        return row_frames(
+            speed,
+            tempo,
+            frame_rate=frame_rate,
+            speed_bound=self.speed,
+            tempo_bound=self.tempo,
+        )
 
     def exact_timings(self, *, frame_rate: int, speed: int) -> list[Timing]:
         """Every tempo of this format whose row is a whole number of frames at one speed."""
-        return exact_timings(frame_rate=frame_rate, speed=speed, speed_bound=self.speed, tempo_bound=self.tempo)
+        return exact_timings(
+            frame_rate=frame_rate,
+            speed=speed,
+            speed_bound=self.speed,
+            tempo_bound=self.tempo,
+        )
 
     def nearest_timing(self, target_frames: int, *, frame_rate: int, speed: int) -> Timing:
         """The timing of this format whose row length is closest to a target."""

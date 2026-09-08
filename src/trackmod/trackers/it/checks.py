@@ -33,7 +33,11 @@ def check_song(checklist: Checklist, song: Song) -> None:
     checklist.check(Capability.CHANNELS, song.channels, subject="song")
     checklist.check(Capability.PATTERNS, len(song.patterns), subject="song")
     checklist.check(Capability.ORDERS, song.order.length, subject="song")
-    checklist.check(Capability.INSTRUMENTS, len(stored_instruments(song.voices)), subject="song")
+    checklist.check(
+        Capability.INSTRUMENTS,
+        len(stored_instruments(song.voices)),
+        subject="song",
+    )
     checklist.check(Capability.SAMPLES, len(song.voices.samples), subject="song")
     checklist.check(Capability.SPEED, song.playback.speed, subject="song")
     checklist.check(Capability.TEMPO, song.playback.tempo, subject="song")
@@ -63,10 +67,22 @@ def check_instruments(checklist: Checklist, instruments: Sequence[Instrument]) -
     """Grade each instrument's level, fadeout, sample fan-out and envelopes."""
     for index, instrument in enumerate(instruments):
         subject = f"instrument {index} ({instrument.name!r})"
-        checklist.check(Capability.INSTRUMENT_VOLUME, instrument.global_volume, subject=subject)
+        checklist.check(
+            Capability.INSTRUMENT_VOLUME,
+            instrument.global_volume,
+            subject=subject,
+        )
         checklist.check(Capability.FADEOUT, instrument.fadeout, subject=subject)
-        checklist.check(Capability.SAMPLES_PER_INSTRUMENT, len(instrument.samples), subject=subject)
-        for envelope in (instrument.volume_envelope, instrument.panning_envelope, instrument.pitch_envelope):
+        checklist.check(
+            Capability.SAMPLES_PER_INSTRUMENT,
+            len(instrument.samples),
+            subject=subject,
+        )
+        for envelope in (
+            instrument.volume_envelope,
+            instrument.panning_envelope,
+            instrument.pitch_envelope,
+        ):
             check_envelope(checklist, envelope, subject=subject)
 
 
@@ -74,7 +90,11 @@ def check_settings(checklist: Checklist, settings: ITSettings) -> None:
     """Grade the song-wide levels this format adds, and the block its song message takes."""
     checklist.check(Capability.SONG_VOLUME, settings.global_volume, subject="settings")
     checklist.check(Capability.MIX_VOLUME, settings.mix_volume, subject="settings")
-    checklist.check(Capability.MESSAGE_BYTES, len(message_data(settings.message)), subject="settings")
+    checklist.check(
+        Capability.MESSAGE_BYTES,
+        len(message_data(settings.message)),
+        subject="settings",
+    )
 
 
 def violations(song: Song, settings: ITSettings, *, limits: Limits) -> tuple[Violation, ...]:

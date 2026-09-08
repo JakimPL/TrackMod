@@ -8,8 +8,15 @@ from trackmod.core.voices.convert import sampled
 from trackmod.spec.width import BYTE_MAX
 from trackmod.trackers.amiga.layout.file import MODULE_NAME
 from trackmod.trackers.amiga.patterns.packer import pack_pattern
-from trackmod.trackers.amiga.samples.writer import empty_header, sample_bytes, sample_header
-from trackmod.trackers.amiga.spec.sizes import MODULE_NAME_BYTES, ORDER_TABLE_BYTES
+from trackmod.trackers.amiga.samples.writer import (
+    empty_header,
+    sample_bytes,
+    sample_header,
+)
+from trackmod.trackers.amiga.spec.sizes import (
+    MODULE_NAME_BYTES,
+    ORDER_TABLE_BYTES,
+)
 
 
 def sample_table(samples: Sequence[Sample], *, slots: int, begin_unit: int) -> bytes:

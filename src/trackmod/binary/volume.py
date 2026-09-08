@@ -3,7 +3,11 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 from trackmod.core.volumes.codec import decode_volume
-from trackmod.core.volumes.command import VolumeCommand, VolumeEffect, VolumeValue
+from trackmod.core.volumes.command import (
+    VolumeCommand,
+    VolumeEffect,
+    VolumeValue,
+)
 from trackmod.limits.bound import Bound
 from trackmod.schema.config import FROZEN
 from trackmod.spec.grid import EMPTY

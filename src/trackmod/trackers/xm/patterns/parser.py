@@ -94,7 +94,7 @@ def decode_cell(first: int, cursor: Cursor, unnamed: UnnamedBytes) -> Cell:
     note, instrument, volume, command, parameter = stated_columns(first, cursor)
     return Cell(
         note=None if note == EMPTY else stated_note(note, unnamed),
-        instrument=None if instrument in (EMPTY, NO_INSTRUMENT) else instrument - INSTRUMENT_OFFSET,
+        instrument=(None if instrument in (EMPTY, NO_INSTRUMENT) else instrument - INSTRUMENT_OFFSET),
         volume=None if volume == EMPTY else stated_volume(volume, unnamed),
         effect=decode_effect(command, parameter),
     )
@@ -117,14 +117,24 @@ def unpack_cells(stream: bytes, *, rows: int, channels: int, subject: str, repai
     while placed < cells and not cursor.at_end:
         first = cursor.byte()
         if cursor.remaining < payload_bytes(first):
-            repairs.made("a cell the stream stops inside reads as silence", subject=subject)
+            repairs.made(
+                "a cell the stream stops inside reads as silence",
+                subject=subject,
+            )
             break
 
-        builder.place(placed // channels, placed % channels, decode_cell(first, cursor, unnamed))
+        builder.place(
+            placed // channels,
+            placed % channels,
+            decode_cell(first, cursor, unnamed),
+        )
         placed += 1
 
     if placed < cells:
-        repairs.made(f"{cells - placed} cells past the end of the stream read as silence", subject=subject)
+        repairs.made(
+            f"{cells - placed} cells past the end of the stream read as silence",
+            subject=subject,
+        )
 
     unnamed.warn()
     return builder.build()

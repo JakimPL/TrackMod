@@ -29,7 +29,10 @@ def repaired_loop(
     if (begin, end) == (loop.begin, loop.end):
         return loop
 
-    repairs.made(f"{name} {loop.begin}..{loop.end} drawn to {begin}..{end} of {frames} frames", subject=subject)
+    repairs.made(
+        f"{name} {loop.begin}..{loop.end} drawn to {begin}..{end} of {frames} frames",
+        subject=subject,
+    )
     return Loop(begin=begin, end=end, mode=loop.mode) if end > begin else None
 
 
@@ -61,6 +64,9 @@ def repaired_waveform(
     """
     held = int(pcm.shape[0])
     if held < stated:
-        repairs.made(f"waveform of {stated} frames read as the {held} the file holds", subject=subject)
+        repairs.made(
+            f"waveform of {stated} frames read as the {held} the file holds",
+            subject=subject,
+        )
 
     return pcm

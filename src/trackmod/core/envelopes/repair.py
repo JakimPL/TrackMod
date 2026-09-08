@@ -29,7 +29,10 @@ def repaired_span(
     end = min(stated_end, points - 1)
     begin = min(stated_begin, end)
     if (begin, end) != (stated_begin, stated_end):
-        repairs.made(f"{name} span {stated_begin}..{stated_end} drawn to {begin}..{end}", subject=subject)
+        repairs.made(
+            f"{name} span {stated_begin}..{stated_end} drawn to {begin}..{end}",
+            subject=subject,
+        )
 
     return EnvelopeSpan(begin=begin, end=end)
 
@@ -53,7 +56,10 @@ def repaired_points(
 
     moved = sum(1 for before, after in zip(points, ordered) if before.tick != after.tick)
     if moved:
-        repairs.made(f"{moved} envelope points stated out of order held at the tick before them", subject=subject)
+        repairs.made(
+            f"{moved} envelope points stated out of order held at the tick before them",
+            subject=subject,
+        )
 
     return tuple(ordered)
 

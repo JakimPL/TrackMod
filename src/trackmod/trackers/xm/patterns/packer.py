@@ -45,7 +45,11 @@ def pack_cells(pattern: Pattern) -> bytes:
     and the format keeps no memory between rows, so what a cell states is what the grid holds.
     """
     notes, instruments = pattern.note, pattern.instrument
-    volumes, commands, parameters = pattern.volume, pattern.effect, pattern.parameter
+    volumes, commands, parameters = (
+        pattern.volume,
+        pattern.effect,
+        pattern.parameter,
+    )
 
     stream = bytearray()
     for row in range(pattern.rows):

@@ -86,7 +86,11 @@ def stated_provenance(*, created_with: int, signature: bytes) -> Provenance:
     """
     marked = signed(signature)
     if marked is not None:
-        return Provenance(evidence=Evidence.SIGNED, stated=decode_name(signature), tracker=marked.label)
+        return Provenance(
+            evidence=Evidence.SIGNED,
+            stated=decode_name(signature),
+            tracker=marked.label,
+        )
 
     numbered = wrote(created_with)
     return Provenance(

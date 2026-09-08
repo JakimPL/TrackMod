@@ -63,7 +63,11 @@ def check_placement(checklist: Checklist, song: Song) -> None:
     placement = module_placement(song)
     named = (*placement.instruments, *placement.patterns)
     checklist.check(Capability.BLOCK_OFFSET, max(named, default=0), subject="song")
-    checklist.check(Capability.SAMPLE_OFFSET, max(placement.waveforms, default=0), subject="song")
+    checklist.check(
+        Capability.SAMPLE_OFFSET,
+        max(placement.waveforms, default=0),
+        subject="song",
+    )
 
 
 def check_settings(checklist: Checklist, settings: S3MSettings) -> None:

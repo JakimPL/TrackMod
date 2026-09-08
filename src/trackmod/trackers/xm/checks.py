@@ -80,9 +80,17 @@ def check_instruments(checklist: Checklist, instruments: Sequence[Instrument]) -
     """Grade each instrument's level, fadeout, sample fan-out and envelopes."""
     for index, instrument in enumerate(instruments):
         subject = f"instrument {index} ({instrument.name!r})"
-        checklist.check(Capability.INSTRUMENT_VOLUME, instrument.global_volume, subject=subject)
+        checklist.check(
+            Capability.INSTRUMENT_VOLUME,
+            instrument.global_volume,
+            subject=subject,
+        )
         checklist.check(Capability.FADEOUT, instrument.fadeout, subject=subject)
-        checklist.check(Capability.SAMPLES_PER_INSTRUMENT, len(instrument.samples), subject=subject)
+        checklist.check(
+            Capability.SAMPLES_PER_INSTRUMENT,
+            len(instrument.samples),
+            subject=subject,
+        )
         check_envelope(checklist, instrument.volume_envelope, subject=subject)
         check_envelope(checklist, instrument.panning_envelope, subject=subject)
 

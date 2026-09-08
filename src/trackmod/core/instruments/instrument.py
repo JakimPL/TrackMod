@@ -70,7 +70,7 @@ class Instrument(BaseModel):
             KeyError: when a sample the keymap reaches is left unnamed by ``positions``.
         """
         keymap = tuple(
-            None if assignment is None else KeyAssignment(sample=positions[assignment.sample], note=assignment.note)
+            (None if assignment is None else KeyAssignment(sample=positions[assignment.sample], note=assignment.note))
             for assignment in self.keymap
         )
         return self.model_copy(update={"keymap": keymap})

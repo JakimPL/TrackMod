@@ -8,7 +8,11 @@ from trackmod.binary.records.values import (
 from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.kind import EnvelopeKind
 from trackmod.core.envelopes.point import EnvelopePoint
-from trackmod.core.envelopes.repair import levelled_points, repaired_points, repaired_span
+from trackmod.core.envelopes.repair import (
+    levelled_points,
+    repaired_points,
+    repaired_span,
+)
 from trackmod.core.envelopes.span import EnvelopeSpan
 from trackmod.core.repairs.report import Repairs
 from trackmod.trackers.xm.layout.envelope import envelope_field
@@ -79,7 +83,10 @@ def parse_envelope(
     stated = read_rows(values, envelope_field(kind, "points"))[:count]
     held = read_int(values, envelope_field(kind, "sustain"))
     loop = (
-        (read_int(values, envelope_field(kind, "loop_begin")), read_int(values, envelope_field(kind, "loop_end")))
+        (
+            read_int(values, envelope_field(kind, "loop_begin")),
+            read_int(values, envelope_field(kind, "loop_end")),
+        )
         if EnvelopeFlag.LOOP in flags
         else None
     )
@@ -94,6 +101,18 @@ def parse_envelope(
     held = len(points)
     return Envelope(
         points=points,
-        loop=repaired_span(loop, points=held, name=f"{kind} loop", subject=subject, repairs=repairs),
-        sustain=repaired_span(sustain, points=held, name=f"{kind} sustain", subject=subject, repairs=repairs),
+        loop=repaired_span(
+            loop,
+            points=held,
+            name=f"{kind} loop",
+            subject=subject,
+            repairs=repairs,
+        ),
+        sustain=repaired_span(
+            sustain,
+            points=held,
+            name=f"{kind} sustain",
+            subject=subject,
+            repairs=repairs,
+        ),
     )

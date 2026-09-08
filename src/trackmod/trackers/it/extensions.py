@@ -105,6 +105,14 @@ class Extensions(BaseModel):
         """The blocks that sit between the offset tables and the first record they point at."""
         return (
             self.history
-            + named_block(CHANNEL_NAMES_MAGIC, self.channel_names, width=CHANNEL_NAME_BYTES)
-            + named_block(PATTERN_NAMES_MAGIC, self.pattern_names, width=PATTERN_NAME_BYTES)
+            + named_block(
+                CHANNEL_NAMES_MAGIC,
+                self.channel_names,
+                width=CHANNEL_NAME_BYTES,
+            )
+            + named_block(
+                PATTERN_NAMES_MAGIC,
+                self.pattern_names,
+                width=PATTERN_NAME_BYTES,
+            )
         )

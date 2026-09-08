@@ -14,5 +14,11 @@ VOLUME_COLUMN: Final = VolumeColumn(
     level_base=LEVEL_BASE,
     levels=Bound(minimum=0, maximum=MAX_VOLUME),
     absent=None,
-    spans=(VolumeSpan(effect=VolumeEffect.PANNING, base=PANNING_BASE, amounts=PANNING_AMOUNTS),),
+    spans=(
+        VolumeSpan(
+            effect=VolumeEffect.PANNING,
+            base=PANNING_BASE,
+            amounts=PANNING_AMOUNTS,
+        ),
+    ),
 )

@@ -70,11 +70,17 @@ class MODEffects:
 
     def note_delay(self, ticks: int) -> Effect:
         """Delay this cell's note by the given number of ticks into the row."""
-        return extended(MODExtended.NOTE_DELAY, require_range(ticks, bound=NIBBLE_PARAMETER, subject="delay"))
+        return extended(
+            MODExtended.NOTE_DELAY,
+            require_range(ticks, bound=NIBBLE_PARAMETER, subject="delay"),
+        )
 
     def note_cut(self, ticks: int) -> Effect:
         """Silence this channel the given number of ticks into the row."""
-        return extended(MODExtended.NOTE_CUT, require_range(ticks, bound=NIBBLE_PARAMETER, subject="cut"))
+        return extended(
+            MODExtended.NOTE_CUT,
+            require_range(ticks, bound=NIBBLE_PARAMETER, subject="cut"),
+        )
 
     def volume_slide(self, *, up: int, down: int) -> Effect:
         """Slide the channel volume by one nibble per tick, in exactly one direction.

@@ -17,6 +17,6 @@ def parse_keymap(raw: bytes, *, offset: int, length: int) -> Keymap:
     this format numbers or names a position the instrument does not own.
     """
     return tuple(
-        KeyAssignment(sample=offset + raw[key], note=Note(key)) if key < KEYMAP_NOTES and raw[key] < length else None
+        (KeyAssignment(sample=offset + raw[key], note=Note(key)) if key < KEYMAP_NOTES and raw[key] < length else None)
         for key in range(NOTE_COUNT)
     )
