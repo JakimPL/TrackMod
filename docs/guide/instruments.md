@@ -83,4 +83,13 @@ voices = load_voices(path)
 You get the voice table the format uses, so the choice of container stops mattering once the file is read.
 
 `parse_voices` takes bytes and an extension, when you already know it, in either upper or lower case.
-`EXTENSIONS`, `MODULE_EXTENSIONS` and `INSTRUMENT_EXTENSIONS` list which extensions are read.
+
+Three frozen sets list what can be read:
+
+| Name | Holds |
+|---|---|
+| `MODULE_EXTENSIONS` | `.it`, `.xm`, `.mod`, `.s3m` |
+| `INSTRUMENT_EXTENSIONS` | `.iti`, `.xi` |
+| `EXTENSIONS` | both of the above |
+
+Both Amiga layouts use `.mod`, and TrackMod tells the two apart from the bytes when it reads them.

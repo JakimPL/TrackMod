@@ -107,15 +107,31 @@ def parse_module(
     extension: str,
     compliance: Compliance = READING_COMPLIANCE,
 ) -> TrackerModule:
-    """The module the bytes hold, bound to the format that wrote them.
+    """Read a module from bytes, as the format you name.
 
-    What comes back answers :class:`~trackmod.module.protocol.TrackerModule`, so a caller reading a whole
-    collection holds every format the same way and reaches the song, the provenance and the size report
-    of each through one surface. Which format wrote them is what the extension states, in either
-    capitalization, and the two sharing ``.mod`` are told apart from the bytes.
+    Use this when you already hold the bytes, or when you want a file read as a format of your choosing.
+    To let the bytes decide instead, pass :func:`detected` as the extension, or open the file with
+    :func:`load_module`.
+
+    Args:
+        data: The whole file.
+        extension: Which format wrote it, with the leading dot, in either upper or lower case. One of
+            :data:`MODULE_EXTENSIONS`. Both Amiga layouts use ``.mod`` and are told apart from the bytes.
+        compliance: How strictly to grade the values in the file. Reading defaults to
+            ``Compliance.STRUCTURAL``, because a file that exists is evidence its values fit.
+
+    Returns:
+        The module, as a :class:`~trackmod.module.protocol.TrackerModule`. Every format answers that
+        protocol, so a loop over a mixed folder reaches each file's song, provenance and size report
+        the same way.
 
     Raises:
-        ValueError: when no module format writes that extension, or the data reads as another one.
+        ValueError: when no module format writes that extension, or the bytes belong to another one.
+
+    Warns:
+        RepairWarning: when the file holds a value the model has no room for, and it is drawn back into
+            range.
+        UnnamedByteWarning: when the file holds a byte this library has no name for.
     """
     reader = MODULES.get(extension.lower())
     if reader is None:
@@ -126,31 +142,59 @@ def parse_module(
 
 
 def load_module(path: Path, *, compliance: Compliance = READING_COMPLIANCE) -> TrackerModule:
-    """The module a file holds, read as the format its own bytes state.
+    """Open a module file and read the song inside it.
 
-    The name the file arrived under is one a collection may have lost or changed, so the format comes
-    from :func:`detected` and the file opens as what it is. Pass the bytes to :func:`parse_module` with
-    an extension of your own to read one as a format you name instead.
+    The format comes from the file contents rather than its name, so a file that was renamed or saved
+    under the wrong extension still opens. To read bytes you already hold, or to name the format
+    yourself, use :func:`parse_module`.
+
+    Args:
+        path: The file to read.
+        compliance: How strictly to grade the values in the file. Reading defaults to
+            ``Compliance.STRUCTURAL``, because a file that exists is evidence its values fit.
+
+    Returns:
+        The module, as a :class:`~trackmod.module.protocol.TrackerModule`. The music is at
+        ``module.song``, the program that wrote the file at ``module.provenance``, and the byte counts
+        at ``module.size()``.
 
     Raises:
-        ValueError: when the bytes state none of the module formats written here.
+        OSError: when the file cannot be read.
+        ValueError: when the bytes match none of the five module formats, or match a single instrument
+            file. Read ``.iti`` and ``.xi`` with :func:`load_voices`.
+
+    Warns:
+        RepairWarning: when the file holds a value the model has no room for, and it is drawn back into
+            range.
+        UnnamedByteWarning: when the file holds a byte this library has no name for.
     """
     data = path.read_bytes()
     return parse_module(data, extension=detected(data), compliance=compliance)
 
 
 def parse_voices(data: bytes, *, extension: str) -> Voices:
-    """The voice table the bytes hold, in the shape the format that wrote them addresses it.
+    """Read a voice table from bytes, as the format you name.
 
-    A module carries as many voices as it was written with and a standalone instrument file carries one,
-    so both answer the same question and a caller holding bytes reads either the same way. What comes
-    back says which kind of table it is: a song whose cells name samples reads back as
-    :class:`~trackmod.core.voices.voices.SampleVoices`, and one whose cells name instruments as
-    :class:`~trackmod.core.voices.voices.InstrumentVoices`. Which format wrote them is what the
-    extension states, in either capitalization.
+    A module holds as many voices as it was written with, and a single instrument file holds one, so
+    this reads either the same way.
+
+    Args:
+        data: The whole file.
+        extension: Which format wrote it, with the leading dot, in either upper or lower case. One of
+            :data:`EXTENSIONS`.
+
+    Returns:
+        :class:`~trackmod.core.voices.voices.SampleVoices` when that format's cells name samples, and
+        :class:`~trackmod.core.voices.voices.InstrumentVoices` when they name instruments. Both answer
+        ``samples`` and ``slots``, so the waveforms are one attribute away either way.
 
     Raises:
-        ValueError: when no format writes that extension, or the data reads as another one.
+        ValueError: when no format writes that extension, or the bytes belong to another one.
+
+    Warns:
+        RepairWarning: when the file holds a value the model has no room for, and it is drawn back into
+            range.
+        UnnamedByteWarning: when the file holds a byte this library has no name for.
     """
     named = extension.lower()
     if named in MODULES:
@@ -165,15 +209,26 @@ def parse_voices(data: bytes, *, extension: str) -> Voices:
 
 
 def load_voices(path: Path) -> Voices:
-    """The voice table a file holds, read as the format its own bytes state.
+    """Open a module or single instrument file and read the voices inside it.
 
-    A module answers with as many voices as it was written with and a standalone instrument file with
-    the one it carries, so a loop over a collection reaches the sounds of either the same way. The name
-    the file arrived under is one a collection may have lost or changed, so the format comes from
-    :func:`detected`.
+    The format comes from the file contents rather than its name, and both kinds of container are read
+    the same way, so one loop over a folder reaches the sounds of every file in it.
+
+    Args:
+        path: The file to read.
+
+    Returns:
+        :class:`~trackmod.core.voices.voices.SampleVoices` when that format's cells name samples, and
+        :class:`~trackmod.core.voices.voices.InstrumentVoices` when they name instruments.
 
     Raises:
-        ValueError: when the bytes state none of the formats written here.
+        OSError: when the file cannot be read.
+        ValueError: when the bytes match none of the formats read here.
+
+    Warns:
+        RepairWarning: when the file holds a value the model has no room for, and it is drawn back into
+            range.
+        UnnamedByteWarning: when the file holds a byte this library has no name for.
     """
     data = path.read_bytes()
     return parse_voices(data, extension=detected(data))
@@ -194,18 +249,26 @@ def parse_provenance(data: bytes, *, extension: str) -> Provenance | None:
 
 
 def detected(data: bytes) -> str:
-    """The extension the bytes themselves state, whatever name they arrived under.
+    """Work out which format wrote the bytes, whatever the file was named.
 
-    Every format but one opens a file with a tag or a name of its own, and the one that opens with
-    neither is recognized by its records adding up to the length of the file. The strongest statement
-    wins, so a tag a reader knows settles the answer before the arithmetic is asked.
+    Four of the five formats open with a tag or a name of their own. The fifth has neither, and is
+    recognized because its records add up to the length of the file. Tags are checked first, so a tag
+    settles the answer before the arithmetic is tried.
 
-    The two formats sharing ``.mod`` both answer with that suffix, and which of them holds the bytes
-    stays where it already was, with :func:`parse_module`. Pass the answer there to read bytes whose
-    name is unknown or wrong, or reach for :func:`load_module`, which asks this of a file for you.
+    Args:
+        data: The whole file. Only the opening bytes and the total length decide the answer.
+
+    Returns:
+        The extension, with the leading dot: one of :data:`EXTENSIONS`. Both Amiga layouts answer
+        ``.mod``, and :func:`parse_module` tells those two apart when it reads them.
 
     Raises:
-        ValueError: when the bytes state none of the formats written here.
+        ValueError: when the bytes match none of the formats read here.
+
+    Example:
+        >>> from trackmod import detected
+        >>> detected(b"IMPM" + bytes(60))
+        '.it'
     """
     for extension, states in SIGNALS:
         if states(data):

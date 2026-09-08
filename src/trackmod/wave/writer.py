@@ -174,16 +174,21 @@ def name_bytes(sample: Sample) -> bytes:
 
 
 def write_sample(sample: Sample) -> bytes:
-    """Serialize one waveform as a RIFF audio file, carrying how a tracker sounds it.
+    """Write one waveform as a RIFF audio file, carrying how a tracker plays it.
 
-    Beside the frames the file states the loops, the pitch the waveform sounds unaltered, the level and
-    the position it plays at, its auto-vibrato and its two names -- the settings OpenMPT writes into a
-    sample it exports, so a file written here opens in a tracker as the sample it came from and any
-    audio editor plays it as an ordinary ``.wav``.
+    Beside the frames, the file holds the loops, the pitch the waveform plays unaltered, the volume,
+    the panning, the auto-vibrato and the two names, in the chunks OpenMPT writes. The result opens in
+    a tracker as the sample it came from, and in any audio editor as an ordinary ``.wav``.
 
-    The pitch travels as the rate the frames go by, which is what every reader of this container sounds
-    them at. A FastTracker header arrives at its rate through a semitone offset and a finetune trim of
-    its own, and those two stay with the module holding them -- the file here names the rate they reach.
+    The pitch travels as the rate the frames go by, which is what every reader of this container plays
+    them at. A FastTracker header reaches its rate through a semitone offset and a finetune trim
+    instead; those stay with the module holding them, and the file here names the rate they reach.
+
+    Args:
+        sample: The waveform to write.
+
+    Returns:
+        The whole ``.wav`` file.
     """
     return wrapped(
         tagged(FORMAT_TAG, format_bytes(sample))
@@ -196,5 +201,13 @@ def write_sample(sample: Sample) -> bytes:
 
 
 def save_sample(sample: Sample, path: Path) -> None:
-    """Serialize one waveform and write it to ``path``."""
+    """Write one waveform to a RIFF audio file.
+
+    Args:
+        sample: The waveform to write.
+        path: Where to write it. An existing file is overwritten.
+
+    Raises:
+        OSError: when the file cannot be written.
+    """
     path.write_bytes(write_sample(sample))

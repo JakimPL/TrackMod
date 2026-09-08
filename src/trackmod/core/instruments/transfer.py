@@ -8,11 +8,19 @@ from trackmod.core.voices.voices import InstrumentVoices, Voices
 
 
 def extract(voices: InstrumentVoices, index: int) -> InstrumentUnit:
-    """The instrument at ``index`` with the samples its keymap reaches, numbered from zero.
+    """Take one instrument out of a song, together with the samples it plays.
 
-    The samples follow the order the keys first name them, which is the order
-    :attr:`~trackmod.core.instruments.instrument.Instrument.samples` reports, so a unit lays its
-    waveforms out the way the instrument reads them and carries nothing the keymap leaves untouched.
+    A keymap names positions in the song's own sample table, so an instrument alone is half a voice.
+    The unit holds the other half: the samples its keys reach, renumbered from zero, in the order the
+    keys first name them. Samples no key reaches are left behind.
+
+    Args:
+        voices: The song's voice table.
+        index: Which instrument to take, counted from zero.
+
+    Returns:
+        The instrument and its own samples, as a portable
+        :class:`~trackmod.core.instruments.unit.InstrumentUnit`.
 
     Raises:
         IndexError: when the table holds no instrument at that position.
@@ -27,32 +35,53 @@ def extract(voices: InstrumentVoices, index: int) -> InstrumentUnit:
 
 
 def held(voices: InstrumentVoices) -> tuple[InstrumentUnit, ...]:
-    """Every instrument a table holds, each with the samples its own keymap reaches.
+    """Take every instrument out of a song, each with the samples its own keymap reaches.
 
-    A song numbers its instruments in one table and its samples in another; this states the same content
-    as portable units, which is what a caller reading a file for the voices inside it asks for.
+    Args:
+        voices: The song's instrument table.
+
+    Returns:
+        One :class:`~trackmod.core.instruments.unit.InstrumentUnit` per instrument, in table order.
     """
     return tuple(extract(voices, index) for index in range(len(voices.instruments)))
 
 
 def units(voices: Voices) -> tuple[InstrumentUnit, ...]:
-    """Every voice a table holds as a portable unit, whichever way the song addresses them.
+    """Take every voice out of a song as a portable unit, whichever way the song addresses them.
 
-    A table whose cells name samples is raised onto instruments first, so each sample arrives as the
-    instrument sounding it at the pressed key's pitch. That is what lets one call reach the voices of
-    every format a file may have been written in, which is what a caller reading a whole collection for
-    the instruments inside it asks for.
+    A table whose cells name samples is raised onto instruments first, so each sample arrives as an
+    instrument that plays it at the pressed key's pitch. One call therefore reaches the voices of a
+    module written in any of the five formats.
+
+    Args:
+        voices: The song's voice table, of either kind.
+
+    Returns:
+        One :class:`~trackmod.core.instruments.unit.InstrumentUnit` per voice, in table order.
+
+    Example:
+        >>> import numpy as np
+        >>> from trackmod import Sample, SampleVoices, units
+        >>> voices = SampleVoices(samples=(Sample(name="lead", pcm=np.zeros(8), rate=44100),))
+        >>> len(units(voices))
+        1
     """
     return held(voices if isinstance(voices, InstrumentVoices) else raised(voices))
 
 
 def combine(collected: Sequence[InstrumentUnit]) -> InstrumentVoices:
-    """One voice table for several units, each keymap restated against the samples behind them all.
+    """Build one voice table from several units, renumbering each keymap against the shared samples.
 
-    The instruments come back in the order given and, behind them, the samples they reach in that same
-    order, so each unit's waveforms sit in one run of the table. Every unit keeps its own copy of a
-    waveform another one also holds, which leaves each instrument sounding exactly what it was extracted
+    The instruments come back in the order given, and behind them the samples they reach in that same
+    order, so each unit's waveforms sit in one run of the table. A unit keeps its own copy of a waveform
+    even when another unit holds the same one, so every instrument plays exactly what it was extracted
     with.
+
+    Args:
+        collected: The units to place in one table, in the order they should be numbered.
+
+    Returns:
+        A table ready to pass as ``Song(voices=...)``.
     """
     instruments: list[Instrument] = []
     samples: list[Sample] = []

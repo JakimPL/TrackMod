@@ -163,16 +163,30 @@ def stored_name(held: Mapping[bytes, bytes], fallback: str) -> str:
 
 
 def parse_sample(data: bytes) -> Sample:
-    """Read a RIFF audio file back as the sample it states.
+    """Read a RIFF audio file from bytes as the sample it holds.
 
-    The frames, their rate and their width come from the file itself, and everything a tracker sounds
-    them with -- the loops, the level, the position, the auto-vibrato and the two names -- comes from
-    the chunks a tracker adds. An ordinary ``.wav`` from anywhere else carries the frames alone and
-    arrives at full level with no loop, which is how a player sounds it.
+    The frames, their rate and their width come from the file itself. Everything a tracker needs to
+    play it — the loops, the volume, the panning, the auto-vibrato and the two names — comes from the
+    chunks a tracker adds. An ordinary ``.wav`` from elsewhere carries only the frames, so it arrives
+    at full volume with no loop, which is how a player plays it.
+
+    Args:
+        data: The whole ``.wav`` file.
+
+    Returns:
+        The waveform and the settings a tracker plays it with.
 
     Raises:
-        ValueError: when the bytes state something other than a RIFF file of WAVE chunks, or hold
-            neither a format chunk nor frames.
+        ValueError: when the bytes are not a RIFF file of WAVE chunks, when the ``fmt `` or ``data``
+            chunk is missing, when the frames are not 8-bit or 16-bit whole amplitudes in mono or
+            stereo, or when the header names a rate of zero.
+
+    Example:
+        >>> import numpy as np
+        >>> from trackmod import Sample, parse_sample, write_sample
+        >>> sample = Sample(name="lead", pcm=np.zeros(8), rate=44100)
+        >>> parse_sample(write_sample(sample)) == sample
+        True
     """
     held = unwrapped(data)
     channels, rate, depth = wave_format(required(held, FORMAT_TAG))
@@ -195,5 +209,17 @@ def parse_sample(data: bytes) -> Sample:
 
 
 def load_sample(path: Path) -> Sample:
-    """Read a RIFF audio file from ``path`` as the sample it states."""
+    """Open a RIFF audio file and read the sample it holds.
+
+    Args:
+        path: The ``.wav`` file to read.
+
+    Returns:
+        The waveform and the settings a tracker plays it with. See :func:`parse_sample` for what the
+        file carries.
+
+    Raises:
+        OSError: when the file cannot be read.
+        ValueError: for everything :func:`parse_sample` refuses.
+    """
     return parse_sample(path.read_bytes())

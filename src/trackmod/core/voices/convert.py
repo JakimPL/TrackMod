@@ -61,24 +61,45 @@ def named_sample(instrument: Instrument, samples: tuple[Sample, ...]) -> Sample:
 
 
 def flattened(voices: InstrumentVoices) -> SampleVoices:
-    """The same voices as a plain sample table, addressed the way a cell naming a sample addresses it.
+    """Convert instruments into a plain sample table, the way a sample-addressed format stores them.
 
-    Each instrument contributes the waveform its keys reach, at the position the instrument itself held,
-    so every cell keeps naming the voice it named before. The routing is what travels: the envelopes,
-    fadeout, levels and note behaviors an instrument carries stay behind, which is what a table of
-    samples holds room for.
+    Each instrument contributes the one waveform its keys reach, at the position the instrument itself
+    held, so every cell keeps naming the voice it named before. Only the routing survives: the
+    envelopes, fadeout, levels and note behaviors stay behind, because a table of samples has no room
+    for them. An instrument reaching no sample at all becomes an empty placeholder slot.
+
+    Args:
+        voices: The instrument table to flatten.
+
+    Returns:
+        The same voices as samples, ready for Amiga ProTracker, Scream Tracker 3 or Soundtracker.
 
     Raises:
-        ValueError: when an instrument reaches several samples, or sounds a key at another key's pitch.
+        ValueError: when an instrument reaches several samples, or plays a key at another key's pitch.
+            A cell naming a sample can express neither.
     """
     return SampleVoices(samples=tuple(named_sample(instrument, voices.samples) for instrument in voices.instruments))
 
 
 def raised(voices: SampleVoices) -> InstrumentVoices:
-    """The same voices as instruments, each routing every key to one sample at that key's own pitch.
+    """Convert a plain sample table into instruments, the way an instrument-addressed format stores them.
 
-    Every cell keeps naming the voice it named before, since each sample gains the instrument sitting at
-    its own position, and each new instrument sounds exactly what the sample sounded on its own.
+    Each sample gains an instrument at its own position, routing every key to it at that key's own
+    pitch, so every cell keeps naming the voice it named before and each instrument plays what the
+    sample played alone. This always succeeds, unlike :func:`flattened` in the other direction.
+
+    Args:
+        voices: The sample table to raise.
+
+    Returns:
+        The same voices as instruments, ready for FastTracker 2.
+
+    Example:
+        >>> import numpy as np
+        >>> from trackmod import Sample, SampleVoices, raised
+        >>> voices = SampleVoices(samples=(Sample(name="lead", pcm=np.zeros(8), rate=44100),))
+        >>> len(raised(voices).instruments)
+        1
     """
     return InstrumentVoices(
         instruments=tuple(
