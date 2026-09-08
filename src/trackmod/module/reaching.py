@@ -20,18 +20,25 @@ class Reaching(ABC):
 
     @property
     def reach(self) -> Compliance | None:
-        """The strictest level the content fits inside, or ``None`` for content no level holds.
+        """The strictest level the content fits inside.
 
         Content whose values all sit inside a record layout reaches one of the three levels, and which
-        one says who will read it back. Content carrying a value no layout holds reaches none of them,
-        which :meth:`exceeded` states as a structural violation.
+        one says who will read it back.
+
+        Returns:
+            ``CANONICAL`` for content the format's own tracker accepts, ``EXTENDED`` for content
+            needing a player descended from it, ``STRUCTURAL`` for content that can be stored but read
+            faithfully by nothing, and ``None`` for content carrying a value no record layout holds.
         """
         return reached(self.exceeded())
 
     def require_reach(self, compliance: Compliance) -> None:
-        """Refuse content reaching past a level.
+        """Refuse content that reaches past a level you are willing to accept.
+
+        Args:
+            compliance: The widest level to allow.
 
         Raises:
-            LimitError: carrying every bound it passes at or beyond ``compliance``.
+            LimitError: carrying every bound the content passes at or beyond ``compliance``.
         """
         require(beyond(self.exceeded(), compliance))
