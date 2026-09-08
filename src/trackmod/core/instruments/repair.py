@@ -1,10 +1,7 @@
 from enum import IntEnum
-from typing import TypeVar
 
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.repairs.report import Repairs
-
-Behaviour = TypeVar("Behaviour", bound=IntEnum)
 
 
 def routed_within(instrument: Instrument, *, samples: int, subject: str, repairs: Repairs) -> Instrument:
@@ -29,7 +26,7 @@ def routed_within(instrument: Instrument, *, samples: int, subject: str, repairs
     return instrument.model_copy(update={"keymap": keymap})
 
 
-def stated_behaviour(
+def stated_behaviour[Behaviour: IntEnum](
     value: int,
     *,
     among: type[Behaviour],
