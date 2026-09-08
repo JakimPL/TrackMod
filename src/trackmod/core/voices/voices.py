@@ -8,11 +8,15 @@ from trackmod.schema.config import FROZEN
 
 
 class SampleVoices(BaseModel):
-    """The voices of a song whose instrument column names a sample, sounded at the pressed key's pitch.
+    """The voices of a song whose instrument column names a sample directly.
 
-    This is what Amiga ProTracker and Scream Tracker 3 hold, and what Impulse Tracker holds while its
-    header leaves instruments switched off: one table, addressed directly by the cells. A key plays the
-    waveform at the pitch it was pressed at, so what a voice does is decided by the sample alone.
+    A key plays the waveform at the pitch it was pressed at, so the sample alone decides what a voice
+    does. Amiga ProTracker, Scream Tracker 3 and Soundtracker store this kind, and so does Impulse
+    Tracker while its header leaves instruments switched off. Convert to the other kind with
+    :func:`~trackmod.core.voices.convert.raised`.
+
+    Args:
+        samples: The waveforms, in the order the instrument column numbers them.
     """
 
     model_config = FROZEN
@@ -28,9 +32,17 @@ class SampleVoices(BaseModel):
 class InstrumentVoices(BaseModel):
     """The voices of a song whose instrument column names an instrument routing keys onto samples.
 
-    This is what FastTracker 2 holds, and what Impulse Tracker holds while its header switches
-    instruments on: the cells address ``instruments``, each of which carries a keymap into ``samples``
-    together with the envelopes and behaviors every voice it starts follows.
+    Each instrument carries a keymap into ``samples``, together with the envelopes, fadeout, levels and
+    note behaviors every voice it starts follows. FastTracker 2 stores this kind, and so does Impulse
+    Tracker while its header switches instruments on. Convert to the other kind with
+    :func:`~trackmod.core.voices.convert.flattened`.
+
+    Args:
+        instruments: The instruments, in the order the instrument column numbers them.
+        samples: The waveforms every instrument's keymap indexes into.
+
+    Raises:
+        ValidationError: when an instrument's keymap names a sample position ``samples`` does not hold.
     """
 
     model_config = FROZEN

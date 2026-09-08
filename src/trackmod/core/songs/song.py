@@ -14,13 +14,24 @@ from trackmod.schema.scalars import Channels
 class Song(BaseModel):
     """A complete piece of tracker music, held in the terms every tracker format shares.
 
-    Patterns are a flat list the order names positions in, and ``voices`` is the table the instrument
-    column names positions in — either the samples a cell plays directly or the instruments that route
-    keys onto samples, which is the choice each tracker makes and each format states. A song is
-    self-contained: every reference it holds points inside itself.
+    A song is self-contained: every reference it holds points inside itself. The order list names
+    positions in ``patterns``, and each cell's instrument column names positions in ``voices``.
 
-    Every pattern is the same width, which is the contract formats that store one channel count for the
-    whole module need.
+    Args:
+        name: The module title.
+        channels: How wide every pattern is. Formats that store one channel count for the whole module
+            need them to agree, so this is checked.
+        patterns: The grids, in a flat tuple the order list indexes into.
+        order: Which patterns play, and in what sequence.
+        voices: What a cell's instrument column names: either the samples a cell plays directly
+            (:class:`~trackmod.core.voices.voices.SampleVoices`) or the instruments that route keys onto
+            samples (:class:`~trackmod.core.voices.voices.InstrumentVoices`). Each format stores one
+            kind, and ``raised`` and ``flattened`` convert between them.
+        playback: The speed and tempo the song starts on.
+
+    Raises:
+        ValidationError: when a pattern is not the song's width, when an instrument column names a voice
+            the table does not hold, or when an order position names a pattern that is not there.
     """
 
     model_config = FROZEN

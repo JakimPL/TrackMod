@@ -12,10 +12,20 @@ class InstrumentUnit(BaseModel):
 
     A song holds one flat sample table that every instrument indexes into, so an instrument on its own
     names positions that mean something only in the song it came from. Pairing it with its own samples
-    is what makes it portable: here the keymap indexes into ``samples`` alone, and a song receiving the
-    unit restates those positions in its own table.
+    makes it portable: the keymap here indexes into ``samples`` alone, and a song receiving the unit
+    renumbers those positions in its own table. A unit holding no samples is a reserved slot, where the
+    instrument routes no key anywhere.
 
-    An instrument routing no key to a sample is a unit holding none, which is what a reserved slot is.
+    Build one with :func:`~trackmod.core.instruments.transfer.extract` or
+    :func:`~trackmod.core.instruments.transfer.units`, and put units back into a song with
+    :func:`~trackmod.core.instruments.transfer.combine`.
+
+    Args:
+        instrument: The instrument, with its keymap already numbered against ``samples``.
+        samples: The waveforms its keys reach, in the order the keys first name them.
+
+    Raises:
+        ValidationError: when the keymap names a sample position ``samples`` does not hold.
     """
 
     model_config = FROZEN

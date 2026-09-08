@@ -19,30 +19,47 @@ STEREO_CHANNELS: Final[int] = 2
 
 
 class Sample(BaseModel):
-    """One stored waveform and how a tracker should sound it.
+    """One recorded waveform and the settings a tracker plays it with.
 
-    ``pcm`` is float in ``[-1, 1]`` and ``rate`` is the frequency in hertz at which it plays back
-    unaltered. Formats reach that rate differently — one stores the frequency outright, another tunes the
-    triggering key toward it — so the intent is recorded here in hertz and each writer derives its own
-    encoding. A sample with no frames is a placeholder slot for a waveform a tracker will supply later.
+    Formats reach a playback rate in different ways: one stores the frequency outright, another tunes
+    the triggering key toward it. The rate is recorded here in hertz and each writer derives its own
+    encoding, so one sample serves every format. A sample with no frames is a placeholder slot for a
+    waveform a tracker will supply later.
 
-    ``pcm`` is shaped ``(frames,)`` for a mono waveform or ``(frames, 2)`` for a stereo one, left channel
-    first — the two channels of a stereo waveform share every other field below, since no format this
-    library reads gives them their own loop, volume, panning or rate.
+    Two samples are equal when every setting and every frame match. Hashing skips the frames, because a
+    numpy array cannot be hashed, so two samples differing only in their PCM share a hash.
 
-    ``volume`` is the level a cell without a volume column plays at, and ``gain`` is a fixed multiplier
-    applied on top of whatever level plays. A format with no room for a per-sample multiplier bounds
-    ``gain`` to full and reports anything quieter, so a caller learns that the scaling has to be baked
-    into the waveform instead of being dropped in silence.
+    Args:
+        name: The sample's title, as a tracker shows it.
+        pcm: Float amplitudes in ``[-1, 1]``, shaped ``(frames,)`` for mono or ``(frames, 2)`` for
+            stereo with the left channel first. The two channels of a stereo waveform share every other
+            setting here, because no format read here gives them their own.
+        rate: The frequency in hertz at which the waveform plays back unaltered.
+        depth: The width one stored frame is written at. Defaults to 16-bit.
+        volume: The level a cell with no volume column plays at, ``0..64``. Defaults to full.
+        gain: A multiplier applied on top of whatever level plays, ``0..64``. Defaults to full. A
+            format with no room for one bounds ``gain`` to full and reports anything quieter, so you
+            learn the scaling has to be baked into the waveform rather than lost in silence.
+        panning: A position on the shared ``0..255`` field, or ``None`` to leave it to the tracker.
+        loop: The region that repeats while a note holds, or ``None``.
+        sustain_loop: The region that repeats until a note is released, or ``None``.
+        filename: Impulse Tracker's own DOS filename for the sample. Defaults to empty.
+        vibrato: Impulse Tracker's sample-level auto-vibrato. Defaults to none.
+        relative_note: FastTracker 2's stored transposition in whole semitones, kept exactly as its
+            header held it. ``rate`` is already derived from it, so this is here only for reading the
+            stored bytes back.
+        finetune: FastTracker 2's trim on that transposition, in units of 1/128 of a semitone.
 
-    ``filename`` and ``vibrato`` are Impulse Tracker's own DOS filename and sample-level auto-vibrato; a
-    format with no room for either leaves them at their default of an empty name and no vibrato.
+    Raises:
+        ValidationError: when a loop ends past the frames the waveform holds, when ``pcm`` is neither
+            mono nor two-channel stereo, or when ``rate`` is not above zero.
 
-    ``relative_note`` and ``finetune`` are FastTracker 2's own stored transposition -- the whole
-    semitones and finetune trim its header states instead of a rate outright, which ``rate`` above is
-    already derived from. They are carried here only so a caller reading a stored sample back can see
-    the exact bytes the header held, not a value reconstructed from ``rate``; a format with no room for
-    them leaves both at their default of no transposition.
+    Example:
+        >>> import numpy as np
+        >>> from trackmod import Sample
+        >>> sample = Sample(name="lead", pcm=np.zeros((64, 2)), rate=44100)
+        >>> sample.frames, sample.channels, sample.stored_bytes
+        (64, 2, 256)
     """
 
     model_config = FROZEN

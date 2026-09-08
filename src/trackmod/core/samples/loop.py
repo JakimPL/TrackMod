@@ -10,19 +10,33 @@ from trackmod.schema.scalars import Frames
 
 @unique
 class LoopMode(StrEnum):
-    """How playback repeats a looped region."""
+    """How playback repeats a looped region.
+
+    ``FORWARD`` plays the region from ``begin`` each time round. ``PING_PONG`` alternates direction,
+    playing it forward and then backward. Only Impulse Tracker and FastTracker 2 store ping-pong loops.
+    """
 
     FORWARD = "forward"
     PING_PONG = "ping_pong"
 
 
 class Loop(BaseModel):
-    """A half-open frame range ``[begin, end)`` playback repeats once it reaches ``end``.
+    """A half-open frame range ``[begin, end)`` that playback repeats on reaching ``end``.
 
-    >>> Loop(begin=8, end=64).frames
-    56
-    >>> Loop(begin=8, end=64).mode
-    <LoopMode.FORWARD: 'forward'>
+    Args:
+        begin: The first frame of the repeated region.
+        end: One frame past the last, so the region spans ``end - begin`` frames.
+        mode: Whether the region plays forward each time, or alternates direction.
+
+    Raises:
+        ValidationError: when ``end`` is not above ``begin``. A loop spans at least one frame.
+
+    Example:
+        >>> from trackmod import Loop
+        >>> Loop(begin=8, end=64).frames
+        56
+        >>> Loop(begin=8, end=64).mode
+        <LoopMode.FORWARD: 'forward'>
     """
 
     model_config = FROZEN
