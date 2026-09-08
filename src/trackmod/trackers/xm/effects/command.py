@@ -6,7 +6,7 @@ DIGITS: Final = 10
 
 @unique
 class XMEffect(IntEnum):
-    """The effect commands this format numbers, printed as ``0`` through ``9`` and then ``A`` onwards."""
+    """The effect commands this format numbers, printed as ``0`` through ``9`` and then ``A`` onward."""
 
     ARPEGGIO = 0x00
     PORTAMENTO_UP = 0x01

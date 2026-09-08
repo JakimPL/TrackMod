@@ -83,7 +83,7 @@ def drawn_volume(rng: np.random.Generator, draw: float) -> int | VolumeCommand |
 def random_pattern(shape: GridShape) -> Pattern:
     """A grid whose cells cover every combination of present and absent columns.
 
-    Randomising column presence independently is what exercises the reuse bits: a packer that only ever
+    Randomizing column presence independently is what exercises the reuse bits: a packer that only ever
     sees fully populated cells never has to decide what an absent column costs. The volume column draws a
     command as well as a level, since the two share one plane and a packer prices them alike.
     """

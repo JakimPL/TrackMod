@@ -205,7 +205,7 @@ table, and the older Amiga layout names its writer nowhere.
 
 ## Effect commands
 
-A command is one nibble printed as `0`–`9` and then `A` onwards, followed by one parameter byte.
+A command is one nibble printed as `0`–`9` and then `A` onward, followed by one parameter byte.
 
 | | | | |
 |---|---|---|---|

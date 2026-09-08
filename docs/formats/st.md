@@ -192,7 +192,7 @@ nothing about where it resumes.
 
 ## Effect commands
 
-A command is one nibble printed as `0`–`9` and then `A` onwards, followed by one parameter byte.
+A command is one nibble printed as `0`–`9` and then `A` onward, followed by one parameter byte.
 
 | | | |
 |---|---|---|

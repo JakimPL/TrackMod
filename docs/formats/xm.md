@@ -253,7 +253,7 @@ See [`limits.md`](../reference/limits.md) for the bounds, and
 
 ## Effect commands
 
-A command is a number printed as `0`–`9` and then `A` onwards, followed by one parameter byte.
+A command is a number printed as `0`–`9` and then `A` onward, followed by one parameter byte.
 
 | | | | |
 |---|---|---|---|

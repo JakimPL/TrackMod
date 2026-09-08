@@ -9,7 +9,7 @@ from trackmod.core.envelopes.envelope import Envelope
 from trackmod.core.envelopes.kind import EnvelopeKind
 from trackmod.core.envelopes.point import EnvelopePoint
 from trackmod.core.envelopes.repair import (
-    levelled_points,
+    leveled_points,
     repaired_points,
     repaired_span,
 )
@@ -91,13 +91,13 @@ def parse_envelope(
         else None
     )
     sustain = (held, held) if EnvelopeFlag.SUSTAIN in flags else None
-    levelled = levelled_points(
+    leveled = leveled_points(
         [EnvelopePoint(tick=tick, value=value) for tick, value in stated],
         bound=ENVELOPE_LEVELS,
         subject=subject,
         repairs=repairs,
     )
-    points = repaired_points(levelled, subject=subject, repairs=repairs)
+    points = repaired_points(leveled, subject=subject, repairs=repairs)
     held = len(points)
     return Envelope(
         points=points,

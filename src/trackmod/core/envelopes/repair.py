@@ -64,7 +64,7 @@ def repaired_points(
     return tuple(ordered)
 
 
-def levelled_points(
+def leveled_points(
     points: Sequence[EnvelopePoint],
     *,
     bound: Bound,
