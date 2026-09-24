@@ -18,6 +18,11 @@ opening the README expects a sentence about what the library is for.
 The documents under [`../contributing/`](../contributing/) are the fourth kind: they address whoever is
 changing the library rather than using it, and stay technical where precision is needed.
 
+The README doubles as the project page on PyPI, so every link in it is a full
+`https://github.com/JakimPL/TrackMod/...` URL. [`../../CHANGELOG.md`](../../CHANGELOG.md) belongs to the
+maintainer, who writes one dated section per release for the people using it; the release workflow
+publishes that section as the release notes.
+
 ## How much detail
 
 > **Locate and interpret. Leave reproducing to the code.**

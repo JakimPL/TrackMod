@@ -8,13 +8,15 @@ make lint       # mypy --strict + pylint
 make test       # pytest
 make test-docs  # the examples in docstrings, through --doctest-modules
 make coverage   # pytest with a coverage report
+make build      # the sdist and the wheel in dist/, checked with twine
 ```
 
 Dependencies are managed with `uv`, and the package is built with `hatchling`. Every command above runs
 through `uv run`, so a checkout needs no environment of its own.
 
-`pre-commit` runs the same checks on the files a commit touches: trailing whitespace, `isort`, `black`,
-`mypy`, `pylint` and `make test-docs`, with the full test suite as a pre-push hook. Install it once with
+`pre-commit` runs the same checks on the files a commit touches: trailing whitespace, final newlines,
+YAML and TOML syntax, `isort`, `black`, `zizmor` over the GitHub Actions workflows, `mypy`, `pylint` and
+`make test-docs`, with the full test suite as a pre-push hook. Install it once with
 `uv run pre-commit install`, and run it over everything with `uv run pre-commit run --all-files`.
 
 ## Typing
@@ -68,6 +70,20 @@ that starts repairing something new is caught where it happens. Coverage gates a
 - An example in a docstring is written as a doctest, so `make test-docs` runs it. Write one only where it
   is self-contained: `filterwarnings = ["error"]` applies there too, so an example that trips a
   `RepairWarning` fails.
+
+## Continuous integration
+
+[`ci.yml`](../../.github/workflows/ci.yml) runs on every push to `main` and every pull request:
+
+| Job | What it runs |
+|---|---|
+| Checks | Every `pre-commit` hook over the whole tree, `make coverage` and `make build` |
+| Tests | The suite on Linux, Windows and macOS, under Python 3.12, 3.13 and 3.14 |
+| Lowest dependencies | The suite on the oldest `numpy` and `pydantic` that `pyproject.toml` allows |
+
+Every job installs from `uv.lock` and fails when the lock is out of date, except the lowest-dependencies
+job, which resolves the floors afresh. The actions are pinned to commit hashes, and Dependabot proposes
+new pins once a month. Releases have their own workflow, described in [`releasing.md`](releasing.md).
 
 ## Commit messages
 

@@ -1,5 +1,10 @@
 # TrackMod
 
+[![PyPI](https://img.shields.io/pypi/v/trackmod.svg)](https://pypi.org/project/trackmod/)
+[![Python](https://img.shields.io/pypi/pyversions/trackmod.svg)](https://pypi.org/project/trackmod/)
+[![License](https://img.shields.io/github/license/JakimPL/TrackMod.svg)](https://github.com/JakimPL/TrackMod/blob/main/LICENSE)
+[![CI](https://github.com/JakimPL/TrackMod/actions/workflows/ci.yml/badge.svg)](https://github.com/JakimPL/TrackMod/actions/workflows/ci.yml)
+
 A tracker module is a complete piece of music in one file. It holds the notes, the effects and the recorded
 sounds together. TrackMod reads these files, gives you what is inside, and writes them back.
 
@@ -30,30 +35,21 @@ them.
 * Save an instrument as an `.iti` or `.xi` file.
 * Save a waveform as a `.wav` file.
 
-## Requirements
-
-* Python 3.12 or newer
-* `numpy`
-* `pydantic`
-
 ## Installing
 
-Add TrackMod as a git submodule. This pins the exact version you build against.
+TrackMod needs Python 3.12 or newer. Install it from PyPI:
 
 ```bash
-git submodule add git@github.com:JakimPL/TrackMod.git TrackMod
-git submodule update --init
+pip install trackmod
 ```
 
-Then point your project at it:
+or add it to a [uv](https://docs.astral.sh/uv/) project:
 
-```toml
-[project]
-dependencies = ["trackmod"]
-
-[tool.uv.sources]
-trackmod = { path = "TrackMod", editable = true }
+```bash
+uv add trackmod
 ```
+
+This also installs the two libraries TrackMod uses, `numpy` and `pydantic`.
 
 ## Reading a file
 
@@ -89,7 +85,7 @@ print(module.violations())     # values the format cannot store, empty when the 
 module.save(Path("song.it"))
 ```
 
-`Compliance` sets how strict the check is. See [`docs/reference/limits.md`](docs/reference/limits.md).
+`Compliance` sets how strict the check is. See [`docs/reference/limits.md`](https://github.com/JakimPL/TrackMod/blob/main/docs/reference/limits.md).
 
 To write the same song in another format, use another class:
 
@@ -124,19 +120,21 @@ open these files in a tracker or in any audio editor.
 
 ## Documentation
 
-See [`docs/`](docs/):
+See [`docs/`](https://github.com/JakimPL/TrackMod/tree/main/docs):
 
-* [`docs/guide/`](docs/guide/) — how to do each task,
-* [`docs/reference/`](docs/reference/) — the song model and the format limits,
-* [`docs/formats/`](docs/formats/) — the byte layout of each format.
+* [`docs/guide/`](https://github.com/JakimPL/TrackMod/tree/main/docs/guide) — how to do each task,
+* [`docs/reference/`](https://github.com/JakimPL/TrackMod/tree/main/docs/reference) — the song model and the format limits,
+* [`docs/formats/`](https://github.com/JakimPL/TrackMod/tree/main/docs/formats) — the byte layout of each format.
 
-Start at [`docs/README.md`](docs/README.md).
+Start at [`docs/README.md`](https://github.com/JakimPL/TrackMod/blob/main/docs/README.md). What changed in each release is in
+[`CHANGELOG.md`](https://github.com/JakimPL/TrackMod/blob/main/CHANGELOG.md).
 
 ## Development
 
-```
-make format     # isort + black
-make lint       # mypy --strict + pylint
-make test       # pytest
-make coverage   # pytest with a coverage report
-```
+[`docs/contributing/development.md`](https://github.com/JakimPL/TrackMod/blob/main/docs/contributing/development.md) covers the tools, the tests
+and the checks a change passes, and [`docs/contributing/releasing.md`](https://github.com/JakimPL/TrackMod/blob/main/docs/contributing/releasing.md)
+covers how a release reaches PyPI.
+
+## License
+
+TrackMod is released under the [MIT License](https://github.com/JakimPL/TrackMod/blob/main/LICENSE).

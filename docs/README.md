@@ -47,3 +47,4 @@ for the fields they disagree about.
 | [`contributing/architecture.md`](contributing/architecture.md) | How the packages are layered, and what each one owns |
 | [`contributing/documentation.md`](contributing/documentation.md) | How these documents are written |
 | [`contributing/development.md`](contributing/development.md) | The tools, the tests and the gates a change passes |
+| [`contributing/releasing.md`](contributing/releasing.md) | How a tag becomes a release on PyPI |
