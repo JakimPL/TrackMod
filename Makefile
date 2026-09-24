@@ -19,3 +19,8 @@ lint:
 format:
 	uv run isort .
 	uv run black .
+
+.PHONY: build
+build:
+	uv build --no-sources --clear
+	uv run twine check --strict dist/*
