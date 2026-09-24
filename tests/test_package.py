@@ -1,3 +1,4 @@
+import importlib.metadata
 from pathlib import Path
 from types import ModuleType
 
@@ -101,6 +102,10 @@ def test_the_package_root_states_every_name_it_offers() -> None:
         name for name, value in vars(trackmod).items() if not name.startswith("_") and not isinstance(value, ModuleType)
     }
     assert reachable == set(trackmod.__all__)
+
+
+def test_the_package_states_the_version_it_was_installed_as() -> None:
+    assert trackmod.__version__ == importlib.metadata.version("trackmod")
 
 
 def test_a_collection_opens_as_whatever_wrote_each_file(collection: Path) -> None:

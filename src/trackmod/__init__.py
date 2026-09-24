@@ -1,3 +1,5 @@
+import importlib.metadata
+
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.instruments.transfer import combine, extract, units
 from trackmod.core.instruments.unit import InstrumentUnit
@@ -31,6 +33,8 @@ from trackmod.trackers.xm.instrument_file import XMInstrumentFile
 from trackmod.trackers.xm.module import XMModule
 from trackmod.wave.parser import load_sample, parse_sample
 from trackmod.wave.writer import save_sample, write_sample
+
+__version__ = importlib.metadata.version("trackmod")
 
 __all__ = [
     "EXTENSIONS",
