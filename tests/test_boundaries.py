@@ -21,7 +21,7 @@ def modules() -> tuple[Path, ...]:
 def imported(path: Path) -> tuple[str, ...]:
     """Every ``trackmod`` module one file imports, as the dotted paths its statements name."""
     names: list[str] = []
-    for node in ast.walk(ast.parse(path.read_text())):
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
         if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("trackmod"):
             names.append(node.module)
         elif isinstance(node, ast.Import):
