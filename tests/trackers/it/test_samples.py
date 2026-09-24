@@ -87,6 +87,15 @@ def test_filename_and_vibrato_round_trip_through_the_header() -> None:
     assert recovered.vibrato == vibrato
 
 
+def test_a_header_stating_levels_above_full_reads_them_as_full() -> None:
+    sample = Sample(name="loud", pcm=np.zeros(4), rate=RATE)
+    values = {**SAMPLE_HEADER.unpack(sample_header(sample, data_offset=0)), "default_volume": 80, "global_volume": 101}
+    repairs = Repairs()
+    recovered = parse_sample(values, sample_bytes(sample), subject=SUBJECT, repairs=repairs)
+    assert (recovered.volume, recovered.gain) == (64, 64)
+    assert {repair for _, repair in repairs.entries} == {"volume 80 read as 64", "global volume 101 read as 64"}
+
+
 def test_a_compressed_stereo_sample_is_decoded_as_two_independent_streams() -> None:
     depth = BitDepth.SIXTEEN
     left_differences = [10, -3, 5, 0, -12]

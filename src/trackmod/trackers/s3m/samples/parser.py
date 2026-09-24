@@ -12,12 +12,12 @@ from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.repair import (
+    repaired_level,
     repaired_loop,
     repaired_rate,
     repaired_waveform,
 )
 from trackmod.core.samples.sample import STEREO_CHANNELS, Sample
-from trackmod.spec.levels import MAX_VOLUME
 from trackmod.trackers.s3m.parapointers import joined_pointer
 from trackmod.trackers.s3m.spec.defaults import NO_FRAMES
 from trackmod.trackers.s3m.spec.flags import RecordType, SampleFlag
@@ -141,12 +141,7 @@ def stored_pcm(values: RecordValues, data: bytes, *, depth: BitDepth, sign: PcmS
 
 def read_volume(values: RecordValues, *, subject: str, repairs: Repairs) -> int:
     """The level a record states, drawn back to full where a file states more than full."""
-    volume = read_int(values, "volume")
-    if volume <= MAX_VOLUME:
-        return volume
-
-    repairs.made(f"volume {volume} read as {MAX_VOLUME}", subject=subject)
-    return MAX_VOLUME
+    return repaired_level(read_int(values, "volume"), name="volume", subject=subject, repairs=repairs)
 
 
 def empty_slot(values: RecordValues, *, subject: str, repairs: Repairs) -> Sample:

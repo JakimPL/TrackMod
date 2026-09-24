@@ -14,6 +14,7 @@ from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
 from trackmod.core.samples.repair import (
+    repaired_level,
     repaired_loop,
     repaired_rate,
     repaired_waveform,
@@ -247,8 +248,8 @@ def parse_sample(values: RecordValues, data: bytes, *, subject: str, repairs: Re
         pcm=pcm,
         rate=repaired_rate(read_int(values, "c5speed"), subject=subject, repairs=repairs),
         depth=depth,
-        volume=read_int(values, "default_volume"),
-        gain=read_int(values, "global_volume"),
+        volume=repaired_level(read_int(values, "default_volume"), name="volume", subject=subject, repairs=repairs),
+        gain=repaired_level(read_int(values, "global_volume"), name="global volume", subject=subject, repairs=repairs),
         panning=(shared_panning(panning & ~SamplePanning.ENABLED) if panning & SamplePanning.ENABLED else None),
         loop=repaired_loop(loop, frames=frames, name="loop", subject=subject, repairs=repairs),
         sustain_loop=repaired_loop(

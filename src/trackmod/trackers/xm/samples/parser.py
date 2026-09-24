@@ -8,7 +8,7 @@ from trackmod.core.notes.pitch import Note
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.depth import BitDepth
 from trackmod.core.samples.loop import Loop, LoopMode
-from trackmod.core.samples.repair import repaired_loop
+from trackmod.core.samples.repair import repaired_level, repaired_loop
 from trackmod.core.samples.sample import Sample
 from trackmod.spec.pitch import RATE_NOTE
 from trackmod.trackers.xm.layout.sample import SAMPLE_HEADER
@@ -70,7 +70,7 @@ def parse_sample(values: RecordValues, data: bytes, *, subject: str, repairs: Re
         pcm=pcm,
         rate=tuned_rate(tuning, key=reference, sounded=reference),
         depth=depth,
-        volume=read_int(values, "volume"),
+        volume=repaired_level(read_int(values, "volume"), name="volume", subject=subject, repairs=repairs),
         panning=read_int(values, "panning"),
         loop=repaired_loop(
             loop,

@@ -4,9 +4,8 @@ from trackmod.binary.records.values import RecordValues, read_bytes, read_int
 from trackmod.binary.text import decode_name
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.loop import Loop, LoopMode
-from trackmod.core.samples.repair import repaired_loop
+from trackmod.core.samples.repair import repaired_level, repaired_loop
 from trackmod.core.samples.sample import Sample
-from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.width import NIBBLE_MAX
 from trackmod.trackers.amiga.spec.defaults import NO_LOOP_LENGTH
 from trackmod.trackers.amiga.spec.sizes import WORD_BYTES
@@ -40,12 +39,7 @@ def read_loop(values: RecordValues, *, begin_unit: int) -> Loop | None:
 
 def read_volume(values: RecordValues, *, subject: str, repairs: Repairs) -> int:
     """The level a sample record states, drawn back to full where a file states more than full."""
-    volume = read_int(values, "volume")
-    if volume <= MAX_VOLUME:
-        return volume
-
-    repairs.made(f"volume {volume} read as {MAX_VOLUME}", subject=subject)
-    return MAX_VOLUME
+    return repaired_level(read_int(values, "volume"), name="volume", subject=subject, repairs=repairs)
 
 
 def parse_sample(

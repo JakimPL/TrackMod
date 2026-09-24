@@ -28,6 +28,14 @@ def test_relative_note_and_finetune_round_trip_through_the_header() -> None:
     assert recovered.finetune == tuning.finetune
 
 
+def test_a_header_stating_more_than_full_reads_as_full() -> None:
+    sample = Sample(name="loud", pcm=np.zeros(8), rate=RATE)
+    values = {**SAMPLE_HEADER.unpack(sample_header(sample, tuning=Tuning(relative_note=0, finetune=0))), "volume": 80}
+    repairs = Repairs()
+    assert parse_sample(values, sample_bytes(sample), subject="sample", repairs=repairs).volume == 64
+    assert [repair for _, repair in repairs.entries] == ["volume 80 read as 64"]
+
+
 def test_a_whole_semitone_tuning_carries_no_finetune_trim() -> None:
     sample = Sample(name="lead", pcm=np.zeros(8), rate=RATE)
     tuning = Tuning(relative_note=-12, finetune=0)

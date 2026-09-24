@@ -3,6 +3,7 @@ from numpy.typing import NDArray
 
 from trackmod.core.repairs.report import Repairs
 from trackmod.core.samples.loop import Loop
+from trackmod.spec.levels import MAX_VOLUME
 from trackmod.spec.pitch import REFERENCE_RATE
 
 
@@ -34,6 +35,19 @@ def repaired_loop(
         subject=subject,
     )
     return Loop(begin=begin, end=end, mode=loop.mode) if end > begin else None
+
+
+def repaired_level(level: int, *, name: str, subject: str, repairs: Repairs) -> int:
+    """A stored level, drawn back to full where a file states more than full.
+
+    A tracker stores a sample's levels in a byte and plays ``0..64`` of it, so a level stated above that
+    plays at full, and the level the file stated is recorded under ``name``.
+    """
+    if level <= MAX_VOLUME:
+        return level
+
+    repairs.made(f"{name} {level} read as {MAX_VOLUME}", subject=subject)
+    return MAX_VOLUME
 
 
 def repaired_rate(rate: int, *, subject: str, repairs: Repairs) -> int:
