@@ -101,6 +101,8 @@ pattern. See [`volume.md`](../reference/volume.md).
 
 The 263-byte instrument header states its own length, a 22-byte name, a sample count, and then a body:
 a 96-byte keymap naming one sample position per key, two envelopes, an auto-vibrato and a fadeout.
+A key naming a position past the samples the instrument stores is silent, and a silent key is written
+as the first such position.
 
 Each instrument carries **its own copies** of the samples its keys reach, so a sample two instruments
 both play is written twice and counted twice. Reading a module back gives one instrument per group of

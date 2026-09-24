@@ -120,6 +120,17 @@ def test_an_instrument_owning_nothing_is_written_in_the_short_form(
     assert recovered.instruments[0].samples == ()
 
 
+def test_a_silent_key_stays_silent_through_a_round_trip(xm_song: Song, xm_voices: InstrumentVoices) -> None:
+    piano = xm_voices.instruments[0]
+    holed = piano.model_copy(
+        update={"keymap": tuple(None if key % 3 == 0 else assignment for key, assignment in enumerate(piano.keymap))}
+    )
+    song = revoiced(xm_song, instruments=(holed, *xm_voices.instruments[1:]))
+    written = module(song).to_bytes()
+    assert voices_of(XMModule.parse(written).song).instruments[0].keymap == holed.keymap
+    assert XMModule.parse(written).to_bytes() == written
+
+
 def test_one_more_instrument_and_its_sample_grow_the_file_by_what_the_table_charges(
     xm_song: Song,
     xm_voices: InstrumentVoices,

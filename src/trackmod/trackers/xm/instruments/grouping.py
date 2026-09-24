@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from typing import Final
 
 from trackmod.core.instruments.instrument import Instrument
 from trackmod.core.notes.pitch import Note
@@ -10,8 +9,6 @@ from trackmod.trackers.xm.addressing import routed
 from trackmod.trackers.xm.instruments.group import SampleGroup
 from trackmod.trackers.xm.spec.sizes import KEYMAP_NOTES
 from trackmod.trackers.xm.tuning import Tuning, tuned_rate, tuning_for
-
-FIRST_SLOT: Final = 0
 
 
 def local_slots(instrument: Instrument) -> dict[int, int]:
@@ -87,7 +84,7 @@ def group_samples(instrument: Instrument, samples: Sequence[Sample]) -> SampleGr
     owned = tuple(samples[index] for index in slots)
     tunings = tuple(slot_tuning(instrument, samples[index], index=index) for index in slots)
     keymap = tuple(
-        (FIRST_SLOT if (assignment := instrument.keymap[key]) is None else slots[assignment.sample])
+        (None if (assignment := instrument.keymap[key]) is None else slots[assignment.sample])
         for key in range(KEYMAP_NOTES)
     )
     return SampleGroup(samples=owned, tunings=tunings, keymap=keymap)

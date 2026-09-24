@@ -53,7 +53,7 @@ def body_values(instrument: Instrument, group: SampleGroup) -> dict[str, FieldVa
         raise ValueError(f"instrument {instrument.name!r} carries a pitch envelope, which this format cannot store")
 
     values: dict[str, FieldValue | ArrayValue] = {
-        "keymap": stored_keymap(group.keymap),
+        "keymap": stored_keymap(group.keymap, length=group.length),
         "vibrato_type": 0,
         "vibrato_sweep": 0,
         "vibrato_depth": 0,
