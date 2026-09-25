@@ -1,7 +1,7 @@
 # Converting a song between formats
 
-Reading gives you the same `Song` that writing takes, so you can read a module in one format and write it in
-another by naming that format's class:
+The `Song` you read is the same kind of object you write, so you can read a module in one format and write
+it in another. Pass the song to the other format's class:
 
 ```python
 from pathlib import Path
@@ -12,13 +12,13 @@ song = ITModule.load(Path("song.it")).song
 XMModule.from_song(song, compliance=Compliance.EXTENDED).save(Path("song.xm"))
 ```
 
-What survives is what both formats support. Check before you write: `violations()` lists every value the
-target format cannot store, and [`../reference/limits.md`](../reference/limits.md) has the full table.
+What survives is what both formats can store. Before you write, call `violations()` to list every value the
+target format cannot store. [`../reference/limits.md`](../reference/limits.md) has the full table.
 
-## Changing how the song addresses its voices
+## Switching how the song refers to its voices
 
-A cell's instrument column names either a sample or an instrument, and each format stores one kind only. A
-song holding the other kind is refused by name, so the conversion is a call you make:
+The instrument column of a cell names either a sample or an instrument, and each format stores only one of
+the two. A song that holds the other kind is refused, so you do that conversion yourself:
 
 ```python
 from trackmod import flattened, raised
@@ -27,18 +27,19 @@ song.model_copy(update={"voices": flattened(song.voices)})   # instruments onto 
 song.model_copy(update={"voices": raised(song.voices)})      # samples onto instruments of their own
 ```
 
-`raised` always works: every sample gains an instrument that routes every key to it at that key's own pitch.
+`raised` always works. It gives every sample an instrument that routes every key to it, playing each key at
+its own pitch.
 
-`flattened` refuses an instrument that reaches several samples, or that plays a key at another key's pitch,
-because a table of samples has no room for either. So converting a FastTracker 2 song into one a
-sample-based format can write is a visible step that can visibly fail. See
+`flattened` can fail. A table of samples has no room for an instrument that reaches several samples, or one
+that plays a key at another key's pitch, so `flattened` refuses both. It keeps only the routing: envelopes,
+fadeout, levels and note behaviors are dropped. Converting a FastTracker 2 song into a format built on
+samples is therefore a step you take on purpose, and it can fail. See
 [`../reference/model.md`](../reference/model.md).
 
-## Holding any format at once
+## Accepting any format
 
-The module classes share no base class, and neither do the instrument-file classes. Each pair shares a
-protocol instead: `trackmod.module.protocol.TrackerModule` and `trackmod.module.instrument.InstrumentFile`.
-Name the protocol to accept any format:
+Every module class follows the `TrackerModule` protocol, and every instrument-file class follows
+`InstrumentFile`. Use a protocol name in your type hints to accept any format:
 
 ```python
 from trackmod import TrackerModule
@@ -47,5 +48,5 @@ def report(module: TrackerModule) -> str:
     return f"{module.size().total} bytes as {module.extension}"
 ```
 
-`load_module` returns one of these, so a loop over a mixed folder handles every format the same way and
-reaches each file's song, provenance and size report through one interface.
+`load_module` returns a `TrackerModule`, so a loop over a mixed folder handles every format the same way.
+You reach each file's song, provenance and size report through one interface.

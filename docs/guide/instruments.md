@@ -1,8 +1,8 @@
 # Taking instruments out of a module
 
-An instrument's keymap names positions in the sample table of the song it belongs to. On its own, then, an
-instrument is only half a voice. `InstrumentUnit` holds the other half: the samples its keys reach, numbered
-from zero. That is what makes it portable.
+An instrument's keymap points to positions in the sample table of the song it belongs to, so an instrument
+alone is only half a voice. `InstrumentUnit` holds the other half: the samples its keys reach, numbered from
+zero. That makes it portable.
 
 ```python
 from trackmod import extract, units
@@ -11,12 +11,12 @@ unit = extract(song.voices, 0)     # the instrument at that position, and the wa
 held = units(song.voices)          # the same, for every voice in the table
 ```
 
-`units` works for every format. If a song's cells name samples, TrackMod first raises them onto instruments,
-so each sample arrives as an instrument that plays it at the pressed key's pitch. One call therefore reaches
-the voices of an `.it`, an `.xm`, a `.mod`, an `.s3m` and a Soundtracker module alike.
+`units` works for every format. When a song's cells name samples, TrackMod first raises them onto
+instruments, so each sample arrives as an instrument that plays it at the pitch of the pressed key. One call
+reaches the voices of an `.it`, an `.xm`, a `.mod`, an `.s3m` and a Soundtracker module alike.
 
-`combine` is the way back. It returns exactly the `voices=` table that `Song` takes, with each keymap
-renumbered against the samples behind it:
+`combine` goes the other way. It returns the `voices=` table that `Song` takes, with each keymap renumbered
+for the samples behind it:
 
 ```python
 from trackmod import Song, combine
@@ -24,14 +24,14 @@ from trackmod import Song, combine
 song = Song(name="grafted", channels=4, patterns=..., order=..., voices=combine([unit, other]), playback=...)
 ```
 
-`Instrument.rerouted(positions)` does the renumbering. It moves the routing and leaves every envelope, level
-and behavior unchanged, so an instrument lifted out of one module and written into another sounds the same.
-Each unit keeps its own copy of a waveform, even when another unit holds the same one.
+`Instrument.rerouted(positions)` does the renumbering. It changes the routing and leaves every envelope,
+level and behavior as it was, so an instrument lifted out of one module sounds the same in another. Each
+unit keeps its own copy of a waveform, even when another unit holds an identical one.
 
 ## Saving one instrument as a file
 
-Two formats store a single voice as a file of its own: `.iti` and `.xi`. This is what you ship when the
-instrument, rather than the song, is the product.
+Two formats can store a single voice as a file of its own: `.iti` and `.xi`. Use these when you want to
+share an instrument by itself.
 
 ```python
 from pathlib import Path
@@ -46,15 +46,15 @@ print(instrument.violations())      # values the format cannot store, empty when
 XMInstrumentFile.from_unit(instrument.unit, compliance=Compliance.CANONICAL).save(Path("piano.xi"))
 ```
 
-The interface matches a module's, so you read both the same way. `InstrumentFile` is the protocol to name
-when you want to hold either format. The limits are the format's own, so an instrument can carry the same
-values in either container.
+An instrument file has the same interface as a module, so you read both the same way. Use `InstrumentFile`
+as the type when you want to accept either format. Each file follows the limits of its format, so an
+instrument carries the same values in a file as it can inside a module.
 
-Envelope times are measured in ticks, and a tick's length follows the tempo. An `.iti` or `.xi` file stores
-no tempo, so record the tempo alongside any instrument you save on its own. See
+Envelope times are counted in ticks, and the length of a tick depends on the tempo. An `.iti` or `.xi` file
+has no field for the tempo, so record it yourself next to any instrument you save on its own. See
 [`../reference/model.md`](../reference/model.md).
 
-## Emptying a whole folder
+## Saving every instrument in a folder
 
 ```python
 from pathlib import Path
@@ -69,10 +69,10 @@ for path in Path("modules").iterdir():
         instrument.save(sounds / f"{path.stem}-{index:02d}{instrument.extension}")
 ```
 
-## Reading whichever container you are given
+## Reading any kind of file
 
-A file may hold a whole module, or one voice on its own, in either format. `load_voices` reads them all the
-same way, from the contents rather than the name:
+A file may hold a whole module or a single voice, in either format. `load_voices` reads all of them the same
+way, going by the file contents:
 
 ```python
 from trackmod import load_voices
@@ -80,9 +80,9 @@ from trackmod import load_voices
 voices = load_voices(path)
 ```
 
-You get the voice table the format uses, so the choice of container stops mattering once the file is read.
+You get the voice table that the format uses, so the kind of file no longer matters once it is read.
 
-`parse_voices` takes bytes and an extension, when you already know it, in either upper or lower case.
+`parse_voices` reads bytes when you already know the extension, in upper or lower case.
 
 Three frozen sets list what can be read:
 
@@ -92,4 +92,4 @@ Three frozen sets list what can be read:
 | `INSTRUMENT_EXTENSIONS` | `.iti`, `.xi` |
 | `EXTENSIONS` | both of the above |
 
-Both Amiga layouts use `.mod`, and TrackMod tells the two apart from the bytes when it reads them.
+Both Amiga layouts use `.mod`, and TrackMod tells them apart from the bytes when it reads them.

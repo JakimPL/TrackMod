@@ -1,7 +1,7 @@
 # Finding out how large a file will be
 
-`module.size()` tells you what a song already costs. To ask earlier — how many bytes would one more sample
-add? — use `module.storage`. It is a table of what each kind of content costs in that format:
+`module.size()` reports what a song costs now. To ask before you add anything (how many bytes would one
+more sample cost?) use `module.storage`. It is a table of what each kind of content costs in that format:
 
 ```python
 from trackmod import BitDepth, Compliance, ITModule
@@ -13,27 +13,28 @@ storage.instrument_bytes(samples=4)                          # the header this i
 storage.frames_budget(48_000, depth=BitDepth.SIXTEEN)        # the longest waveform that still fits
 ```
 
-Each count covers the table entry a section occupies as well as the record itself, so a format that finds
-its sections through offset tables charges that entry here, where you budget against one number.
+Every count includes the table entry that a section occupies, along with the record itself. A format that
+finds its sections through offset tables charges that entry here, so you can budget against a single number.
 
-`sample` is charged per stored slot: once per waveform where the sample table is shared, and once per owner
-where each instrument owns its samples.
+A sample is charged once for each place the file stores it. A format with one shared sample table stores
+each waveform once. A format where each instrument owns its samples stores a waveform once for every
+instrument that owns it.
 
 ## Padding
 
-The table also states the boundary a format's blocks start on, and every count above is rounded up to it, so
-your budget covers the padding as well as the bytes. `storage.alignment` is:
+Each format starts its blocks on a fixed boundary, and every count above is rounded up to it, so your
+budget includes the padding as well as the data. `storage.alignment` is:
 
-* one byte, where a file lays its content down back to back,
-* a word, where a record counts its length in pairs of frames,
-* a paragraph, where a pointer names one.
+* one byte, when the file lays its content down back to back,
+* one word, when a record counts its length in pairs of frames,
+* one paragraph, when pointers address blocks in paragraphs.
 
 ## How the table relates to the size report
 
-Each format's size model reads this same table, so `SizeReport.headers` *is* the table evaluated against the
-counts a song declares. The table and the writer therefore agree by construction.
+Each format's size model reads this same table. The `headers` figure in a size report is therefore the
+table applied to the counts in your song, and the table and the bytes the writer produces agree.
 
 Adding an instrument and its sample grows the file by exactly what `instrument_bytes` and `sample_bytes`
-predicted, for the three formats that lay their blocks down back to back. For the one that starts each block
-on a paragraph, the growth is at most that, because one more table entry may push the tables onto the next
-paragraph.
+predicted, for the three formats that lay their blocks down back to back. The format that starts each block
+on a paragraph grows by at most that, because the new table entry may fit inside padding the tables already
+have.
