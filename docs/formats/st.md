@@ -1,12 +1,12 @@
 # Soundtracker (`.mod`)
 
-Karsten Obarski's Ultimate Soundtracker, published in 1987 for the Amiga, is where this whole family
-begins: the first program to store a song's patterns, its order list and its sampled sounds in one file.
-Several trackers wrote the same layout after it, and Amiga ProTracker grew out of them three years later.
-A file holds fifteen sampled sounds, and a cell names one of them: the key it is played at is the pitch
-it sounds.
+Ultimate Soundtracker, by Karsten Obarski, was published in 1987 for the Amiga. It was the first program to
+store a song's patterns, its order list and its sampled sounds in one file, and this whole family of
+trackers begins with it. Several trackers wrote the same layout after it, and Amiga ProTracker grew out of
+them three years later. A file holds fifteen sampled sounds. A cell names one of them, and the key the
+cell plays it at is the pitch it sounds.
 
-The header is a fixed slab of 600 bytes, and that decision shapes everything below.
+The header is a fixed block of 600 bytes. That choice shapes everything below.
 
 ## At a glance
 
@@ -33,39 +33,39 @@ patterns                       64 rows of four channels of four-byte cells
 sample frames                  in record order, at the length each record states
 ```
 
-Every offset here is arithmetic: a section begins where the sizes of the ones before it put it, and the
-width is settled before a byte is read, because every module of this format plays the four channels the
-machine had. A reader reaches a pattern by multiplying its three dimensions and reaches the waveforms by
-adding up all the patterns.
+Every offset is arithmetic. A section begins where the sizes of the sections before it put it. The pattern
+width is known before any byte is read, because every module of this format plays the four channels the
+machine had. A reader finds a pattern by multiplying its three dimensions and finds the waveforms by adding
+up all the patterns.
 
-**A file states nothing about which format it is.** There is no tag and no magic here — both arrived with
-the trackers that came after. What names the layout is the arithmetic itself: the fifteen records state
-how much waveform the file ends with, the order table names the last pattern before it, and a file of
-this format is exactly as long as the two come to behind its header. A file carrying a tag states which
-tracker wrote it, and is read as [that format](mod.md) instead.
+**The file length identifies the format.** The file has no tag or magic number, because both arrived with
+the trackers that came after. The fifteen sample records give the size of the waveform data at the end of
+the file, and the order table gives the last pattern before it. A file of this format is exactly as long
+as those two add up to behind the header. A file that carries a tag names the tracker that wrote it and is
+read as [that format](mod.md).
 
-**How many patterns a file holds has two answers.** The order table names the highest one a song plays,
-and the room left between the header and the waveforms holds however many were stored. Taking the larger
-of the two keeps both, and reading the waveforms at the right offset depends on it.
+**A file's pattern count has two sources.** The order table points to the highest pattern a song plays.
+The room between the header and the waveforms holds however many patterns were stored. The reader takes the
+larger of the two, which keeps both, and needs that count to find the waveforms at the right offset.
 
 ## Order list
 
-The header states how many positions play in one byte at offset 470, and the table occupies its full 128
-bytes whatever the count, one byte to a position naming a pattern. A song plays from its first position
-through to the count, and starts again at the beginning.
+The header gives the number of positions that play in one byte at offset 470. The table always occupies its
+full 128 bytes, and each byte is the number of the pattern at that position. A song plays from its first
+position through to the count, and then starts again at the beginning.
 
-The parser draws a count past the 128 the table holds back to it, drops a position naming a pattern the
-file leaves out, and reports both.
+The parser moves a count above the 128 the table holds back down to 128. It drops a position that points to
+a pattern missing from the file. It reports both.
 
 ## Patterns
 
-A pattern is 64 rows of one four-byte cell per channel, every one of them written whether it states
-anything or not. The cells are the whole of it — the stream opens straight into them and runs to the end
-of the grid — so a pattern costs 1024 bytes whatever it holds, and a reader takes it by arithmetic.
+A pattern is 64 rows with one four-byte cell per channel. Every cell is written, whether or not it holds
+anything. The stream starts directly with the cells and runs to the end of the grid, so a pattern takes
+1024 bytes whatever it holds, and a reader finds it by arithmetic.
 
-Each cell spreads its four columns across its four bytes:
+Each cell packs its four columns into its four bytes:
 
-| Byte | Bits | The cell states |
+| Byte | Bits | The cell holds |
 |---|---|---|
 | 0 | `0xF0` | the sample number's high nibble |
 | 0 | `0x0F` | the period's four high bits |
@@ -74,74 +74,75 @@ Each cell spreads its four columns across its four bytes:
 | 2 | `0x0F` | the effect command |
 | 3 | all | the effect parameter |
 
-Fifteen samples reach the low nibble alone, and the high one is what Amiga ProTracker spent on the
-sixteen slots it added. A run of cells ending before the grid does leaves the rest of the grid silent,
-which is what a player sounds there, and it is reported.
+Fifteen samples fit in the low nibble alone. Amiga ProTracker used the high nibble for the sixteen slots it
+added. A run of cells that ends before the grid does leaves the rest of the grid silent, which is how a
+player sounds it. The parser reports this.
 
 ### The note column
 
-The column holds an **Amiga period**: the divider the sound chip counts a sample out at, so the column
-states a pitch and nothing else. Three octaves are tabulated, 856 down to 113, and those thirty-six keys
-are the whole of what this format's own trackers wrote. The twelve bits a cell leaves for the field reach
-further, at shared keys 21 to 119, so a file stating a scaled period is read at the key it names.
+The column holds an **Amiga period**: the divider the sound chip plays a sample out at, so the column is
+purely a pitch. Three octaves are tabulated, 856 down to 113, and those thirty-six keys are all this
+format's own trackers wrote. The twelve bits a cell allows for the field reach further, to shared keys 21
+to 119, so a file with a scaled period is read at the key that period names.
 
-Each tracker of this family wrote its own table and they disagree in the last digit, so a period is read
-as the key it comes closest to, and a pattern reports once how many it drew. A period further than half a
-semitone from every key states a pitch outside the octaves tabulated, and reads as an absent note.
+Each tracker of this family wrote its own table, and the tables differ in the last digit. The reader
+therefore maps a period to the key it comes closest to, and a pattern reports once how many periods it
+moved. A period further than half a semitone from every key is a pitch outside the tabulated octaves and
+reads as an absent note.
 
 ### The instrument column
 
-The column is **one-based**: the two nibbles join into a sample number, `n` naming position `n - 1`, and
-`0` leaves the channel on the sample it already plays. A cell naming a sample past the fifteen the file
-holds carries its channel on, and it is reported.
+The column is **one-based**: the two nibbles join into a sample number `n`, which points to position `n - 1`.
+The value `0` leaves the channel on the sample it already plays. A cell that names a sample past the
+fifteen the file holds is read as naming none, so its channel keeps its current sample, and the parser
+reports it.
 
 ## Samples
 
-A 30-byte sample record states a 22-byte name, a length, a finetune, a volume and one loop — the same
-record Amiga ProTracker kept. **The length counts pairs of frames**, so a record states half the byte
-count of a waveform, which is eight-bit and one channel throughout. A module writes all fifteen records
-whether a song fills them or leaves them empty, which is what makes one more sample cost its frames and
-nothing else.
+A 30-byte sample record holds a 22-byte name, a length, a finetune, a volume and one loop. Amiga ProTracker
+kept the same record. **The length counts pairs of frames**, so a record holds half the byte count of a
+waveform, which is eight-bit and one channel throughout. A module writes all fifteen records, whether the
+song fills them or leaves them empty, so one more sample costs its frames and nothing else.
 
-**A loop begins at a byte here**, where the trackers after this one counted the same field in pairs, and
-its length counts pairs in both. A loop length of one pair says a sample plays through once, so a loop
-runs from two pairs up, and writing one takes its end on to the pair closing it, which keeps every frame
-it repeats inside the region the record names.
+**A loop start is counted in bytes here.** The trackers after this one count the same field in pairs. The
+loop length counts pairs in both. A loop length of one pair means the sample plays through once, so a real
+loop is at least two pairs long. When writing a loop, the writer extends its end to the pair that closes
+it, which keeps every frame the loop repeats inside the region the record names.
 
-The parser draws a loop reaching past the frames the file holds inside them, holds a volume past full at
-full, and reports both.
+The parser moves a loop that reaches past the frames the file holds back inside them and sets a volume
+above full to full. It reports both.
 
-The trackers of this format shipped a sample library and wrote the name a waveform came from into the
-record, so a slot holding no waveform still carries text a file means to keep. A song therefore holds
-every slot up to the last one that states anything at all — a waveform, a name, or a cell naming it.
+The trackers of this format shipped a sample library and wrote the source name of each waveform into its
+record, so a slot without a waveform can still hold text the file means to keep. A song therefore holds
+every slot up to the last one that has anything in it: a waveform, a name, or a cell that names it.
 
 ### Tuning
 
-The finetune byte is written zero, and every sample plays its own key at the untrimmed 8363 Hz. Amiga
-ProTracker is where the field grew its sixteen rows of periods an eighth of a semitone apart, and the
-byte is read on that lattice here, so a file stating one keeps what it stated and a rate recorded off the
-lattice is graded against it.
+The writer sets the finetune byte to zero, and every sample plays its own key at the untrimmed 8363 Hz.
+Amiga ProTracker grew the field into sixteen rows of periods an eighth of a semitone apart. This format
+reads the byte on that same lattice, so a file that sets one keeps it, and a rate recorded off the lattice
+is graded against it.
 
 ## Later additions
 
-The trackers that followed Ultimate Soundtracker wrote this same layout and spent the effect nibble
-further, which is where `B`, `C`, `D` and `F` below arrive. They state nothing about themselves, so a
-file gives no way to tell which of them wrote it, and a cell holding a command none of them numbered
-keeps the bytes it carries for whoever knows.
+The trackers that followed Ultimate Soundtracker wrote this same layout and used more of the effect nibble,
+which is where `B`, `C`, `D` and `F` below come from. Their files look identical, so a file cannot show
+which of them wrote it. A cell that holds a command none of them numbered keeps its bytes, for whoever
+knows what they mean.
 
-The byte after the order count is where these trackers wrote a speed of their own, in units each read
-its own way. A file's byte is kept in this format's settings and written back as it stood, and a song
-built from nothing states the 120 every module of this format opens on.
+The byte after the order count is where these trackers wrote a speed of their own, in units that each
+tracker read its own way. The format keeps a file's byte in its settings and writes it back as it stood. A
+song built from nothing gets the 120 that every module of this format opens on.
 
 ## Timing
 
-The clock is the machine's. A module runs at the one every tracker of this family runs at — six ticks a
-row at 125 beats per minute — and a row lasts `speed × 5 / (2 × tempo)` seconds, so at 44100 Hz and speed
-1 the shortest whole-frame row this format reaches is 441 frames.
+The clock is the machine's. A module runs at the clock every tracker of this family uses: six ticks a row
+at 125 beats per minute. A row lasts `speed × 5 / (2 × tempo)` seconds, so at 44100 Hz and speed 1 the
+shortest whole-frame row this format reaches is 882 frames, because the tempo stays at 125.
 
-This format's capacities pin those two values at 6 and 125, so a song asking to start anywhere else is
-told so, which keeps the clock it asked for visible. What a mid-song `F` may reach is the five bits a
-player reads it in.
+This format's capacities fix those two values at 6 and 125. A song that asks to start at other values is
+reported against those bounds, and the report shows the clock it asked for. A mid-song `F` can reach only
+the five bits a player reads it in.
 
 ## What this format carries
 
@@ -185,14 +186,14 @@ player reads it in.
 | A song whose cells name instruments | `ValueError` |
 | A quantity past a bound | `LimitError` |
 
-Twelve rows, one below [Amiga ProTracker's](mod.md) thirteen: the two the newer layout adds are met
-while reading a tag, and the one this layout adds is its own — the header states where a song starts and
-nothing about where it resumes.
-[`limits.md`](../reference/limits.md) states the bounds behind the last of them.
+This table has twelve rows, one fewer than [Amiga ProTracker's](mod.md) thirteen. Amiga ProTracker adds two
+rows for the tag, which come up while reading. This format adds one row of its own, because its header
+gives where a song starts and nothing about where it resumes.
+[`limits.md`](../reference/limits.md) lists the bounds behind the last row.
 
 ## Effect commands
 
-A command is one nibble printed as `0`–`9` and then `A` onward, followed by one parameter byte.
+An effect command is one nibble, written `0`–`9` and then `A` onward. One parameter byte follows it.
 
 | | | |
 |---|---|---|
@@ -200,13 +201,13 @@ A command is one nibble printed as `0`–`9` and then `A` onward, followed by on
 | `1` portamento up | `B` position jump | `D` pattern break |
 | | | `F` set speed |
 
-Seven of the sixteen the nibble reaches, which is what makes this the smallest command set here. Amiga
-ProTracker filled the rest and kept these seven at the numbers they hold, so a song written under either
-reads the same. `D` reads its parameter a decimal digit to each nibble, so a break to row 16 is stored as
-`0x16`.
+The set uses seven of the sixteen values the nibble can hold, which makes it the smallest command set of the
+five formats. Amiga ProTracker filled the rest and kept these seven at the same numbers, so a song reads
+the same under either. `D` reads its parameter as one decimal digit per nibble, so a break to row 16 is
+stored as `0x16`.
 
-`F` sets the ticks a row lasts and nothing else. The second half Amiga ProTracker gave it — a parameter
-at or above `0x20` setting the beats per minute — arrived with that format, along with `A`, the `E`
-sub-commands, and the rest of the vocabulary.
+Here `F` only sets the ticks a row lasts. Amiga ProTracker added the second half of it: a parameter at or
+above `0x20` sets the beats per minute. That format also introduced `A`, the `E` sub-commands and the rest
+of the vocabulary.
 
-See [`effects.md`](../reference/effects.md) for the shared vocabulary these spell.
+See [`effects.md`](../reference/effects.md) for the shared vocabulary these commands spell.
