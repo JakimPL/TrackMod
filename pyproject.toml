@@ -1,6 +1,6 @@
 [project]
 name = "trackmod"
-version = "0.2.1"
+version = "0.2.0"
 description = "Read, write and convert tracker music modules: Impulse Tracker, FastTracker 2, ProTracker, Scream Tracker 3 and Soundtracker"
 readme = "README.md"
 requires-python = ">=3.12"
